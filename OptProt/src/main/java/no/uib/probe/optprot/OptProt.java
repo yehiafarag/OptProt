@@ -1,35 +1,16 @@
 package no.uib.probe.optprot;
 
-import com.compomics.util.experiment.identification.matches.SpectrumMatch;
-import com.compomics.util.experiment.io.identification.IdfileReader;
-import com.compomics.util.experiment.io.identification.IdfileReaderFactory;
-import com.compomics.util.experiment.io.mass_spectrometry.MsFileHandler;
-import com.compomics.util.io.IoUtil;
-import com.compomics.util.io.file.filefilters.FastaFileFilter;
-import com.compomics.util.parameters.UtilitiesUserParameters;
 import com.compomics.util.parameters.identification.IdentificationParameters;
 import com.compomics.util.parameters.identification.search.DigestionParameters;
-import com.compomics.util.parameters.identification.search.SearchParameters;
-import com.compomics.util.parameters.searchgui.OutputParameters;
 import com.compomics.util.parameters.tools.ProcessingParameters;
-import eu.isas.searchgui.SearchHandler;
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Set;
 import javax.swing.SwingUtilities;
-import javax.xml.bind.JAXBException;
-import javax.xml.stream.XMLStreamException;
-import no.uib.probe.optprot.model.Configurations;
-import no.uib.probe.optprot.model.SearchEngineParameters;
-import no.uib.probe.optprot.search.SubSearchHandler;
-import no.uib.probe.optprot.util.OptProtWaitingHandler;
+import no.uib.probe.optprot.model.SearchOptimizerParameters;
+import no.uib.probe.optprot.search.SearchOptimizerHandler;
 import no.uib.probe.optprot.util.SpectraFileUtilities;
-import org.xmlpull.v1.XmlPullParserException;
 
 /**
  * This app is search settings optimization workflow that aim to optimize search
@@ -39,88 +20,82 @@ import org.xmlpull.v1.XmlPullParserException;
  */
 public class OptProt {
 
-    /**
-     * The identification settings file.
-     */
-    private File identificationParametersFile;
+    private final SearchOptimizerHandler subSearchHandler;
 
-    /**
-     * The search parameters.
-     */
-    private IdentificationParameters identificationParameters = null;
+    public OptProt(File identificationParametersFile, File oreginalFastaFile, ArrayList<File> msFiles) {
 
-    /**
-     * The processing preferences.
-     */
-    private ProcessingParameters processingParameters;
+        this.subSearchHandler = new SearchOptimizerHandler();
+        this.subSearchHandler.setIdentificationParametersFile(identificationParametersFile);
 
-    private final SubSearchHandler subSearchHandler;
-
-    public OptProt() {
-        this.identificationParametersFile = new File("D:\\Apps\\OptProt\\data\\searchparam.par");
-        if (this.identificationParametersFile == null) {
-            if (identificationParametersFile == null) {
-                try {
-                    String name = identificationParameters.getName();
-                    if (name == null) {
-                        name = "SearchCLI.par";
-                    } else {
-                        name += ".par";
-
-                    }
-//                    identificationParametersFile = new File(Configurations.CONFIG_FOLDER, name);
-                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-            }
-
-        }
-        ArrayList<File> msList = initSubSet();
-        File fasta = initFastaFile();
-        this.subSearchHandler = new SubSearchHandler(identificationParametersFile, msList, fasta);
         long start1 = System.currentTimeMillis();
-        this.subSearchHandler.execute(DigestionParameters.getDefaultParameters());
+         File subMGFFile = new File("D:\\Apps\\OptProt\\data\\sub_mgf_file.mgf");
+        subSearchHandler.setSubMsFile(subMGFFile);//initSpectraSubSet(msFiles));
+        subSearchHandler.setSubFastaFile(oreginalFastaFile);
+        File subFasta = new File("D:\\Apps\\OptProt\\data\\sub_fasta_file.fasta");// initSubFastaFile(oreginalFastaFile, subSearchHandler.excuteNovorSearches());
+        subSearchHandler.setSubFastaFile(subFasta);
+//     
+        SearchOptimizerParameters searchOpParameter=this.initSearchOptimizerParameters();
+        searchOpParameter.setRunXTandem(true);
+        searchOpParameter.setOptimizeDigestionParameter(true);
+        searchOpParameter.setOptimizeEnzymeParameter(false);
+        searchOpParameter.setOptimizeSpecificityParameter(false);
+        searchOpParameter.setOptimizeMaxMissCleavagesParameter(false);
+        searchOpParameter.setOptimizeFragmentIonTypesParameter(false);
+        searchOpParameter.setOptimizePrecursorToleranceParameter(true);
+         searchOpParameter.setOptimizeFragmentToleranceParameter(true);
+        this.subSearchHandler.executeParametersOptimization(searchOpParameter);
         long end1 = System.currentTimeMillis();
         double total = (end1 - start1) / 1000.0;
         System.out.println("-------------------------------------------------------------------->>>>>>>>>>>>>>>>>> Elapsed Time in nano seconds: " + total + "   " + (total / 3));
     }
 
-    private ArrayList<File> initSubSet() {
-        ArrayList<File> msFiles = new ArrayList<>();
-        File sampleMgf = new File("D:\\Apps\\OptProt\\data\\sample.mgf");
+    private File initSpectraSubSet(ArrayList<File> msFiles) {
+
+        File oreginalMGFFile = msFiles.get(0);
         try {
-            File subSampleMgf = new File("D:\\Apps\\OptProt\\data\\sub_sample.mgf");
-            if (subSampleMgf.exists()) {
-                subSampleMgf.delete();
-                File subSampleCMS = new File("D:\\Apps\\OptProt\\data\\sub_sample.cms");
+            File subMGFFile = new File("D:\\Apps\\OptProt\\data\\sub_mgf_file.mgf");
+            if (subMGFFile.exists()) {
+                subMGFFile.delete();
+                File subSampleCMS = new File("D:\\Apps\\OptProt\\data\\sub_mgf_file.cms");
                 subSampleCMS.delete();
             } else {
-                subSampleMgf.createNewFile();
+                subMGFFile.createNewFile();
             }
 //            SpectraFileUtilities.writeSubSetEveryNMgfFile(sampleMgf, subSampleMgf,500.0);
-            SpectraFileUtilities.writeSubSetTargtedFileAreaMgfFile(sampleMgf, subSampleMgf, 250.0);
-            msFiles.add(subSampleMgf);
+            SpectraFileUtilities.writeSubSetTargtedFileAreaMgfFile(oreginalMGFFile, subMGFFile, 250);
+            return subMGFFile;
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-        return msFiles;
+        return oreginalMGFFile;
     }
 
-    private File initFastaFile() {
-        File fastaFile = new File("D:\\Apps\\OptProt\\data\\sample.fasta");
-        File subFastaFile = new File("D:\\Apps\\OptProt\\data\\sub_sample.fasta");
+    private File initSubFastaFile(File fastaFile, Set<String> sequences) {
+
+        File subFastaFile = new File("D:\\Apps\\OptProt\\data\\sub_fasta_file.fasta");
         if (subFastaFile.exists()) {
             subFastaFile.delete();
         }
-        SpectraFileUtilities.createSubFastaFile(fastaFile, subFastaFile,false);
+        SpectraFileUtilities.createSubFastaFile(fastaFile, subFastaFile, sequences);
+//        SpectraFileUtilities.createSubFastaFile(fastaFile, subFastaFile,true);
         return subFastaFile;
 
+    }
+    
+    private SearchOptimizerParameters initSearchOptimizerParameters (){
+      SearchOptimizerParameters searchOptimizerParameters = new SearchOptimizerParameters();
+        searchOptimizerParameters.setxTandemFolder(new File("D:\\Apps\\searchgui\\resources\\XTandem\\windows\\windows_64bit"));
+        searchOptimizerParameters.setNovorFolder(new File("D:\\Apps\\searchgui\\resources\\Novor"));
+        searchOptimizerParameters.setCometFolder(new File("D:\\Apps\\searchgui\\resources\\Comet\\windows"));
+        return searchOptimizerParameters;
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            OptProt optProt = new OptProt();
+            ArrayList<File> msFiles = new ArrayList<>();
+            File oreginalMGFFile = new File("D:\\Apps\\OptProt\\data\\sample.mgf");
+            msFiles.add(oreginalMGFFile);
+            OptProt optProt = new OptProt(new File("D:\\Apps\\OptProt\\data\\searchparam.par"), new File("D:\\Apps\\OptProt\\data\\sample.fasta"), msFiles);
 
         });
     }

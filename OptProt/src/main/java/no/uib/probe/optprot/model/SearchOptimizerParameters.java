@@ -10,39 +10,106 @@ import java.io.File;
  *
  * @author yfa041
  */
-public class SearchEngineParameters {
-     private boolean runOmssa = false;
-            private boolean runXTandem = true;
-            private boolean runMsgf = false;
-            private boolean runMsAmanda = false;
-            private boolean runMyriMatch = false;
-            private boolean runComet = false;
-            private boolean runTide = false;
-            private boolean runAndromeda = false;
-            private boolean runMetaMorpheus = false;
-            private boolean runSage = false;
-            private boolean runNovor = false;
-            private boolean runDirecTag = false;
-            private File omssaFolder = null;
-            private File xTandemFolder =null;
-            private File msgfFolder = null;
-            private File msAmandaFolder = null;
-            private File myriMatchFolder = null;
-            private File cometFolder = null;
-            private File tideFolder = null;
-            private File tideIndexLocation = null;
-            private File andromedaFolder = null;
-            private File metaMorpheusFolder = null;
-            private File sageFolder = new File("D:\\Apps\\OptProt\\data\\saga");
-            private File novorFolder = null;
-            private File direcTagFolder = null;
-            private File makeblastdbFolder = null;
+public class SearchOptimizerParameters {
+
+    private boolean runOmssa = false;
+    private boolean runXTandem = true;
+    private boolean runMsgf = false;
+    private boolean runMsAmanda = false;
+    private boolean runMyriMatch = false;
+    private boolean runComet = false;
+    private boolean runTide = false;
+    private boolean runAndromeda = false;
+    private boolean runMetaMorpheus = false;
+    private boolean runSage = false;
+    private boolean runNovor = false;
+    private boolean runDirecTag = false;
+    private File omssaFolder = null;
+    private File xTandemFolder = null;
+    private File msgfFolder = null;
+    private File msAmandaFolder = null;
+    private File myriMatchFolder = null;
+    private File cometFolder = null;
+    private File tideFolder = null;
+    private File tideIndexLocation = null;
+    private File andromedaFolder = null;
+    private File metaMorpheusFolder = null;
+    private File sageFolder;
+    private File novorFolder = null;
+    private File direcTagFolder = null;
+    private File makeblastdbFolder = null;
+
+    //parameter to optimise
+    private boolean optimizeDigestionParameter;
+    private boolean optimizeEnzymeParameter;
+    private boolean optimizeSpecificityParameter;
+    private boolean optimizeMaxMissCleavagesParameter;
+    private boolean optimizeFragmentIonTypesParameter;
+    private boolean optimizePrecursorToleranceParameter;
+    private boolean optimizeFragmentToleranceParameter;
+
+    public boolean isOptimizeFragmentToleranceParameter() {
+        return optimizeFragmentToleranceParameter;
+    }
+
+    public void setOptimizeFragmentToleranceParameter(boolean optimizeFragmentToleranceParameter) {
+        this.optimizeFragmentToleranceParameter = optimizeFragmentToleranceParameter;
+    }
+
+    public boolean isOptimizePrecursorToleranceParameter() {
+        return optimizePrecursorToleranceParameter;
+    }
+
+    public void setOptimizePrecursorToleranceParameter(boolean optimizePrecursorToleranceParameter) {
+        this.optimizePrecursorToleranceParameter = optimizePrecursorToleranceParameter;
+    }
+
+    public boolean isOptimizeDigestionParameter() {
+        return optimizeDigestionParameter;
+    }
+
+    public void setOptimizeDigestionParameter(boolean optimizeDigestionParameter) {
+        this.optimizeDigestionParameter = optimizeDigestionParameter;
+    }
+
+    public boolean isOptimizeEnzymeParameter() {
+        return optimizeEnzymeParameter;
+    }
+
+    public void setOptimizeEnzymeParameter(boolean optimizeEnzymeParameter) {
+        this.optimizeEnzymeParameter = optimizeEnzymeParameter;
+    }
+
+    public boolean isOptimizeSpecificityParameter() {
+        return optimizeSpecificityParameter;
+    }
+
+    public void setOptimizeSpecificityParameter(boolean optimizeSpecificityParameter) {
+        this.optimizeSpecificityParameter = optimizeSpecificityParameter;
+    }
+
+    public boolean isOptimizeMaxMissCleavagesParameter() {
+        return optimizeMaxMissCleavagesParameter;
+    }
+
+    public void setOptimizeMaxMissCleavagesParameter(boolean optimizeMaxMissCleavagesParameter) {
+        this.optimizeMaxMissCleavagesParameter = optimizeMaxMissCleavagesParameter;
+    }
+
+    public boolean isOptimizeFragmentIonTypesParameter() {
+        return optimizeFragmentIonTypesParameter;
+    }
+
+    public void setOptimizeFragmentIonTypesParameter(boolean optimizeFragmentIonTypesParameter) {
+        this.optimizeFragmentIonTypesParameter = optimizeFragmentIonTypesParameter;
+    }
 
     public boolean isRunOmssa() {
         return runOmssa;
     }
 
     public void setRunOmssa(boolean runOmssa) {
+        resetActiveSearchEngines();
         this.runOmssa = runOmssa;
     }
 
@@ -51,6 +118,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunXTandem(boolean runXTandem) {
+        resetActiveSearchEngines();
         this.runXTandem = runXTandem;
     }
 
@@ -59,6 +127,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunMsgf(boolean runMsgf) {
+        resetActiveSearchEngines();
         this.runMsgf = runMsgf;
     }
 
@@ -67,6 +136,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunMsAmanda(boolean runMsAmanda) {
+        resetActiveSearchEngines();
         this.runMsAmanda = runMsAmanda;
     }
 
@@ -75,6 +145,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunMyriMatch(boolean runMyriMatch) {
+        resetActiveSearchEngines();
         this.runMyriMatch = runMyriMatch;
     }
 
@@ -83,6 +154,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunComet(boolean runComet) {
+        resetActiveSearchEngines();
         this.runComet = runComet;
     }
 
@@ -91,6 +163,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunTide(boolean runTide) {
+        resetActiveSearchEngines();
         this.runTide = runTide;
     }
 
@@ -107,6 +180,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunMetaMorpheus(boolean runMetaMorpheus) {
+        resetActiveSearchEngines();
         this.runMetaMorpheus = runMetaMorpheus;
     }
 
@@ -115,6 +189,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunSage(boolean runSage) {
+        resetActiveSearchEngines();
         this.runSage = runSage;
     }
 
@@ -123,6 +198,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunNovor(boolean runNovor) {
+        resetActiveSearchEngines();
         this.runNovor = runNovor;
     }
 
@@ -131,6 +207,7 @@ public class SearchEngineParameters {
     }
 
     public void setRunDirecTag(boolean runDirecTag) {
+        resetActiveSearchEngines();
         this.runDirecTag = runDirecTag;
     }
 
@@ -139,6 +216,7 @@ public class SearchEngineParameters {
     }
 
     public void setOmssaFolder(File omssaFolder) {
+        
         this.omssaFolder = omssaFolder;
     }
 
@@ -244,5 +322,21 @@ public class SearchEngineParameters {
 
     public void setMakeblastdbFolder(File makeblastdbFolder) {
         this.makeblastdbFolder = makeblastdbFolder;
+    }
+
+    private void resetActiveSearchEngines() {
+        runOmssa = false;
+        runXTandem = true;
+        runMsgf = false;
+        runMsAmanda = false;
+        runMyriMatch = false;
+        runComet = false;
+        runTide = false;
+        runAndromeda = false;
+        runMetaMorpheus = false;
+        runSage = false;
+        runNovor = false;
+        runDirecTag = false;
+
     }
 }
