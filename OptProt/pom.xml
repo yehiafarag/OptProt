@@ -12,9 +12,14 @@
         <exec.mainClass>no.uib.probe.optprot.OptProt</exec.mainClass>
         <utilities.version>5.1.8</utilities.version>
         <searchgui.version>4.3.7-beta</searchgui.version>
+        <peptideshaker.version>3.0.6</peptideshaker.version>
     </properties>
     <dependencies>
-
+        <dependency>
+            <groupId>eu.isas.peptideshaker</groupId>
+            <artifactId>PeptideShaker</artifactId>
+            <version>${peptideshaker.version}</version>
+        </dependency>
         <dependency>
             <groupId>eu.isas.searchgui</groupId>
             <artifactId>SearchGUI</artifactId>

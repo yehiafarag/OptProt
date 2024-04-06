@@ -5,15 +5,17 @@
 package no.uib.probe.optprot.model;
 
 import java.io.File;
+import no.uib.probe.optprot.search.xtandam.OptProtXtandemAdvancedSearchParameter;
+import no.uib.probe.optprot.search.xtandam.XTandemEnabledParameters;
 
 /**
  *
  * @author yfa041
  */
-public class SearchOptimizerParameters {
+public class OptProtSearchParameters {
 
     private boolean runOmssa = false;
-    private boolean runXTandem = true;
+    private boolean runXTandem = false;
     private boolean runMsgf = false;
     private boolean runMsAmanda = false;
     private boolean runMyriMatch = false;
@@ -47,6 +49,47 @@ public class SearchOptimizerParameters {
     private boolean optimizeFragmentIonTypesParameter;
     private boolean optimizePrecursorToleranceParameter;
     private boolean optimizeFragmentToleranceParameter;
+    private boolean optimizeIsotopsParameter;
+    private boolean optimizeVariableModificationParameter;
+    private boolean recalibrateSpectraParameter;
+    private boolean optimizeXtandemAdvancedParameter;
+    
+    private final OptProtXtandemAdvancedSearchParameter xtandemOptProtAdvancedSearchParameters=new OptProtXtandemAdvancedSearchParameter();
+
+    public boolean isOptimizeXtandemAdvancedParameter() {
+        return optimizeXtandemAdvancedParameter;
+    }
+
+    public void setOptimizeXtandemAdvancedParameter(boolean optimizeXtandemAdvancedParameter) {
+        this.optimizeXtandemAdvancedParameter = optimizeXtandemAdvancedParameter;
+    }
+
+    public boolean isRecalibrateSpectraParameter() {
+        return recalibrateSpectraParameter;
+    }
+
+    public void setRecalibrateSpectraParameter(boolean recalibrateSpectraParameter) {
+        this.recalibrateSpectraParameter = recalibrateSpectraParameter;
+    }
+
+    private XTandemEnabledParameters XTandemEnabledParameters = new XTandemEnabledParameters();
+
+    public XTandemEnabledParameters getXTandemEnabledParameters() {
+        return XTandemEnabledParameters;
+    }
+
+    public void setXTandemEnabledParameters(XTandemEnabledParameters XTandemEnabledParameters) {
+        this.XTandemEnabledParameters = XTandemEnabledParameters;
+    }
+
+    public boolean isOptimizeVariableModificationParameter() {
+        return optimizeVariableModificationParameter;
+    }
+
+    public void setOptimizeVariableModificationParameter(boolean optimizeVariableModificationParameter) {
+        this.optimizeVariableModificationParameter = optimizeVariableModificationParameter;
+    }
+    private boolean optimizePrecursorChargeParameter;
 
     public boolean isOptimizeFragmentToleranceParameter() {
         return optimizeFragmentToleranceParameter;
@@ -216,7 +259,7 @@ public class SearchOptimizerParameters {
     }
 
     public void setOmssaFolder(File omssaFolder) {
-        
+
         this.omssaFolder = omssaFolder;
     }
 
@@ -326,7 +369,7 @@ public class SearchOptimizerParameters {
 
     private void resetActiveSearchEngines() {
         runOmssa = false;
-        runXTandem = true;
+        runXTandem = false;
         runMsgf = false;
         runMsAmanda = false;
         runMyriMatch = false;
@@ -338,5 +381,25 @@ public class SearchOptimizerParameters {
         runNovor = false;
         runDirecTag = false;
 
+    }
+
+    public boolean isOptimizePrecursorChargeParameter() {
+        return optimizePrecursorChargeParameter;
+    }
+
+    public void setOptimizePrecursorChargeParameter(boolean optimizePrecursorChargeParameter) {
+        this.optimizePrecursorChargeParameter = optimizePrecursorChargeParameter;
+    }
+
+    public boolean isOptimizeIsotopsParameter() {
+        return optimizeIsotopsParameter;
+    }
+
+    public void setOptimizeIsotopsParameter(boolean optimizeIsotopsParameter) {
+        this.optimizeIsotopsParameter = optimizeIsotopsParameter;
+    }
+
+    public OptProtXtandemAdvancedSearchParameter getXtandemOptProtAdvancedSearchParameters() {
+        return xtandemOptProtAdvancedSearchParameters;
     }
 }
