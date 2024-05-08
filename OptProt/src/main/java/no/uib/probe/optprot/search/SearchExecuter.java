@@ -4,15 +4,16 @@
  */
 package no.uib.probe.optprot.search;
 
-import com.compomics.util.experiment.biology.modifications.ModificationCategory;
 import com.compomics.util.experiment.biology.modifications.ModificationFactory;
+import com.compomics.util.experiment.identification.Advocate;
 import com.compomics.util.parameters.identification.IdentificationParameters;
+import com.compomics.util.parameters.identification.tool_specific.XtandemParameters;
 import eu.isas.searchgui.SearchHandler;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import no.uib.probe.optprot.configurations.Configurations;
-import no.uib.probe.optprot.model.OptProtSearchParameters;
+import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.util.MainUtilities;
 
 /**
@@ -29,27 +30,38 @@ public class SearchExecuter {
     /**
      *
      * @param processId
-     * @param searchEngineParameters
+     * @param searchInputSetting
      * @param msFile
      * @param fastaFile
      * @param tempIdParam
      * @param identificationParametersFile
      * @return results Folder
      */
-    public synchronized static File executeSearch(String processId, OptProtSearchParameters searchEngineParameters, File msFile, File fastaFile, IdentificationParameters tempIdParam, File identificationParametersFile) {
-
-        if (searchEngineParameters.isRunNovor()||searchEngineParameters.isRunDirecTag()) {
+    public synchronized static File executeSearch(String processId, SearchInputSetting searchInputSetting, File msFile, File fastaFile, IdentificationParameters tempIdParam, File identificationParametersFile) {
+        
+        if (searchInputSetting.isRunNovor() || searchInputSetting.isRunDirecTag()) {
             //remove terminal variable modifications andd add common before run novor         
             List<String> toRemoveMod = new ArrayList<>();
             for (String mod : tempIdParam.getSearchParameters().getModificationParameters().getVariableModifications()) {
                 if (ptmFactory.getModification(mod).getModificationType().isNTerm() || ptmFactory.getModification(mod).getModificationType().isCTerm()) {
-                    System.out.println("terminal : "+mod);
+                    System.out.println("terminal : " + mod);
                     toRemoveMod.add(mod);
                 }
             }
             for (String mod : toRemoveMod) {
                 tempIdParam.getSearchParameters().getModificationParameters().removeVariableModification(mod);
             }
+        }
+        if (searchInputSetting.isRunXTandem()) {
+            XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
+            xtandemParameters.setOutputResults("valid");
+            xtandemParameters.setMaxEValue(0.01);            
+            if (processId.contains("reference_run_")) {
+                xtandemParameters.setProteinQuickAcetyl(false);
+                xtandemParameters.setStpBias(false);
+                xtandemParameters.setRefine(false);
+            }
+//            
         }
         File resultOutput = new File(Configurations.OUTPUT_FOLDER_PATH, processId);
         resultOutput.mkdir();
@@ -62,42 +74,44 @@ public class SearchExecuter {
         SearchHandler searchHandler = new SearchHandler(tempIdParam, resultOutput, tempSearchEngineFolder, processId, msFileInList,
                 fastaFile, new ArrayList<>(),
                 identificationParametersFile,
-                searchEngineParameters.isRunOmssa(),
-                searchEngineParameters.isRunXTandem(),
-                searchEngineParameters.isRunMsgf(),
-                searchEngineParameters.isRunMsAmanda(),
-                searchEngineParameters.isRunMyriMatch(),
-                searchEngineParameters.isRunComet(),
-                searchEngineParameters.isRunTide(),
-                searchEngineParameters.isRunAndromeda(),
-                searchEngineParameters.isRunMetaMorpheus(),
-                searchEngineParameters.isRunSage(),
-                searchEngineParameters.isRunNovor(),
-                searchEngineParameters.isRunDirecTag(),
-                searchEngineParameters.getOmssaFolder(),
-                searchEngineParameters.getxTandemFolder(),
-                searchEngineParameters.getMsgfFolder(),
-                searchEngineParameters.getMsAmandaFolder(),
-                searchEngineParameters.getMyriMatchFolder(),
-                searchEngineParameters.getCometFolder(),
-                searchEngineParameters.getTideFolder(),
-                searchEngineParameters.getTideIndexLocation(),
-                searchEngineParameters.getAndromedaFolder(),
-                searchEngineParameters.getMetaMorpheusFolder(),
-                searchEngineParameters.getSageFolder(),
-                searchEngineParameters.getNovorFolder(),
-                searchEngineParameters.getDirecTagFolder(),
-                searchEngineParameters.getMakeblastdbFolder(),
+                searchInputSetting.isRunOmssa(),
+                searchInputSetting.isRunXTandem(),
+                searchInputSetting.isRunMsgf(),
+                searchInputSetting.isRunMsAmanda(),
+                searchInputSetting.isRunMyriMatch(),
+                searchInputSetting.isRunComet(),
+                searchInputSetting.isRunTide(),
+                searchInputSetting.isRunAndromeda(),
+                searchInputSetting.isRunMetaMorpheus(),
+                searchInputSetting.isRunSage(),
+                searchInputSetting.isRunNovor(),
+                searchInputSetting.isRunDirecTag(),
+                searchInputSetting.getOmssaFolder(),
+                searchInputSetting.getxTandemFolder(),
+                searchInputSetting.getMsgfFolder(),
+                searchInputSetting.getMsAmandaFolder(),
+                searchInputSetting.getMyriMatchFolder(),
+                searchInputSetting.getCometFolder(),
+                searchInputSetting.getTideFolder(),
+                searchInputSetting.getTideIndexLocation(),
+                searchInputSetting.getAndromedaFolder(),
+                searchInputSetting.getMetaMorpheusFolder(),
+                searchInputSetting.getSageFolder(),
+                searchInputSetting.getNovorFolder(),
+                searchInputSetting.getDirecTagFolder(),
+                searchInputSetting.getMakeblastdbFolder(),
                 MainUtilities.getProcessingParameter()
         );
+        
         try {
-         
             searchHandler.startSearch(MainUtilities.OptProt_Waiting_Handler);
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
         File resultsFile = searchHandler.getResultsFolder();
+        MainUtilities.deleteFolder(tempSearchEngineFolder);
+        
         return resultsFile;
-
+        
     }
 }

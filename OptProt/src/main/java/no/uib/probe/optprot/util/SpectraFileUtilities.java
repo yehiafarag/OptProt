@@ -4,6 +4,7 @@ import com.compomics.util.experiment.biology.proteins.Protein;
 import com.compomics.util.experiment.identification.Advocate;
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import com.compomics.util.experiment.identification.protein_inference.fm_index.FMIndex;
+import com.compomics.util.experiment.identification.spectrum_assumptions.PeptideAssumption;
 import com.compomics.util.experiment.identification.spectrum_assumptions.TagAssumption;
 import com.compomics.util.experiment.io.biology.protein.Header;
 import com.compomics.util.experiment.io.biology.protein.iterators.FastaIterator;
@@ -16,6 +17,8 @@ import com.compomics.util.io.IoUtil;
 import com.compomics.util.parameters.identification.IdentificationParameters;
 import com.compomics.util.parameters.identification.search.SearchParameters;
 import com.compomics.util.parameters.identification.tool_specific.DirecTagParameters;
+import com.compomics.util.parameters.identification.tool_specific.MyriMatchParameters;
+import eu.isas.searchgui.SearchHandler;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -34,7 +37,7 @@ import java.util.logging.Logger;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 import no.uib.probe.optprot.configurations.Configurations;
-import no.uib.probe.optprot.model.OptProtSearchParameters;
+import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.search.SearchExecuter;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -44,10 +47,10 @@ import org.xmlpull.v1.XmlPullParserException;
  */
 public class SpectraFileUtilities {
 
-    private final OptProtSearchParameters searchOptimizerParameters;
+    private final SearchInputSetting searchOptimizerParameters;
 
     public SpectraFileUtilities() {
-        searchOptimizerParameters = SearchOptimizerUtilities.initSearchOptimizerParameters();
+        searchOptimizerParameters = new SearchInputSetting();
     }
 
     private File resultsFolder;
@@ -56,7 +59,9 @@ public class SpectraFileUtilities {
     private File oreginalIdentificationFile;
     private IdentificationParameters identificationParameters;
     private int startIndex = 0;
-    private final Map<String, Spectrum> spectrumMap = new LinkedHashMap<>();;
+    private final Map<String, Spectrum> spectrumMap = new LinkedHashMap<>();
+
+    ;
 
     public File[] initInputSubSetFiles(File msFile, File fastaFile, File identificationParametersFile, int fullSpectrumSize) {
         try {
@@ -87,7 +92,6 @@ public class SpectraFileUtilities {
                 /**
                  * ***
                  */
-                
                 MsFileHandler msFileHandler = new MsFileHandler();
                 msFileHandler.register(msFile, new OptProtWaitingHandler());
                 String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
@@ -99,7 +103,7 @@ public class SpectraFileUtilities {
                 direcTagParameters.setNumChargeStates(4);
                 searchOptimizerParameters.setRunDirecTag(true);
 //               
-                
+
                 int step = spectrumTitles.length / (fullSpectrumSize);
                 step = step / 4;
                 while (spectrumMap.size() < fullSpectrumSize) {
@@ -254,28 +258,28 @@ public class SpectraFileUtilities {
         return oreginalMsFile;
     }
 
-    private File subsetSpectraFile(File oreginalMsFile, boolean targtedArea) {
-        try {
-            File subMsFile = new File(oreginalMsFile.getParent(), Configurations.DEFAULT_RESULT_NAME + "_sub" + Configurations.get_current_file_fingerprent() + "_" + oreginalMsFile.getName());
-            if (subMsFile.exists()) {
-                subMsFile.delete();
-                File subSampleCMS = new File(oreginalMsFile.getParent(), subMsFile.getName().replace(".mgf", ".cms"));
-                subSampleCMS.delete();
-            } else {
-                subMsFile.createNewFile();
-            }
-
-            if (targtedArea) {
-                SpectraFileUtilities.writeSubSetTargtedFileAreaMgfFile(oreginalMsFile, subMsFile, Configurations.EXTRACT_MIN_MS_SIZE, Configurations.EXTRACT_MAX_MS_SIZE);
-            } else {
-                SpectraFileUtilities.writeSubSetEveryNMgfFile(oreginalMsFile, subMsFile, Configurations.EXTRACT_MIN_MS_SIZE, Configurations.EXTRACT_MAX_MS_SIZE);
-            }
-            return subMsFile;
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return oreginalMsFile;
-    }
+//    private File subsetSpectraFile(File oreginalMsFile, boolean targtedArea) {
+//        try {
+//            File subMsFile = new File(oreginalMsFile.getParent(), Configurations.DEFAULT_RESULT_NAME + "_sub" + Configurations.get_current_file_fingerprent() + "_" + oreginalMsFile.getName());
+//            if (subMsFile.exists()) {
+//                subMsFile.delete();
+//                File subSampleCMS = new File(oreginalMsFile.getParent(), subMsFile.getName().replace(".mgf", ".cms"));
+//                subSampleCMS.delete();
+//            } else {
+//                subMsFile.createNewFile();
+//            }
+//
+//            if (targtedArea) {
+//                SpectraFileUtilities.writeSubSetTargtedFileAreaMgfFile(oreginalMsFile, subMsFile, Configurations.EXTRACT_MIN_MS_SIZE, Configurations.EXTRACT_MAX_MS_SIZE);
+//            } else {
+//                SpectraFileUtilities.writeSubSetEveryNMgfFile(oreginalMsFile, subMsFile, Configurations.EXTRACT_MIN_MS_SIZE, Configurations.EXTRACT_MAX_MS_SIZE);
+//            }
+//            return subMsFile;
+//        } catch (IOException ex) {
+//            ex.printStackTrace();
+//        }
+//        return oreginalMsFile;
+//    }
 
     /**
      * Writes the spectra of a file in the Mascot Generic File (mgf) format.
@@ -690,7 +694,7 @@ public class SpectraFileUtilities {
         return null;
     }
 
-    private Map<String, Spectrum> substractSpectraWithConfidentTag(int startIndex, int maxSpectraNumber, MsFileHandler msFileHandler, String[] spectrumTitles, String msFileNameWithoutExtension) {
+    public Map<String, Spectrum> substractSpectraWithConfidentTag(int startIndex, int maxSpectraNumber, MsFileHandler msFileHandler, String[] spectrumTitles, String msFileNameWithoutExtension) {
         Map<String, Spectrum> spectraMap = new LinkedHashMap<>();
         try {
 
@@ -744,6 +748,46 @@ public class SpectraFileUtilities {
             ex.printStackTrace();
         }
         return spectraMap;
+    }
+
+    public static ArrayList<SpectrumMatch> readIdentificationResults(File resultOutput, File msFile, Advocate searchEngine, IdentificationParameters identificationParameters) {
+        ArrayList<SpectrumMatch> validatedMaches = new ArrayList<>();
+        try {
+            File idResultsFile = null;
+            if (searchEngine.getIndex() == Advocate.myriMatch.getIndex()) {
+                MyriMatchParameters myriMatchParameters = (MyriMatchParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
+                idResultsFile = new File(resultOutput, SearchHandler.getMyriMatchFileName(IoUtil.removeExtension(msFile.getName()), myriMatchParameters));
+            } else if (searchEngine.getIndex() == Advocate.xtandem.getIndex()) {
+                idResultsFile = new File(resultOutput, SearchHandler.getXTandemFileName(IoUtil.removeExtension(msFile.getName())));
+            }
+            if (idResultsFile == null || !idResultsFile.exists()) {
+                return validatedMaches;
+            }
+            IdfileReader idReader = IdfileReaderFactory.getInstance().getFileReader(idResultsFile);
+            MsFileHandler subMsFileHandler = new MsFileHandler();
+            subMsFileHandler.register(msFile, MainUtilities.OptProt_Waiting_Handler);
+            ArrayList<SpectrumMatch> matches = idReader.getAllSpectrumMatches(subMsFileHandler, MainUtilities.OptProt_Waiting_Handler, identificationParameters.getSearchParameters());     
+            int confCounter = 0;
+            for (SpectrumMatch sm : matches) {
+//                if (sm.getAllPeptideAssumptions().toList().size() != 1) {
+//                    for (PeptideAssumption peptideAssumtion : sm.getAllPeptideAssumptions().toList()) {
+//                        System.out.println("at maches size " + peptideAssumtion.getScore()+"  "+peptideAssumtion.getRank());
+//                    }
+//                } else {
+
+                    PeptideAssumption peptideAssumtion = sm.getAllPeptideAssumptions().toList().get(0);
+                    if (peptideAssumtion.getScore() <= 0.01) {
+                        confCounter++;
+                        validatedMaches.add(sm);
+                    } else {
+                        System.out.println("non conf counter " + peptideAssumtion.getScore() + "  " + peptideAssumtion.getRawScore() + "  rank:  " + peptideAssumtion.getRank());
+                    }
+//                }
+            }
+        } catch (IOException | SQLException | ClassNotFoundException | InterruptedException | JAXBException | XmlPullParserException | XMLStreamException ex) {
+            Logger.getLogger(SpectraFileUtilities.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return validatedMaches;
     }
 
 }

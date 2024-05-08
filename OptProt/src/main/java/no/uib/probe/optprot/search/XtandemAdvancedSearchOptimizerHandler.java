@@ -28,16 +28,14 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 import no.uib.probe.optprot.configurations.Configurations;
-import no.uib.probe.optprot.model.OptProtSearchParameters;
+import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.util.MainUtilities;
+import static no.uib.probe.optprot.util.MainUtilities.executor;
 import no.uib.probe.optprot.util.OptProtWaitingHandler;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -47,13 +45,13 @@ import org.xmlpull.v1.XmlPullParserException;
  */
 public class XtandemAdvancedSearchOptimizerHandler {
 
-    private ExecutorService executor;
+//    private ExecutorService executor;
     private final File identificationParametersFile;
     private final IdentificationParameters identificationParam;
 //    private double referenceIdRate;
     private final XtandemParameters xtandemParameters;
     private final File subMsFile, subFastaFile;
-    private final OptProtSearchParameters searchEngineParameters;
+    private final SearchInputSetting searchEngineParameters;
     private final SearchParameters searchParameters;
     /**
      * The identification file reader factory of compomics utilities.
@@ -64,8 +62,8 @@ public class XtandemAdvancedSearchOptimizerHandler {
      */
     private final ModificationFactory ptmFactory = ModificationFactory.getInstance();
 
-    public XtandemAdvancedSearchOptimizerHandler(File subMsFile, File subFastaFile, File optimizedIdentificationParametersFile, OptProtSearchParameters searchEngineParameters, double referenceIdRate) throws IOException {
-        executor = Executors.newFixedThreadPool(2);
+    public XtandemAdvancedSearchOptimizerHandler(File subMsFile, File subFastaFile, File optimizedIdentificationParametersFile, SearchInputSetting searchEngineParameters, double referenceIdRate) throws IOException {
+//        executor = Executors.newFixedThreadPool(2);
         this.identificationParametersFile = optimizedIdentificationParametersFile;
 //        this.referenceIdRate = referenceIdRate;
         identificationParam = IdentificationParameters.getIdentificationParameters(optimizedIdentificationParametersFile);
@@ -590,7 +588,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
             if (addPeptideMasses) {
                 SequenceMatchingParameters modificationSequenceMatchingParameters = identificationParam.getModificationLocalizationParameters().getSequenceMatchingParameters();
                 FMIndex sequenceProvider = new FMIndex(subFastaFile, null, new OptProtWaitingHandler(), false, identificationParam);
-                executor = Executors.newFixedThreadPool(2);
+//                executor = Executors.newFixedThreadPool(2);
                 Future future = executor.submit(() -> {
                     for (SpectrumMatch sm : matches) {
                         for (PeptideAssumption pepAss : sm.getAllPeptideAssumptions().toList()) {

@@ -7,7 +7,6 @@ import com.compomics.util.experiment.biology.modifications.ModificationCategory;
 import com.compomics.util.experiment.biology.modifications.ModificationFactory;
 import com.compomics.util.experiment.biology.proteins.Peptide;
 import com.compomics.util.experiment.identification.Advocate;
-import com.compomics.util.experiment.identification.matches.ModificationMatch;
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import com.compomics.util.experiment.identification.modification.search_engine_mapping.ModificationLocalizationMapper;
 import com.compomics.util.experiment.identification.protein_inference.fm_index.FMIndex;
@@ -20,9 +19,9 @@ import com.compomics.util.io.IoUtil;
 import com.compomics.util.parameters.identification.IdentificationParameters;
 import com.compomics.util.parameters.identification.advanced.SequenceMatchingParameters;
 import com.compomics.util.parameters.identification.search.DigestionParameters;
-import com.compomics.util.parameters.identification.search.ModificationParameters;
 import com.compomics.util.parameters.identification.search.SearchParameters;
 import com.compomics.util.parameters.identification.tool_specific.DirecTagParameters;
+import com.compomics.util.parameters.identification.tool_specific.MyriMatchParameters;
 import com.compomics.util.parameters.identification.tool_specific.XtandemParameters;
 import eu.isas.searchgui.SearchHandler;
 import java.io.File;
@@ -37,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -45,13 +43,13 @@ import java.util.logging.Logger;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 import no.uib.probe.optprot.configurations.Configurations;
-import no.uib.probe.optprot.model.OptimisedSearchParameters;
-import no.uib.probe.optprot.model.OptProtSearchParameters;
+import no.uib.probe.optprot.model.OptimisedSearchResults;
+import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.util.MainUtilities;
+import static no.uib.probe.optprot.util.MainUtilities.executor;
 import no.uib.probe.optprot.util.OptProtWaitingHandler;
 import no.uib.probe.optprot.util.ReportExporter;
 import no.uib.probe.optprot.util.SpectraFileUtilities;
-import org.apache.commons.collections15.list.SynchronizedList;
 import org.xmlpull.v1.XmlPullParserException;
 
 /**
@@ -71,45 +69,45 @@ public class SearchOptimizerHandler {
     private ArrayList<File> msFileInList;
     private File subFastaFile;
     private File resultsOutput;
-    private ExecutorService executor;
+//    private ExecutorService executor;
     /**
      * The identification file reader factory of compomics utilities.
      */
     private final IdfileReaderFactory readerFactory = IdfileReaderFactory.getInstance();
-    private OptProtSearchParameters optProtSearchParameters;
-    private final OptimisedSearchParameters optimisedSearchParameter;
+    private SearchInputSetting optProtSearchParameters;
+    private final OptimisedSearchResults optimisedSearchParameter;
     /**
      * The compomics PTM factory.
      */
     private final ModificationFactory ptmFactory = ModificationFactory.getInstance();
-    
+
     public SearchOptimizerHandler() {
-        executor = Executors.newFixedThreadPool(1);
-        this.optimisedSearchParameter = new OptimisedSearchParameters();
+//        executor = Executors.newFixedThreadPool(1);
+        this.optimisedSearchParameter = new OptimisedSearchResults();
     }
-    
+
     public void setSubMsFile(File msFile) {
         this.subMsFile = msFile;
         this.msFileInList = new ArrayList<>();
         this.msFileInList.add(msFile);
     }
-    
+
     public void setSubFastaFile(File subFastaFile) {
         this.subFastaFile = subFastaFile;
     }
-    
+
     public void setIdentificationParametersFile(File identificationParametersFile) {
         try {
             this.identificationParametersFile = identificationParametersFile;
             IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-            
+
             optimizedIdentificationParametersFile = new File(identificationParametersFile.getParent(), Configurations.DEFAULT_RESULT_NAME + "_" + identificationParametersFile.getName());
             if (optimizedIdentificationParametersFile.exists()) {
                 optimizedIdentificationParametersFile.delete();
             }
             optimizedIdentificationParametersFile.createNewFile();
             IdentificationParameters.saveIdentificationParameters(tempIdParam, optimizedIdentificationParametersFile);
-            
+
             optimisedSearchParameter.setDigestionParameter(tempIdParam.getSearchParameters().getDigestionParameters().getCleavageParameter().name());
             if (optimisedSearchParameter.getDigestionParameter().equalsIgnoreCase(DigestionParameters.CleavageParameter.enzyme.name())) {
                 optimisedSearchParameter.setEnzymeName(tempIdParam.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName());
@@ -120,30 +118,30 @@ public class SearchOptimizerHandler {
             optimisedSearchParameter.setSelectedRewindIons(tempIdParam.getSearchParameters().getRewindIons());
             optimisedSearchParameter.setPrecursorTolerance(tempIdParam.getSearchParameters().getPrecursorAccuracy());
             optimisedSearchParameter.setFragmentTolerance(tempIdParam.getSearchParameters().getFragmentIonAccuracyInDaltons());
-            
+
             optimisedSearchParameter.setMaxPrecursorCharge(tempIdParam.getSearchParameters().getMaxChargeSearched());
             optimisedSearchParameter.setMinPrecursorCharge(tempIdParam.getSearchParameters().getMinChargeSearched());
-            
+
             optimisedSearchParameter.setMaxIsotops(tempIdParam.getSearchParameters().getMaxIsotopicCorrection());
             optimisedSearchParameter.setMinIsotops(tempIdParam.getSearchParameters().getMinIsotopicCorrection());
-            
+
             for (String mod : tempIdParam.getSearchParameters().getModificationParameters().getVariableModifications()) {
-                
+
                 optimisedSearchParameter.addVariableModifications(mod, 0.0);
             }
             for (String mod : tempIdParam.getSearchParameters().getModificationParameters().getFixedModifications()) {
                 optimisedSearchParameter.addFixedModifications(mod);
             }
-            
+
         } catch (IOException ex) {
             Logger.getLogger(SearchOptimizerHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
-    
+
     public void executeParametersOptimization() {
         try {
-            
+
             IdentificationParameters optimizedIdentificationParameters = IdentificationParameters.getIdentificationParameters(optimizedIdentificationParametersFile);
             if (optProtSearchParameters.isRecalibrateSpectraParameter()) {
                 File updatedMgfFile = this.runReferenceSearch(optProtSearchParameters.isRecalibrateSpectraParameter());
@@ -196,7 +194,7 @@ public class SearchOptimizerHandler {
                 optimizedIdentificationParameters.getSearchParameters().setFragmentAccuracyType(SearchParameters.MassAccuracyType.DA);
 //                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
             }
-            
+
             if (this.optProtSearchParameters.isOptimizePrecursorChargeParameter()) {
                 this.optimizePrecursorChargeParameter();
                 optimizedIdentificationParameters.getSearchParameters().setMinChargeSearched(optimisedSearchParameter.getMinPrecursorCharge());
@@ -209,7 +207,7 @@ public class SearchOptimizerHandler {
                 optimizedIdentificationParameters.getSearchParameters().setMaxIsotopicCorrection(optimisedSearchParameter.getMaxIsotops());
 //                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
             }
-            if (this.optProtSearchParameters.isOptimizeVariableModificationParameter()) {
+            if (this.optProtSearchParameters.isOptimizeModificationParameter()) {
                 //create reference data
 //                this.optimizeModificationsParameter();
 //            
@@ -218,7 +216,7 @@ public class SearchOptimizerHandler {
                 optimizedIdentificationParameters.getSearchParameters().getModificationParameters().clearFixedModifications();
                 optimizedIdentificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
                 optimizedIdentificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
-                optimizedIdentificationParameters.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();                
+                optimizedIdentificationParameters.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
                 optimizedIdentificationParameters.getSearchParameters().getModificationParameters().getRefinementVariableModifications().clear();
                 for (String modId : optimisedSearchParameter.getSortedVariableModificationsMap().firstEntry().getValue()) {
                     optimizedIdentificationParameters.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(modId));
@@ -234,25 +232,25 @@ public class SearchOptimizerHandler {
                 }
                 IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
             }
-            
+
             if (optProtSearchParameters.isRunXTandem() && optProtSearchParameters.isOptimizeXtandemAdvancedParameter()) {
-                
+
                 XtandemAdvancedSearchOptimizerHandler xtendemHandler = new XtandemAdvancedSearchOptimizerHandler(subMsFile, subFastaFile, optimizedIdentificationParametersFile, optProtSearchParameters, referenceIdRate);
                 if (optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptSpectrumDynamicRange()) {
                     optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().setOptSpectrumDynamicRangeValue(xtendemHandler.optimizeSpectrumDynamicRange());
-                    
+
                 }
                 if (optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptSpectrumNumbPeaks()) {
                     optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().setOptSpectrumNumbPeaksValue(xtendemHandler.optimizeSpectrumPeaksNumber());
-                    
+
                 }
                 if (optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptSpectrumMinimumFragment()) {
                     optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().setOptSpectrumMinimumFragmentValue(xtendemHandler.optimizeMinimumFragmentMz());
-                    
+
                 }
                 if (optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptSpectrumMinimumPeaks()) {
                     optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().setOptSpectrumMinimumPeaksValue(xtendemHandler.optimizeMinimumPeaks());
-                    
+
                 }
                 if (optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptNoiseSuppression()) {
                     double minPrecursorMass = xtendemHandler.optimizeNoiseSuppression();
@@ -260,7 +258,7 @@ public class SearchOptimizerHandler {
                     if (minPrecursorMass != -1) {
                         optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().setOptMinimumPrecursorMassValue(xtendemHandler.optimizeNoiseSuppression());
                     }
-                    
+
                 }
                 if (optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptParentIsotopeExpansion()) {
                     optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().setOptParentIsotopeExpansionValue(xtendemHandler.optimizeParentIsotopExpansion());
@@ -296,7 +294,7 @@ public class SearchOptimizerHandler {
                 }
                 if (optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptUseRefine()) {
                     optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().setOptUseRefine(xtendemHandler.optimizeUseRefine());
-                    
+
                 }
 //                }
 
@@ -304,10 +302,10 @@ public class SearchOptimizerHandler {
         } catch (IOException ex) {
             ex.printStackTrace();
         } finally {
-            
-            executor.shutdown();
-            while (!executor.isTerminated()) {
-            }
+
+////            executor.shutdown();
+//            while (!executor.isTerminated()) {
+//            }
 //            MainUtilities.cleanFolder(resultsOutput);
 
             System.out.println("-------------------------------------------------------------------------------------------");
@@ -336,70 +334,71 @@ public class SearchOptimizerHandler {
                 }
             }
             System.out.println("Variable mod:\n" + fm);
-            System.out.println("-----------------------------xtandem advanced-------------------------------------------");
-            System.out.println("Spectrum Dynamic Range:\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptSpectrumDynamicRangeValue());
-            System.out.println("Number of Peaks       :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptSpectrumNumbPeaksValue());
-            System.out.println("MinimumFragmentMz     :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptSpectrumMinimumFragmentValue());
-            System.out.println("Minimum Peaks         :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptSpectrumMinimumPeaksValue());
-            System.out.println("Use NoiseSuppression  :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptNoiseSuppressionValue() + "  (" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptMinimumPrecursorMassValue() + ")");
-            System.out.println("Use Parent isotop exp :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptParentIsotopeExpansionValue());
-            System.out.println("Use QuickAcetyl       :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptQuickAcetylValue());
-            System.out.println("Use QuickPyrolidone   :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptQuickPyrolidone());
-            System.out.println("Use stP Bias          :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
-            
-            System.out.println("Use Refinement        :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptUseRefine());
-            System.out.println("UnanticipatedCleavage :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
-            System.out.println("SimiEnzymaticCleavage :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
-            System.out.println("Potintial Modification:\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
-            System.out.println("Use PointMutations    :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
-            System.out.println("Use SnAPs             :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
-            System.out.println("Spectrum Synthesis    :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
-            
-            System.out.println("-------------------------------------------------------------------------------------------");
-            String rfm = "";
-            if (optimisedSearchParameter.getRefinedFixedModifications() != null) {
-                for (String fixedMod : optimisedSearchParameter.getRefinedFixedModifications()) {
-                    rfm += (fixedMod + "\n");
+            if (optProtSearchParameters.isRunXTandem()) {
+                System.out.println("-----------------------------xtandem advanced-------------------------------------------");
+                System.out.println("Spectrum Dynamic Range:\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptSpectrumDynamicRangeValue());
+                System.out.println("Number of Peaks       :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptSpectrumNumbPeaksValue());
+                System.out.println("MinimumFragmentMz     :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptSpectrumMinimumFragmentValue());
+                System.out.println("Minimum Peaks         :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptSpectrumMinimumPeaksValue());
+                System.out.println("Use NoiseSuppression  :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptNoiseSuppressionValue() + "  (" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().getOptMinimumPrecursorMassValue() + ")");
+                System.out.println("Use Parent isotop exp :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptParentIsotopeExpansionValue());
+                System.out.println("Use QuickAcetyl       :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptQuickAcetylValue());
+                System.out.println("Use QuickPyrolidone   :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptQuickPyrolidone());
+                System.out.println("Use stP Bias          :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
+
+                System.out.println("Use Refinement        :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptUseRefine());
+                System.out.println("UnanticipatedCleavage :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
+                System.out.println("SimiEnzymaticCleavage :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
+                System.out.println("Potintial Modification:\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
+                System.out.println("Use PointMutations    :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
+                System.out.println("Use SnAPs             :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
+                System.out.println("Spectrum Synthesis    :\t" + optProtSearchParameters.getXtandemOptProtAdvancedSearchParameters().isOptstPBiasValue());
+
+                System.out.println("-------------------------------------------------------------------------------------------");
+                String rfm = "";
+                if (optimisedSearchParameter.getRefinedFixedModifications() != null) {
+                    for (String fixedMod : optimisedSearchParameter.getRefinedFixedModifications()) {
+                        rfm += (fixedMod + "\n");
+                    }
                 }
-            }
-            System.out.println("Refined Fixed Mod mod:\n" + rfm);
-            rfm = "";
-            if (optimisedSearchParameter.getRefinedVariableModifications() != null) {
-                for (String v : optimisedSearchParameter.getRefinedVariableModifications()) {
-                    rfm += (v + "\n");
+                System.out.println("Refined Fixed Mod mod:\n" + rfm);
+                rfm = "";
+                if (optimisedSearchParameter.getRefinedVariableModifications() != null) {
+                    for (String v : optimisedSearchParameter.getRefinedVariableModifications()) {
+                        rfm += (v + "\n");
+                    }
                 }
+                System.out.println("Refined Variable mod:\n" + rfm);
+                System.out.println("-------------------------------------------------------------------------------------------");
             }
-            System.out.println("Refined Variable mod:\n" + rfm);
-            System.out.println("-------------------------------------------------------------------------------------------");
-            
         }
-        
+
     }
-    
-    public void setOptProtSearchParameters(OptProtSearchParameters optProtSearchParameters) {
+
+    public void setOptProtSearchParameters(SearchInputSetting optProtSearchParameters) {
         this.optProtSearchParameters = optProtSearchParameters;
     }
     private double referenceIdRate;
     private double referenceFactor;
-    
+
     public synchronized double getReferenceIdRate() {
-        
+
         return referenceIdRate;
     }
-    
+
     public File runReferenceSearch(boolean recalibratSpectra) throws IOException {
         IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         final String option = "reference_run";
         final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
         ArrayList<SpectrumMatch> spectrumMatches = new ArrayList<>();
-        
+
         Future f = executor.submit(() -> {
             spectrumMatches.addAll(excuteSearch(updatedName, "Reference Run", option, tempIdParam, recalibratSpectra));
-            
+
         });
         while (!f.isDone()) {
         }
-        
+
         referenceIdRate = spectrumMatches.size();
         if (recalibratSpectra) {
             return SpectraFileUtilities.recalibrateSpectra(subMsFile, subFastaFile, spectrumMatches, tempIdParam);
@@ -421,7 +420,7 @@ public class SearchOptimizerHandler {
 //        }
         return null;
     }
-    
+
     private void optimizeDigestionParameter() throws IOException {
         long start1 = System.currentTimeMillis();
         Map<String, Double> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -434,13 +433,12 @@ public class SearchOptimizerHandler {
             tempIdParam.getSearchParameters().getDigestionParameters().setCleavageParameter(DigestionParameters.CleavageParameter.valueOf(cleavageParameters[i]));
             final String option = cleavageParameters[i];
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
-            
+
             Future f = executor.submit(() -> {
                 resultsMap.put(option, countSpectra(excuteSearch(updatedName, "Cleavage_Parameters", option, tempIdParam, false)));
             });
             while (!f.isDone()) {
             }
-            System.out.println("job is done " + option + "  " + resultsMap.get(option));
             if (resultsMap.get(option) > 20.0) {
                 break;
             }
@@ -461,9 +459,9 @@ public class SearchOptimizerHandler {
         long end1 = System.currentTimeMillis();
         double total = (end1 - start1) / 1000.0;
         ReportExporter.addElementToReport(Configurations.Dataset_Id, "Cleavage_Parameters", optimisedSearchParameter.getDigestionParameter(), resultsMap.get(optimisedSearchParameter.getDigestionParameter()), total);
-        
+
     }
-    
+
     private void optimizeEnzymeParameter() throws IOException {
         // Processing        
         long start1 = System.currentTimeMillis();
@@ -495,9 +493,9 @@ public class SearchOptimizerHandler {
             if (enzyme.getName().equals("Trypsin") && resultsMap.get(option) > 20.0) {
                 break;
             }
-            
+
         }
-        
+
         for (String option : resultsMap.keySet()) {
             if (resultsMap.get(option) > idRate) {
                 idRate = resultsMap.get(option);
@@ -512,10 +510,11 @@ public class SearchOptimizerHandler {
         }
         long end1 = System.currentTimeMillis();
         double total = (end1 - start1) / 1000.0;
+
         ReportExporter.addElementToReport(Configurations.Dataset_Id, "Enzyme_Parameters", optimisedSearchParameter.getEnzymeName(), resultsMap.get(optimisedSearchParameter.getEnzymeName()), total);
-        
+
     }
-    
+
     private void optimizeSpecificityParameter() throws IOException {
         Map<String, Double> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         double idRate = -1;
@@ -525,7 +524,7 @@ public class SearchOptimizerHandler {
             tempIdParam.getSearchParameters().getDigestionParameters().setSpecificity(optimisedSearchParameter.getEnzymeName(), DigestionParameters.Specificity.getSpecificity(i));
             final String option = DigestionParameters.Specificity.getSpecificity(i).name();
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
-            
+
             Future f = executor.submit(() -> {
                 resultsMap.put(option, countSpectra(excuteSearch(updatedName, "Specific_Parameters", option, tempIdParam, false)));
             });
@@ -544,9 +543,9 @@ public class SearchOptimizerHandler {
 //            System.out.println("param updated " + selectedOption);
             optimisedSearchParameter.setEnzymeSpecificity(selectedOption);
         }
-        
+
     }
-    
+
     private void optimizeMaxMissCleavagesParameter() throws IOException {
         Map<String, Double> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         double idRate = -1;
@@ -556,7 +555,6 @@ public class SearchOptimizerHandler {
             tempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(optimisedSearchParameter.getEnzymeName(), i);
             final String option = "missedCleavages_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
-            System.out.println("opt max cleav-----------**********************************------------------------------- " + option);
             
             Future future = executor.submit(() -> {
                 resultsMap.put(option, countSpectra(excuteSearch(updatedName, "missCleav_Parameters", option, tempIdParam, false)));
@@ -568,10 +566,10 @@ public class SearchOptimizerHandler {
             if (resultsMap.get(option) > idRate) {
                 idRate = resultsMap.get(option);
                 selectedOption = option;
-                
+
             }
         }
-        
+
         if (idRate > referenceIdRate) {
             int selectedNum = Integer.parseInt(selectedOption.split("_")[1]);
             referenceIdRate = idRate;
@@ -579,9 +577,9 @@ public class SearchOptimizerHandler {
             System.out.println("param updated " + selectedOption);
             optimisedSearchParameter.setMaxMissedCleavage(selectedNum);
         }
-        
+
     }
-    
+
     private void optimizeFragmentIonTypesParameter() throws IOException {
         Map<String, Double> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         double idRate = -1;
@@ -590,7 +588,7 @@ public class SearchOptimizerHandler {
         ArrayList<Integer> selectedForwardIons = tempSearchParameters.getForwardIons();
         String[] forwardIons = new String[]{"a", "b", "c"};
         String[] rewindIons = new String[]{"x", "y", "z"};
-        
+
         for (String forwardIon : forwardIons) {
             selectedForwardIons.clear();
             Integer forwardIonType = PeptideFragmentIon.getIonType(forwardIon);
@@ -602,7 +600,7 @@ public class SearchOptimizerHandler {
                 tempSearchParameters.setRewindIons(selectedRewindIons);
                 String option = selectedForwardIons + "-" + selectedRewindIons;
                 final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
-                
+
                 Future f = executor.submit(() -> {
                     resultsMap.put(option, countSpectra(excuteSearch(updatedName, "Ions_Parameters", option, tempIdParam, false)));
                 });
@@ -610,7 +608,7 @@ public class SearchOptimizerHandler {
                 }
             }
         }
-        
+
         String selectedOption = "";
         for (String option : resultsMap.keySet()) {
             if (resultsMap.get(option) > idRate) {
@@ -632,9 +630,9 @@ public class SearchOptimizerHandler {
             optimisedSearchParameter.setSelectedForwardIons(forwardIonsList);
             optimisedSearchParameter.setSelectedRewindIons(rewindIonsList);
         }
-        
+
     }
-    
+
     private void optimizePrecursorToleranceParameter() throws IOException {
         Map<String, Double> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         double idRate = -1;
@@ -645,7 +643,7 @@ public class SearchOptimizerHandler {
             tempIdParam.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.PPM);
             final String option = "precursorAccuracy_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
-            
+
             Future future = executor.submit(() -> {
                 resultsMap.put(option, countSpectra(excuteSearch(updatedName, "precursorAccuracy_", option, tempIdParam, false)));
             });
@@ -657,7 +655,7 @@ public class SearchOptimizerHandler {
             if (resultsMap.get(option) > idRate) {
                 idRate = resultsMap.get(option);
                 selectedOption = option;
-                
+
             }
         }
         if (idRate > referenceIdRate) {
@@ -667,9 +665,9 @@ public class SearchOptimizerHandler {
             double selectedNum = Double.parseDouble(selectedOption.split("_")[1]);
             optimisedSearchParameter.setPrecursorTolerance(selectedNum);
         }
-        
+
     }
-    
+
     private void optimizeFragmentToleranceParameter() throws IOException {
         Map<String, Double> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         double idRate = -1;
@@ -681,7 +679,7 @@ public class SearchOptimizerHandler {
             tempIdParam.getSearchParameters().setFragmentAccuracyType(SearchParameters.MassAccuracyType.DA);
             final String option = "fragmentAccuracy_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
-            
+
             Future future = executor.submit(() -> {
                 resultsMap.put(option, countSpectra(excuteSearch(updatedName, "fragment_accuracy", option, tempIdParam, false)));
             });
@@ -692,10 +690,10 @@ public class SearchOptimizerHandler {
             if (resultsMap.get(option) > idRate) {
                 idRate = resultsMap.get(option);
                 selectedOption = option;
-                
+
             }
         }
-        
+
         if (idRate > referenceIdRate) {
             double selectedNum = Double.parseDouble(selectedOption.split("_")[1]);
             referenceIdRate = idRate;
@@ -703,9 +701,9 @@ public class SearchOptimizerHandler {
             System.out.println("param updated " + selectedOption);
             optimisedSearchParameter.setFragmentTolerance(selectedNum);
         }
-        
+
     }
-    
+
     private void optimizePrecursorChargeParameter() throws IOException {
         Map<String, Double> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         double idRate = -1;
@@ -727,7 +725,7 @@ public class SearchOptimizerHandler {
             if (resultsMap.get(option) > idRate) {
                 idRate = resultsMap.get(option);
                 selectedOption = option;
-                
+
             }
         }
         selectedNum = Integer.parseInt(selectedOption.split("_")[1]);
@@ -737,7 +735,7 @@ public class SearchOptimizerHandler {
             System.out.println("param updated " + selectedOption);
             optimisedSearchParameter.setMaxPrecursorCharge(selectedNum);
         }
-        
+
         resultsMap.clear();
         for (int i = optimisedSearchParameter.getMaxPrecursorCharge() - 1; i > 0; i--) {
             IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
@@ -751,7 +749,7 @@ public class SearchOptimizerHandler {
             while (!future.isDone()) {
             }
         }
-        
+
         idRate = -1;
         for (String option : resultsMap.keySet()) {
             int valueNum = Integer.parseInt(option.split("_")[1]);
@@ -764,7 +762,7 @@ public class SearchOptimizerHandler {
                 selectedOption = option;
             }
         }
-        
+
         if (idRate > referenceIdRate) {
             selectedNum = Integer.parseInt(selectedOption.split("_")[1]);
             referenceIdRate = idRate;
@@ -772,9 +770,9 @@ public class SearchOptimizerHandler {
             System.out.println("param updated " + selectedOption);
             optimisedSearchParameter.setMinPrecursorCharge(selectedNum);
         }
-        
+
     }
-    
+
     private void optimizeIsotopParameter() throws IOException {
         Map<String, Double> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         double idRate = -1;
@@ -785,7 +783,7 @@ public class SearchOptimizerHandler {
             tempIdParam.getSearchParameters().setMinChargeSearched(i);
             final String option = "minIsotop_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
-            
+
             Future future = executor.submit(() -> {
                 resultsMap.put(option, countSpectra(excuteSearch(updatedName, "isotop_Parameters", option, tempIdParam, false)));
             });
@@ -796,10 +794,10 @@ public class SearchOptimizerHandler {
             if (resultsMap.get(option) > idRate) {
                 idRate = resultsMap.get(option);
                 selectedOption = option;
-                
+
             }
         }
-        
+
         int selectedNum = 100;
         for (String option : resultsMap.keySet()) {
             int valueNum = Math.abs(Integer.parseInt(option.split("_")[1]));
@@ -812,7 +810,7 @@ public class SearchOptimizerHandler {
                 selectedOption = option;
             }
         }
-        
+
         if (idRate > referenceIdRate) {
             selectedNum = Integer.parseInt(selectedOption.split("_")[1]);
             referenceIdRate = idRate;
@@ -828,7 +826,7 @@ public class SearchOptimizerHandler {
 //            tempIdParam.getSearchParameters().setMinIsotopicCorrection(optimisedSearchParameter.getMinIsotops());
             final String option = "maxIsotop_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
-            
+
             Future future = executor.submit(() -> {
                 resultsMap.put(option, countSpectra(excuteSearch(updatedName, "isotop_Parameters", option, tempIdParam, false)));
             });
@@ -839,7 +837,7 @@ public class SearchOptimizerHandler {
             if (resultsMap.get(option) > idRate) {
                 idRate = resultsMap.get(option);
                 selectedOption = option;
-                
+
             }
         }
         selectedNum = Integer.parseInt(selectedOption.split("_")[1]);
@@ -849,10 +847,10 @@ public class SearchOptimizerHandler {
             System.out.println("param updated " + selectedOption);
             optimisedSearchParameter.setMaxIsotops(selectedNum);
         }
-        
+
     }
     int refScore = 0;
-    
+
     private void optimizeModificationsParameter() throws IOException {
         List<String> mods = new ArrayList<>();
         mods.addAll(ptmFactory.getModifications(ModificationCategory.Common));
@@ -870,7 +868,7 @@ public class SearchOptimizerHandler {
         final String referenc_mod_Name = Configurations.DEFAULT_RESULT_NAME + "_" + ref_mod;
         ArrayList<SpectrumMatch> sms = testModifications(referenc_mod_Name, ref_mod, defaultFixedModifications, new HashSet<>(), false);
         refScore = sms.size();
-        
+
         for (String modId : mods) {
             final String option = modId;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "f_" + option;
@@ -894,7 +892,7 @@ public class SearchOptimizerHandler {
                     fixedModificationScore.put(mod, score);
                     targetedAAToModList.add(ptmFactory.getModification(mod).getPattern().toString());
                 }
-                
+
             }
         }
         MainUtilities.cleanOutputFolder();
@@ -924,7 +922,7 @@ public class SearchOptimizerHandler {
             Set<String> vModifications = new HashSet<>();
             vModifications.add(modId);
             sms = testModifications(updatedName, option, defaultFixedModifications, vModifications, true);
-            
+
             if (sms.size() > refScore) {
                 if (!topVScoreMap.containsKey(sms.size())) {
                     topVScoreMap.put(sms.size(), new ArrayList<>());
@@ -945,7 +943,7 @@ public class SearchOptimizerHandler {
                     break;
                 }
             }
-            
+
         }
         int topScore = topVScoreMap.firstKey();
         topVScoreMap.clear();
@@ -974,7 +972,7 @@ public class SearchOptimizerHandler {
             }
             countI++;
         }
-        
+
         TreeMap<Integer, ArrayList<String>> finalVariableMdificationsMap = new TreeMap<>(Collections.reverseOrder());
         finalVariableMdificationsMap.putAll(topVScoreMap);
         for (String modI : allFilteredVariableModifications.keySet()) {
@@ -994,7 +992,7 @@ public class SearchOptimizerHandler {
                 }
             }
         }
-        
+
         optimisedSearchParameter.setSortedVariableModificationsMap(finalVariableMdificationsMap);
         optimisedSearchParameter.setRefinedVariableModifications(allFilteredVariableModifications.keySet());
         for (int i : finalVariableMdificationsMap.keySet()) {
@@ -1003,13 +1001,12 @@ public class SearchOptimizerHandler {
         for (String i : allFilteredVariableModifications.keySet()) {
             System.out.println("at vm " + allFilteredVariableModifications.get(i) + " " + i);
         }
-        
+
 //        System.exit(0);
-        
     }
-    
+
     private ArrayList<SpectrumMatch> testModifications(String updatedName, String option, Set<String> defaultFixedModifications, Set<String> modifications, boolean variableModificatins) throws IOException {
-        
+
         ArrayList<SpectrumMatch> spectrumMaches = new ArrayList<>();
         IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         tempIdParam.getSearchParameters().getModificationParameters().clearFixedModifications();
@@ -1024,11 +1021,11 @@ public class SearchOptimizerHandler {
                     break;
                 }
             }
-            
+
             XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
             if (xtandemParameters.isQuickPyrolidone() && xtandemParameters.isProteinQuickAcetyl() && onlyTerminal && !modifications.isEmpty()) {
                 return new ArrayList<>();
-                
+
             }
         }
         for (String modId : defaultFixedModifications) {
@@ -1044,16 +1041,41 @@ public class SearchOptimizerHandler {
         Future future = executor.submit(() -> {
             ArrayList<SpectrumMatch> sms = excuteSearch(updatedName, "ref_modification__Parameters", option, tempIdParam, false);
             spectrumMaches.addAll(sms);
-            
+
         });
         while (!future.isDone()) {
         }
         return spectrumMaches;
-        
+
     }
-    
-    public synchronized Set<String> excuteNovorSearches(OptProtSearchParameters searchEngineParameters) {
-        
+
+    private double countSpectra(ArrayList<SpectrumMatch> matches) {
+        try {
+            if (matches.isEmpty()) {
+                return -1;
+            }
+            MsFileHandler msFileHandler = new MsFileHandler();
+            msFileHandler.register(subMsFile, MainUtilities.OptProt_Waiting_Handler);
+            double leng = msFileHandler.getSpectrumTitles(IoUtil.removeExtension(subMsFile.getName())).length;
+
+            return MainUtilities.rundDouble((matches.size() * 100.0) / leng);
+        } catch (IOException ex) {
+            Logger.getLogger(SearchOptimizerHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return -1;
+    }
+
+    public ArrayList<SpectrumMatch> excuteSearch(String defaultOutputFileName, String paramName, String paramOption, IdentificationParameters tempIdParam, boolean addPeptideMass) {
+        if (optProtSearchParameters.isRunXTandem()) {
+            return excuteXTandom(defaultOutputFileName, paramOption, tempIdParam, addPeptideMass);
+        } else if (optProtSearchParameters.isRunMyriMatch()) {
+            return excuteMyriMatch(defaultOutputFileName, paramOption, tempIdParam, addPeptideMass);
+        }
+        return new ArrayList<>();
+    }
+
+    public synchronized Set<String> excuteNovor(SearchInputSetting searchEngineParameters) {
+
         try {
             String spectraFileName = IoUtil.removeExtension(subMsFile.getName());
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + spectraFileName;
@@ -1102,7 +1124,7 @@ public class SearchOptimizerHandler {
                     this.optProtSearchParameters.getMakeblastdbFolder(),
                     null
             );
-            
+
             searchHandler.startSearch(waitingHandlerCLIImpl);
             File resultsFile = searchHandler.getResultsFolder();
             File NovorFile = new File(resultsFile, spectraFileName + ".novor.csv");
@@ -1113,9 +1135,9 @@ public class SearchOptimizerHandler {
         }
         return new HashSet<>();
     }
-    
-    public synchronized Map<String, String> excuteDirecTagSearches(OptProtSearchParameters searchEngineParameters) {
-        
+
+    public synchronized Map<String, String> excuteDirecTag(SearchInputSetting searchEngineParameters) {
+
         try {
             String spectraFileName = IoUtil.removeExtension(subMsFile.getName());
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + spectraFileName;
@@ -1164,7 +1186,7 @@ public class SearchOptimizerHandler {
                     this.optProtSearchParameters.getMakeblastdbFolder(),
                     null
             );
-            executor = Executors.newFixedThreadPool(2);
+//            executor = Executors.newFixedThreadPool(2);
             Future future = executor.submit(() -> {
                 try {
                     searchHandler.startSearch(waitingHandlerCLIImpl);
@@ -1174,7 +1196,7 @@ public class SearchOptimizerHandler {
             });
             while (!future.isDone()) {
             }
-            executor.shutdown();
+//            executor.shutdown();
             File resultsFile = searchHandler.getResultsFolder();
             File NovorFile = new File(resultsFile, spectraFileName + ".tags");
             IdfileReader idReader = readerFactory.getFileReader(NovorFile);
@@ -1193,24 +1215,17 @@ public class SearchOptimizerHandler {
             } catch (SQLException | ClassNotFoundException | JAXBException | XmlPullParserException | XMLStreamException ex) {
                 Logger.getLogger(SearchOptimizerHandler.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
+
         } catch (IOException | InterruptedException ex) {
             ex.printStackTrace();
         }
         return new LinkedHashMap<>();
     }
-    
-    public ArrayList<SpectrumMatch> excuteSearch(String defaultOutputFileName, String paramName, String paramOption, IdentificationParameters tempIdParam, boolean addPeptideMass) {
-        if (optProtSearchParameters.isRunXTandem()) {
-            return excuteXTandomSearches(defaultOutputFileName, paramOption, tempIdParam, addPeptideMass);
-        }
-        return new ArrayList<>();
-    }
-    
-    private synchronized ArrayList<SpectrumMatch> excuteXTandomSearches(String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addPeptideMasses) {
-        
+
+    private synchronized ArrayList<SpectrumMatch> excuteXTandom(String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addPeptideMasses) {
+
         try {
-            
+
             if (!optProtSearchParameters.getXTandemEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
                 System.out.println("param " + paramOption + " is not supported " + paramOption);
                 return new ArrayList<>();
@@ -1221,18 +1236,18 @@ public class SearchOptimizerHandler {
             xtandemParameters.setProteinQuickAcetyl(true);
             xtandemParameters.setStpBias(true);
             xtandemParameters.setRefine(true);
-            
+
             File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchParameters, subMsFile, subFastaFile, tempIdParam, optimizedIdentificationParametersFile);
             File xTandemFile = new File(resultOutput, SearchHandler.getXTandemFileName(IoUtil.removeExtension(subMsFile.getName())));
             IdfileReader idReader = readerFactory.getFileReader(xTandemFile);
             MsFileHandler msFileHandler = new MsFileHandler();
             msFileHandler.register(subMsFile, MainUtilities.OptProt_Waiting_Handler);
             final List<SpectrumMatch> matches = Collections.synchronizedList(idReader.getAllSpectrumMatches(msFileHandler, MainUtilities.OptProt_Waiting_Handler, searchParameters));
-            
+
             if (addPeptideMasses) {
                 SequenceMatchingParameters modificationSequenceMatchingParameters = tempIdParam.getModificationLocalizationParameters().getSequenceMatchingParameters();
                 FMIndex sequenceProvider = new FMIndex(subFastaFile, null, new OptProtWaitingHandler(), false, tempIdParam);
-                executor = Executors.newFixedThreadPool(2);
+//                executor = Executors.newFixedThreadPool(2);
                 Future future = executor.submit(() -> {
                     for (SpectrumMatch sm : matches) {
                         for (PeptideAssumption pepAss : sm.getAllPeptideAssumptions().toList()) {
@@ -1259,21 +1274,58 @@ public class SearchOptimizerHandler {
         }
         return new ArrayList<>();
     }
-    
-    private double countSpectra(ArrayList<SpectrumMatch> matches) {
+
+    private synchronized ArrayList<SpectrumMatch> excuteMyriMatch(String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addPeptideMasses) {
+
         try {
-            if (matches.isEmpty()) {
-                return -1;
+
+            if (!optProtSearchParameters.getMyriMatchEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
+                System.out.println("param " + paramOption + " is not supported " + paramOption);
+                return new ArrayList<>();
             }
+            SearchParameters searchParameters = tempIdParam.getSearchParameters();
+            MyriMatchParameters myriMatchParameters = (MyriMatchParameters) searchParameters.getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
+//            xtandemParameters.setQuickPyrolidone(true);
+//            xtandemParameters.setProteinQuickAcetyl(true);
+//            xtandemParameters.setStpBias(true);
+//            xtandemParameters.setRefine(true);
+
+            File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchParameters, subMsFile, subFastaFile, tempIdParam, optimizedIdentificationParametersFile);
+            File myriMatchFile = new File(resultOutput, SearchHandler.getMyriMatchFileName(IoUtil.removeExtension(subMsFile.getName()), myriMatchParameters));
+            IdfileReader idReader = readerFactory.getFileReader(myriMatchFile);
             MsFileHandler msFileHandler = new MsFileHandler();
             msFileHandler.register(subMsFile, MainUtilities.OptProt_Waiting_Handler);
-            double leng = msFileHandler.getSpectrumTitles(IoUtil.removeExtension(subMsFile.getName())).length;
-            
-            return MainUtilities.rundDouble((matches.size() * 100.0) / leng);
-        } catch (IOException ex) {
-            Logger.getLogger(SearchOptimizerHandler.class.getName()).log(Level.SEVERE, null, ex);
+            final List<SpectrumMatch> matches = Collections.synchronizedList(idReader.getAllSpectrumMatches(msFileHandler, MainUtilities.OptProt_Waiting_Handler, searchParameters));
+
+            if (addPeptideMasses) {
+                SequenceMatchingParameters modificationSequenceMatchingParameters = tempIdParam.getModificationLocalizationParameters().getSequenceMatchingParameters();
+                FMIndex sequenceProvider = new FMIndex(subFastaFile, null, new OptProtWaitingHandler(), false, tempIdParam);
+//                executor = Executors.newFixedThreadPool(2);
+                Future future = executor.submit(() -> {
+                    for (SpectrumMatch sm : matches) {
+                        for (PeptideAssumption pepAss : sm.getAllPeptideAssumptions().toList()) {
+                            Peptide pep = pepAss.getPeptide();
+                            ModificationLocalizationMapper.modificationLocalization(
+                                    pep,
+                                    tempIdParam,
+                                    idReader,
+                                    ptmFactory,
+                                    sequenceProvider
+                            );
+                            pepAss.getPeptide().setMass(pep.getMass(searchParameters.getModificationParameters(), sequenceProvider, modificationSequenceMatchingParameters));
+                            sm.setBestPeptideAssumption(pepAss);
+                        }
+                    }
+                });
+                while (!future.isDone()) {
+                }
+//                executor.shutdown();
+            }
+            return new ArrayList<>(matches);
+        } catch (IOException | InterruptedException | SQLException | ClassNotFoundException | JAXBException | XMLStreamException | XmlPullParserException ex) {
+            ex.printStackTrace();
         }
-        return -1;
+        return new ArrayList<>();
     }
-    
+
 }

@@ -29,10 +29,10 @@ public class SearchEngineParameterConfigurations {
         for (Enzyme enzyme : EnzymeFactory.getInstance().getEnzymes()) {
             paramMap.put(enzyme.getName(), true);
         }
-        paramMap.put("specificEnzyme", true);
-        paramMap.put("semiSpecificEnzyme", true);
-        paramMap.put("specificNTermOnlyEnzyme", true);
-        paramMap.put("specificCTermOnlyEnzyme", true);
+        paramMap.put("specific", true);
+        paramMap.put("semiSpecific", true);
+        paramMap.put("specificNTermOnly", true);
+        paramMap.put("specificCTermOnl", true);
         paramMap.put("missedCleavages", true);
         paramMap.put("[0]-[3]", true);
         paramMap.put("[0]-[4]", true);
@@ -56,6 +56,24 @@ public class SearchEngineParameterConfigurations {
         List<String> mods = new ArrayList<>(ptmFactory.getModifications(ModificationCategory.Common_Biological));
         mods.addAll(ptmFactory.getModifications(ModificationCategory.Common));
         mods.addAll(ptmFactory.getModifications(ModificationCategory.Common_Artifact));
+
+        paramMap.put("spectrumDR", true);
+        paramMap.put("peaksNum", true);
+        paramMap.put("minimumFragmentMz", true);
+        paramMap.put("minpeaksNum", true);
+        paramMap.put("noiseSupression", true);
+        paramMap.put("parentMonoisotopicMassIsotopeError", true);
+        paramMap.put("useQuickAcetyl", true);
+        paramMap.put("useStpBias", true);
+        paramMap.put("useQuickPyrolidone", true);
+        paramMap.put("useRefine", true);
+        paramMap.put("useRefineUnanticipatedCleavages", true);
+        paramMap.put("useRefineSimiEnzymaticCleavage", true);
+        paramMap.put("usePotintialModification", true);
+        paramMap.put("useRefinePointMutations", true);
+        paramMap.put("useRefineSnAPs", true);
+        paramMap.put("useRefineSpectrumSynthesis", true);
+     
 
         for (String mod : mods) {
             paramMap.put(mod, true);

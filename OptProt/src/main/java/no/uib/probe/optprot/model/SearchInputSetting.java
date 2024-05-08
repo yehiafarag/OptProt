@@ -4,7 +4,10 @@
  */
 package no.uib.probe.optprot.model;
 
+import com.compomics.util.experiment.identification.Advocate;
 import java.io.File;
+import no.uib.probe.optprot.configurations.Configurations;
+import no.uib.probe.optprot.search.myrimatch.MyriMatchEnabledParameters;
 import no.uib.probe.optprot.search.xtandam.OptProtXtandemAdvancedSearchParameter;
 import no.uib.probe.optprot.search.xtandam.XTandemEnabledParameters;
 
@@ -12,7 +15,10 @@ import no.uib.probe.optprot.search.xtandam.XTandemEnabledParameters;
  *
  * @author yfa041
  */
-public class OptProtSearchParameters {
+public class SearchInputSetting {
+
+    public SearchInputSetting() {
+    }
 
     private boolean runOmssa = false;
     private boolean runXTandem = false;
@@ -27,18 +33,18 @@ public class OptProtSearchParameters {
     private boolean runNovor = false;
     private boolean runDirecTag = false;
     private File omssaFolder = null;
-    private File xTandemFolder = null;
+    private final File xTandemFolder = new File(Configurations.XTANDEM_FOLDER);
     private File msgfFolder = null;
     private File msAmandaFolder = null;
-    private File myriMatchFolder = null;
-    private File cometFolder = null;
+    private final File myriMatchFolder = new File(Configurations.MYRIMATCH_FOLDER);
+    private final File cometFolder = new File(Configurations.COMET_FOLDER);
     private File tideFolder = null;
     private File tideIndexLocation = null;
     private File andromedaFolder = null;
     private File metaMorpheusFolder = null;
     private File sageFolder;
-    private File novorFolder = null;
-    private File direcTagFolder = null;
+    private final File novorFolder = new File(Configurations.NOVOR_FOLDER);
+    private final File direcTagFolder = new File(Configurations.DIRECTAG_FOLDER);
     private File makeblastdbFolder = null;
 
     //parameter to optimise
@@ -50,11 +56,28 @@ public class OptProtSearchParameters {
     private boolean optimizePrecursorToleranceParameter;
     private boolean optimizeFragmentToleranceParameter;
     private boolean optimizeIsotopsParameter;
-    private boolean optimizeVariableModificationParameter;
+    private boolean optimizeModificationParameter;
     private boolean recalibrateSpectraParameter;
     private boolean optimizeXtandemAdvancedParameter;
-    
-    private final OptProtXtandemAdvancedSearchParameter xtandemOptProtAdvancedSearchParameters=new OptProtXtandemAdvancedSearchParameter();
+    private Advocate selectedSearchEngine = Advocate.xtandem;
+
+    public Advocate getSelectedSearchEngine() {
+        return selectedSearchEngine;
+    }
+
+    public void setSelectedSearchEngine(Advocate searchEngine) {
+        this.selectedSearchEngine = searchEngine;
+        if (searchEngine == Advocate.xtandem) {
+            this.setRunXTandem(true);
+        } else if (searchEngine == Advocate.myriMatch) {
+            this.setRunMyriMatch(true);
+        } else if (searchEngine == Advocate.direcTag) {
+            this.setRunDirecTag(true);
+        }
+
+    }
+
+    private final OptProtXtandemAdvancedSearchParameter xtandemOptProtAdvancedSearchParameters = new OptProtXtandemAdvancedSearchParameter();
 
     public boolean isOptimizeXtandemAdvancedParameter() {
         return optimizeXtandemAdvancedParameter;
@@ -73,21 +96,18 @@ public class OptProtSearchParameters {
     }
 
     private XTandemEnabledParameters XTandemEnabledParameters = new XTandemEnabledParameters();
+    private MyriMatchEnabledParameters MyriMatchEnabledParameters = new MyriMatchEnabledParameters();
 
     public XTandemEnabledParameters getXTandemEnabledParameters() {
         return XTandemEnabledParameters;
     }
 
-    public void setXTandemEnabledParameters(XTandemEnabledParameters XTandemEnabledParameters) {
-        this.XTandemEnabledParameters = XTandemEnabledParameters;
+    public boolean isOptimizeModificationParameter() {
+        return optimizeModificationParameter;
     }
 
-    public boolean isOptimizeVariableModificationParameter() {
-        return optimizeVariableModificationParameter;
-    }
-
-    public void setOptimizeVariableModificationParameter(boolean optimizeVariableModificationParameter) {
-        this.optimizeVariableModificationParameter = optimizeVariableModificationParameter;
+    public void setOptimizeModificationParameter(boolean optimizeModificationParameter) {
+        this.optimizeModificationParameter = optimizeModificationParameter;
     }
     private boolean optimizePrecursorChargeParameter;
 
@@ -267,10 +287,6 @@ public class OptProtSearchParameters {
         return xTandemFolder;
     }
 
-    public void setxTandemFolder(File xTandemFolder) {
-        this.xTandemFolder = xTandemFolder;
-    }
-
     public File getMsgfFolder() {
         return msgfFolder;
     }
@@ -291,16 +307,8 @@ public class OptProtSearchParameters {
         return myriMatchFolder;
     }
 
-    public void setMyriMatchFolder(File myriMatchFolder) {
-        this.myriMatchFolder = myriMatchFolder;
-    }
-
     public File getCometFolder() {
         return cometFolder;
-    }
-
-    public void setCometFolder(File cometFolder) {
-        this.cometFolder = cometFolder;
     }
 
     public File getTideFolder() {
@@ -347,16 +355,8 @@ public class OptProtSearchParameters {
         return novorFolder;
     }
 
-    public void setNovorFolder(File novorFolder) {
-        this.novorFolder = novorFolder;
-    }
-
     public File getDirecTagFolder() {
         return direcTagFolder;
-    }
-
-    public void setDirecTagFolder(File direcTagFolder) {
-        this.direcTagFolder = direcTagFolder;
     }
 
     public File getMakeblastdbFolder() {
@@ -402,4 +402,9 @@ public class OptProtSearchParameters {
     public OptProtXtandemAdvancedSearchParameter getXtandemOptProtAdvancedSearchParameters() {
         return xtandemOptProtAdvancedSearchParameters;
     }
+
+    public MyriMatchEnabledParameters getMyriMatchEnabledParameters() {
+        return MyriMatchEnabledParameters;
+    }
+
 }

@@ -4,6 +4,7 @@
  */
 package no.uib.probe.optprot.model;
 
+import com.compomics.util.parameters.identification.search.DigestionParameters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -15,9 +16,9 @@ import java.util.TreeMap;
  *
  * @author Yehia Mokhtar Farag
  */
-public class OptimisedSearchParameters {
+public class OptimisedSearchResults {
 
-    private String digestionParameter;//=DigestionParameters.CleavageParameter.enzyme.name();
+    private String digestionParameter=DigestionParameters.CleavageParameter.enzyme.name();
     private String enzymeName;
     private String enzymeSpecificity;
     private int maxMissedCleavage;

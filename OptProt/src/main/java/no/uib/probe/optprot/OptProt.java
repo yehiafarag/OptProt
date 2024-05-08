@@ -1,8 +1,8 @@
 package no.uib.probe.optprot;
 
+import com.compomics.util.experiment.identification.Advocate;
 import com.compomics.util.experiment.io.mass_spectrometry.MsFileHandler;
 import com.compomics.util.io.IoUtil;
-import com.compomics.util.parameters.identification.IdentificationParameters;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,11 +10,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
 import no.uib.probe.optprot.configurations.Configurations;
-import no.uib.probe.optprot.model.OptProtSearchParameters;
+import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.search.SearchOptimizerHandler;
 import no.uib.probe.optprot.util.MainUtilities;
 import no.uib.probe.optprot.util.OptProtWaitingHandler;
-import no.uib.probe.optprot.util.SearchOptimizerUtilities;
 import no.uib.probe.optprot.util.SpectraFileUtilities;
 
 /**
@@ -25,14 +24,15 @@ import no.uib.probe.optprot.util.SpectraFileUtilities;
  */
 public class OptProt {
 
-    public OptProt(String datasetId, File identificationParametersFile, File oreginalFastaFile, ArrayList<File> msFiles) {
+    public OptProt(String datasetId, File identificationParametersFile, File oreginalFastaFile, ArrayList<File> msFiles, Advocate searchEngineToOptimise) {
         try {
+            long start = System.currentTimeMillis();
             Configurations.Dataset_Id = datasetId;
             File resultsOutput = new File(Configurations.OUTPUT_FOLDER_PATH);
             if (resultsOutput.exists()) {
                 MainUtilities.cleanOutputFolder();
             }
-            OptProtSearchParameters searchOpParameter = SearchOptimizerUtilities.initSearchOptimizerParameters();
+            SearchInputSetting searchOpParameter = new SearchInputSetting();
 //        MainUtilities.cleanOptProtData(oreginalFastaFile.getParentFile());
             SearchOptimizerHandler searchOptimizerHandler = new SearchOptimizerHandler();
             searchOptimizerHandler.setIdentificationParametersFile(identificationParametersFile);
@@ -42,15 +42,15 @@ public class OptProt {
             String fileNameWithoutExtension = IoUtil.removeExtension(msFiles.get(0).getName());
             String[] spectrumTitles = msFileHandler.getSpectrumTitles(fileNameWithoutExtension);
             double startRatio = 0.04;
-            int totalTagsNumb = Math.max(1000,(int) (spectrumTitles.length * startRatio));
+            int totalTagsNumb = Math.max(1000, (int) (spectrumTitles.length * startRatio));
             while (true) {
                 File[] subSetInputs = spectraFileUtilities.initInputSubSetFiles(msFiles.get(0), oreginalFastaFile, identificationParametersFile, totalTagsNumb);
                 searchOptimizerHandler.setSubMsFile(subSetInputs[0]);
                 searchOptimizerHandler.setSubFastaFile(subSetInputs[1]);
-                searchOpParameter.setRunXTandem(true);
+                searchOpParameter.setSelectedSearchEngine(searchEngineToOptimise);
                 searchOptimizerHandler.setOptProtSearchParameters(searchOpParameter);
                 searchOptimizerHandler.runReferenceSearch(false);
-                System.out.println("id rate for reference run is " + " " + searchOptimizerHandler.getReferenceIdRate()+" >=  "+(totalTagsNumb * 0.085));
+                System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<id rate for reference run is " + " " + searchOptimizerHandler.getReferenceIdRate() + " >=  " + (totalTagsNumb * 0.085) + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
                 if (searchOptimizerHandler.getReferenceIdRate() >= (totalTagsNumb * 0.085)) {
                     break;
                 }
@@ -60,11 +60,11 @@ public class OptProt {
                 subSetInputs[0].delete();
                 subSetInputs[1].delete();
                 startRatio += 0.02;
-                totalTagsNumb =  Math.max(1000,(int) (spectrumTitles.length * startRatio));
+                totalTagsNumb = Math.max(1000, (int) (spectrumTitles.length * startRatio));
 
             }
             boolean all = true;
-            searchOpParameter.setOptimizeDigestionParameter(false || all);
+            searchOpParameter.setOptimizeDigestionParameter(true || all);
             searchOpParameter.setOptimizeEnzymeParameter(false || all);
             searchOpParameter.setOptimizeSpecificityParameter(false || all);
             searchOpParameter.setOptimizeMaxMissCleavagesParameter(false || all);
@@ -73,16 +73,20 @@ public class OptProt {
             searchOpParameter.setOptimizeFragmentToleranceParameter(false || all);
             searchOpParameter.setOptimizePrecursorChargeParameter(false || all);
             searchOpParameter.setOptimizeIsotopsParameter(false || all);
-            searchOpParameter.setOptimizeVariableModificationParameter(true || all);
+            searchOpParameter.setOptimizeModificationParameter(false || all);
             searchOpParameter.setRecalibrateSpectraParameter(false);
-            searchOpParameter.setRunXTandem(true);
-            searchOpParameter.setOptimizeXtandemAdvancedParameter(true || all);
-            searchOpParameter.getXtandemOptProtAdvancedSearchParameters().setOptAll(true || all);
+//            searchOpParameter.setRunXTandem(true);
+            searchOpParameter.setSelectedSearchEngine(searchEngineToOptimise);
+//            searchOpParameter.setOptimizeXtandemAdvancedParameter(true || all);
+//            searchOpParameter.getXtandemOptProtAdvancedSearchParameters().setOptAll(true || all);
             long start1 = System.currentTimeMillis();
             searchOptimizerHandler.executeParametersOptimization();//
             long end1 = System.currentTimeMillis();
+            
+            
+             double full = (end1 - start) / 1000.0;
             double total = (end1 - start1) / 1000.0;
-            System.out.println("-------------------------------------------------------------------->>>>>>>>>>>>>>>>>> Elapsed Time for the optimization in seconds: " + total + "   " + (total / 60.0));
+            System.out.println("-------------------------------------------------------------------->>>>>>>>>>>>>>>>>> Elapsed Time for the optimization of " + datasetId + "  in seconds: " + total + "  and in mins " + (total / 60.0)+ "  full process in seconds: " + full + "  and in mins " + (full / 60.0));
             if (resultsOutput.exists()) {
                 MainUtilities.cleanOutputFolder();
             }
@@ -106,7 +110,7 @@ public class OptProt {
             File datasetFolder = new File("D:\\Apps\\OptProt\\data\\" + datasetId);//  
             File searchParamFile = null;
             File fastaFile = null;
-            boolean cleanAll = true;
+            boolean cleanAll = false;
             for (File f : datasetFolder.listFiles()) {
                 if (f.getName().startsWith(Configurations.DEFAULT_RESULT_NAME)) {
                     if (cleanAll || (!f.getName().startsWith(Configurations.DEFAULT_RESULT_NAME + Configurations.get_current_file_fingerprent() + "_"))) {
@@ -125,7 +129,30 @@ public class OptProt {
                     searchParamFile = f;
                 }
             }
-            OptProt optProt = new OptProt(datasetId, searchParamFile, fastaFile, msFiles);
+
+            SearchInputSetting searchOpParameter = new SearchInputSetting();
+            boolean all = true;
+            searchOpParameter.setOptimizeDigestionParameter(false || all);
+            searchOpParameter.setOptimizeEnzymeParameter(false || all);
+            searchOpParameter.setOptimizeSpecificityParameter(false || all);
+            searchOpParameter.setOptimizeMaxMissCleavagesParameter(false || all);
+            searchOpParameter.setOptimizeFragmentIonTypesParameter(false || all);
+            searchOpParameter.setOptimizePrecursorToleranceParameter(false || all);
+            searchOpParameter.setOptimizeFragmentToleranceParameter(false || all);
+            searchOpParameter.setOptimizePrecursorChargeParameter(false || all);
+            searchOpParameter.setOptimizeIsotopsParameter(false || all);
+            searchOpParameter.setOptimizeModificationParameter(false || all);
+//            searchOpParameter.setRecalibrateSpectraParameter(false);
+//            searchOpParameter.setRunXTandem(true);
+            searchOpParameter.setSelectedSearchEngine(Advocate.xtandem);
+            searchOpParameter.setOptimizeXtandemAdvancedParameter(true || all);
+            searchOpParameter.getXtandemOptProtAdvancedSearchParameters().setOptAll(true || all);
+
+            Controller controller = new Controller();
+//            controller.processDataset(datasetId, msFiles.get(0), fastaFile, searchParamFile, Advocate.myriMatch);
+//            searchParamFile = new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE);
+            controller.processDataset(datasetId, msFiles.get(0), fastaFile, searchParamFile, searchOpParameter);
+//            OptProt optProt = new OptProt(datasetId, searchParamFile, fastaFile, msFiles,Advocate.myriMatch);
 
         });
     }

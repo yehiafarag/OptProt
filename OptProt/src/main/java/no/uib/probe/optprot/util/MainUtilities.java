@@ -9,10 +9,8 @@ import com.compomics.util.parameters.searchgui.OutputParameters;
 import com.compomics.util.parameters.tools.ProcessingParameters;
 import eu.isas.searchgui.SearchHandler;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import no.uib.probe.optprot.configurations.Configurations;
 
 /**
@@ -20,7 +18,7 @@ import no.uib.probe.optprot.configurations.Configurations;
  * @author yfa041
  */
 public class MainUtilities {
-
+public static final  ExecutorService executor= Executors.newFixedThreadPool(3);;
     static {
         UtilitiesUserParameters userParameters = UtilitiesUserParameters.loadUserParameters();
         userParameters.setGzip(false);
@@ -73,8 +71,8 @@ public class MainUtilities {
 
     }
 
-    public static double rundDouble(double args) {
-        return Math.round(args * 100.0) / 100.0;
+    public static int rundDouble(double args) {
+        return (int) Math.round(args * 100.0 / 100.0);
 
     }
 
