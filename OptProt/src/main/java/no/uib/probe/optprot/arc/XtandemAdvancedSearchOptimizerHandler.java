@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package no.uib.probe.optprot.search;
+package no.uib.probe.optprot.arc;
 
 import com.compomics.util.experiment.biology.modifications.ModificationFactory;
 import com.compomics.util.experiment.biology.proteins.Peptide;
@@ -28,12 +28,14 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
+import java.util.TreeSet;
 import java.util.concurrent.Future;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 import no.uib.probe.optprot.configurations.Configurations;
+import no.uib.probe.optprot.model.ParameterScoreModel;
 import no.uib.probe.optprot.model.SearchInputSetting;
+import no.uib.probe.optprot.search.SearchExecuter;
 import no.uib.probe.optprot.util.MainUtilities;
 import static no.uib.probe.optprot.util.MainUtilities.executor;
 import no.uib.probe.optprot.util.OptProtWaitingHandler;
@@ -53,6 +55,8 @@ public class XtandemAdvancedSearchOptimizerHandler {
     private final File subMsFile, subFastaFile;
     private final SearchInputSetting searchEngineParameters;
     private final SearchParameters searchParameters;
+    
+
     /**
      * The identification file reader factory of compomics utilities.
      */
@@ -65,6 +69,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
     public XtandemAdvancedSearchOptimizerHandler(File subMsFile, File subFastaFile, File optimizedIdentificationParametersFile, SearchInputSetting searchEngineParameters, double referenceIdRate) throws IOException {
 //        executor = Executors.newFixedThreadPool(2);
         this.identificationParametersFile = optimizedIdentificationParametersFile;
+          
 //        this.referenceIdRate = referenceIdRate;
         identificationParam = IdentificationParameters.getIdentificationParameters(optimizedIdentificationParametersFile);
         searchParameters = identificationParam.getSearchParameters();
@@ -73,7 +78,6 @@ public class XtandemAdvancedSearchOptimizerHandler {
         xtandemParameters.setProteinQuickAcetyl(true);
         xtandemParameters.setStpBias(true);
         xtandemParameters.setRefine(true);
-
         this.subFastaFile = subFastaFile;
         this.subMsFile = subMsFile;
         this.searchEngineParameters = searchEngineParameters;

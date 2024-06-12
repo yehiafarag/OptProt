@@ -73,7 +73,23 @@ public class SearchEngineParameterConfigurations {
         paramMap.put("useRefinePointMutations", true);
         paramMap.put("useRefineSnAPs", true);
         paramMap.put("useRefineSpectrumSynthesis", true);
-     
+        paramMap.put("", false);
+        paramMap.put(null, false);
+        paramMap.put("maxPrecursorMass", true);
+        paramMap.put("minPrecursorMass", true);
+
+        paramMap.put("minPeptideLength", true);
+        paramMap.put("maxPeptideLength", true);
+        paramMap.put("maxVarPTMs", true);
+        paramMap.put("fragmentationMethod", true);
+        paramMap.put("enzymatricTerminals", true);
+        paramMap.put("useSmartPlus3Model", true);
+        paramMap.put("computeXCorr", true);
+        paramMap.put("TICCutoff", true);
+        paramMap.put("NumberOfIntensityClasses", true);
+        paramMap.put("classSizeMultiplier", true);
+        paramMap.put("NumberOfBatches", true);
+        paramMap.put("maxPeakCount", true);
 
         for (String mod : mods) {
             paramMap.put(mod, true);
@@ -97,7 +113,11 @@ public class SearchEngineParameterConfigurations {
     }
 
     public boolean isEnabledParam(String param) {
-        return paramMap.get(param);
+        Boolean b = paramMap.get(param);
+        if (b == null) {
+            b = false;
+        }
+        return b;
     }
 
     public void disableSpecificEnzyme() {
@@ -132,8 +152,30 @@ public class SearchEngineParameterConfigurations {
         paramMap.replace("unSpecific", false);
     }
 
+    public void disableParam(String paramName) {
+        if (paramMap.containsKey(paramName)) {
+            paramMap.replace(paramName, false);
+        } else {
+            System.out.println("param " + paramName + " not supported");
+        }
+    }
+
     public void disableEnzyme(Enzyme enzyme) {
         paramMap.replace(enzyme.getName(), false);
+    }
+
+    public void disableFragmentTypes() {
+        paramMap.put("[0]-[3]", false);
+        paramMap.put("[0]-[4]", false);
+        paramMap.put("[0]-[5]", false);
+
+        paramMap.put("[1]-[3]", false);
+        paramMap.put("[1]-[4]", false);
+        paramMap.put("[1]-[5]", false);
+
+        paramMap.put("[2]-[3]", false);
+        paramMap.put("[2]-[4]", false);
+        paramMap.put("[2]-[5]", false);
     }
 
 }

@@ -6,7 +6,12 @@ package no.uib.probe.optprot.util;
 
 import com.compomics.util.experiment.identification.Advocate;
 import com.compomics.util.parameters.identification.IdentificationParameters;
+import com.compomics.util.parameters.identification.tool_specific.MyriMatchParameters;
 import com.compomics.util.parameters.identification.tool_specific.XtandemParameters;
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import no.uib.probe.optprot.dataset.model.SearchingSubDataset;
 
 /**
@@ -20,9 +25,19 @@ public class ReportExporter {
 
     }
 
-    public static void printFullReport(IdentificationParameters optimisedSearchParameter, SearchingSubDataset dataset, Advocate searchEngine) {
-        System.out.println("-------------------------------------------------------------------------------------------");
-        System.out.println("Refrence score      :\t" + dataset.getIdentificationNum());
+    public static void printFullReport(File optimisedSearchParameterFile, SearchingSubDataset dataset, Advocate searchEngine,String datasetId) {
+        IdentificationParameters optimisedSearchParameter;
+        try {
+            optimisedSearchParameter = IdentificationParameters.getIdentificationParameters(optimisedSearchParameterFile);
+        } catch (IOException ex) {
+           ex.printStackTrace();
+           return;
+        }
+        System.out.println("-------------------------------" + datasetId + "(" + searchEngine.getName() + ")-----------------------------------------");
+        if (dataset != null) {
+           
+            System.out.println("Refrence score      :\t" + dataset.getActiveIdentificationNum());
+        }
         System.out.println("Digestion           :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name());
         System.out.println("Enzyme              :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName());
         System.out.println("Specificity         :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getSpecificity(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()));
@@ -49,7 +64,7 @@ public class ReportExporter {
         System.out.println("Variable mod:\n" + fm);
         if (searchEngine.getIndex() == Advocate.xtandem.getIndex()) {
             XtandemParameters xtandemParameters = (XtandemParameters) optimisedSearchParameter.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-            System.out.println("-----------------------------xtandem advanced-------------------------------------------");
+            System.out.println("---------------------------xtandem advanced-----------------------------");
             System.out.println("Spectrum Dynamic Range:\t" + xtandemParameters.getDynamicRange());
             System.out.println("Number of Peaks       :\t" + xtandemParameters.getnPeaks());
             System.out.println("MinimumFragmentMz     :\t" + xtandemParameters.getMinFragmentMz());
@@ -68,7 +83,8 @@ public class ReportExporter {
             System.out.println("Use SnAPs             :\t" + xtandemParameters.isRefineSnaps());
             System.out.println("Spectrum Synthesis    :\t" + xtandemParameters.isRefineSpectrumSynthesis());
 
-            System.out.println("-------------------------------------------------------------------------------------------");
+            System.out.println("------------------------------------------------------------------------");
+
             String rfm = "";
             if (optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementFixedModifications() != null) {
                 for (String fixedMod : optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementFixedModifications()) {
@@ -83,7 +99,22 @@ public class ReportExporter {
                 }
             }
             System.out.println("Refined Variable mod:\n" + rfm);
-            System.out.println("-------------------------------------------------------------------------------------------");
+        } else if (searchEngine.getIndex() == Advocate.myriMatch.getIndex()) {
+            MyriMatchParameters myriMatchParameters = (MyriMatchParameters) optimisedSearchParameter.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
+            System.out.println("---------------------------MyriMatch advanced-----------------------------");
+            System.out.println("Peptide Length (min-max):\t" + myriMatchParameters.getMinPeptideLength() + "-" + myriMatchParameters.getMaxPeptideLength());
+            System.out.println("Precursor Mass (min-max):\t" + myriMatchParameters.getMinPrecursorMass() + "-" + myriMatchParameters.getMaxPrecursorMass());
+            System.out.println("Max Variable PTM        :\t" + myriMatchParameters.getMaxDynamicMods());
+            System.out.println("Fragmentaion Methods    :\t" + myriMatchParameters.getFragmentationRule());
+            System.out.println("Enzymatic Terminals     :\t" + myriMatchParameters.getMinTerminiCleavages());
+            System.out.println("Use smart + 3 model     :\t" + myriMatchParameters.getUseSmartPlusThreeModel());
+            System.out.println("Compute xCorr           :\t" + myriMatchParameters.getComputeXCorr());
+            System.out.println("TIC Cutoff  %           :\t" + myriMatchParameters.getTicCutoffPercentage());
+            System.out.println("Num Of Inten Classes    :\t" + myriMatchParameters.getNumIntensityClasses());
+
+            System.out.println("Class Size Multiplier   :\t" + myriMatchParameters.getClassSizeMultiplier());
+            System.out.println("Number Of Batches       :\t" + myriMatchParameters.getNumberOfBatches());
+            System.out.println("Max Peak Count          :\t" + myriMatchParameters.getMaxPeakCount());
         }
     }
 }

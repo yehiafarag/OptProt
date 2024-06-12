@@ -11,6 +11,7 @@ import com.compomics.util.parameters.identification.tool_specific.XtandemParamet
 import eu.isas.searchgui.SearchHandler;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.model.SearchInputSetting;
@@ -38,7 +39,7 @@ public class SearchExecuter {
      * @return results Folder
      */
     public synchronized static File executeSearch(String processId, SearchInputSetting searchInputSetting, File msFile, File fastaFile, IdentificationParameters tempIdParam, File identificationParametersFile) {
-        
+
         if (searchInputSetting.isRunNovor() || searchInputSetting.isRunDirecTag()) {
             //remove terminal variable modifications andd add common before run novor         
             List<String> toRemoveMod = new ArrayList<>();
@@ -52,12 +53,14 @@ public class SearchExecuter {
                 tempIdParam.getSearchParameters().getModificationParameters().removeVariableModification(mod);
             }
         }
+        System.out.println("searchInputSetting.isRunXTandem() "+searchInputSetting.isRunXTandem()+"   searchInputSetting.isRunSage()"+ searchInputSetting.isRunSage());
         if (searchInputSetting.isRunXTandem()) {
             XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-            xtandemParameters.setOutputResults("valid");
-            xtandemParameters.setMaxEValue(0.01);            
+            xtandemParameters.setOutputResults("valid");//"valid"
+            xtandemParameters.setMaxEValue(0.01);
             if (processId.contains("reference_run_")) {
                 xtandemParameters.setProteinQuickAcetyl(false);
+                xtandemParameters.setQuickPyrolidone(false);
                 xtandemParameters.setStpBias(false);
                 xtandemParameters.setRefine(false);
             }
@@ -67,7 +70,7 @@ public class SearchExecuter {
         resultOutput.mkdir();
         File tempSearchEngineFolder = new File(Configurations.OUTPUT_FOLDER_PATH, processId + "_temp");
         tempSearchEngineFolder.mkdir();
-        
+
         ArrayList<File> msFileInList = new ArrayList<>();
         msFileInList.add(msFile);
         SearchHandler.setTempSearchEngineFolderPath(tempSearchEngineFolder.getAbsolutePath());
@@ -102,7 +105,7 @@ public class SearchExecuter {
                 searchInputSetting.getMakeblastdbFolder(),
                 MainUtilities.getProcessingParameter()
         );
-        
+
         try {
             searchHandler.startSearch(MainUtilities.OptProt_Waiting_Handler);
         } catch (InterruptedException ex) {
@@ -110,8 +113,9 @@ public class SearchExecuter {
         }
         File resultsFile = searchHandler.getResultsFolder();
         MainUtilities.deleteFolder(tempSearchEngineFolder);
-        
+//        System.exit(0);
+
         return resultsFile;
-        
+
     }
 }

@@ -1,5 +1,6 @@
 package no.uib.probe.optprot.search;
 
+import no.uib.probe.optprot.arc.XtandemAdvancedSearchOptimizerHandler;
 import com.compomics.util.experiment.biology.enzymes.Enzyme;
 import com.compomics.util.experiment.biology.enzymes.EnzymeFactory;
 import com.compomics.util.experiment.biology.ions.impl.PeptideFragmentIon;
@@ -158,24 +159,24 @@ public class SearchOptimizerHandler {
                 optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().setCleavageParameter(DigestionParameters.CleavageParameter.valueOf(optimisedSearchParameter.getDigestionParameter()));
 //                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
             }
-            if (optimisedSearchParameter.getDigestionParameter().equalsIgnoreCase(DigestionParameters.CleavageParameter.enzyme.name()) && (optProtSearchParameters.isOptimizeDigestionParameter() || optProtSearchParameters.isOptimizeEnzymeParameter())) {
-                this.optimizeEnzymeParameter();
-                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().clear();
-                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().add(EnzymeFactory.getInstance().getEnzyme(optimisedSearchParameter.getEnzymeName()));
-                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(optimisedSearchParameter.getEnzymeName(), optimisedSearchParameter.getMaxMissedCleavage());
-//                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
-            }
-            if (optimisedSearchParameter.getDigestionParameter().equalsIgnoreCase(DigestionParameters.CleavageParameter.enzyme.name()) && (optProtSearchParameters.isOptimizeDigestionParameter() || optProtSearchParameters.isOptimizeSpecificityParameter())) {
-                this.optimizeSpecificityParameter();
-                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(optimisedSearchParameter.getEnzymeName(), DigestionParameters.Specificity.valueOf(optimisedSearchParameter.getEnzymeSpecificity()));
-//                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
-            }
-            if ((optimisedSearchParameter.getDigestionParameter().equalsIgnoreCase(DigestionParameters.CleavageParameter.enzyme.name()) && (optProtSearchParameters.isOptimizeDigestionParameter()) || optProtSearchParameters.isOptimizeMaxMissCleavagesParameter())) {
-                this.optimizeMaxMissCleavagesParameter();
-                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(optimisedSearchParameter.getEnzymeName(), optimisedSearchParameter.getMaxMissedCleavage());
-
-//                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
-            }
+//            if (optimisedSearchParameter.getDigestionParameter().equalsIgnoreCase(DigestionParameters.CleavageParameter.enzyme.name()) && (optProtSearchParameters.isOptimizeDigestionParameter() || optProtSearchParameters.isOptimizeEnzymeParameter())) {
+//                this.optimizeEnzymeParameter();
+//                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().clear();
+//                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().add(EnzymeFactory.getInstance().getEnzyme(optimisedSearchParameter.getEnzymeName()));
+//                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(optimisedSearchParameter.getEnzymeName(), optimisedSearchParameter.getMaxMissedCleavage());
+////                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
+//            }
+//            if (optimisedSearchParameter.getDigestionParameter().equalsIgnoreCase(DigestionParameters.CleavageParameter.enzyme.name()) && (optProtSearchParameters.isOptimizeDigestionParameter() || optProtSearchParameters.isOptimizeSpecificityParameter())) {
+//                this.optimizeSpecificityParameter();
+//                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(optimisedSearchParameter.getEnzymeName(), DigestionParameters.Specificity.valueOf(optimisedSearchParameter.getEnzymeSpecificity()));
+////                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
+//            }
+//            if ((optimisedSearchParameter.getDigestionParameter().equalsIgnoreCase(DigestionParameters.CleavageParameter.enzyme.name()) && (optProtSearchParameters.isOptimizeDigestionParameter()) || optProtSearchParameters.isOptimizeMaxMissCleavagesParameter())) {
+//                this.optimizeMaxMissCleavagesParameter();
+//                optimizedIdentificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(optimisedSearchParameter.getEnzymeName(), optimisedSearchParameter.getMaxMissedCleavage());
+//
+////                IdentificationParameters.saveIdentificationParameters(optimizedIdentificationParameters, optimizedIdentificationParametersFile);
+//            }
             if (optProtSearchParameters.isOptimizeFragmentIonTypesParameter()) {
                 this.optimizeFragmentIonTypesParameter();
                 optimizedIdentificationParameters.getSearchParameters().setForwardIons(optimisedSearchParameter.getSelectedForwardIons());
@@ -1285,11 +1286,6 @@ public class SearchOptimizerHandler {
             }
             SearchParameters searchParameters = tempIdParam.getSearchParameters();
             MyriMatchParameters myriMatchParameters = (MyriMatchParameters) searchParameters.getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
-//            xtandemParameters.setQuickPyrolidone(true);
-//            xtandemParameters.setProteinQuickAcetyl(true);
-//            xtandemParameters.setStpBias(true);
-//            xtandemParameters.setRefine(true);
-
             File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchParameters, subMsFile, subFastaFile, tempIdParam, optimizedIdentificationParametersFile);
             File myriMatchFile = new File(resultOutput, SearchHandler.getMyriMatchFileName(IoUtil.removeExtension(subMsFile.getName()), myriMatchParameters));
             IdfileReader idReader = readerFactory.getFileReader(myriMatchFile);

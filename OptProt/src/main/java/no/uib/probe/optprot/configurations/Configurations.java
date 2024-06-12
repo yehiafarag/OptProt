@@ -4,8 +4,6 @@
  */
 package no.uib.probe.optprot.configurations;
 
-import java.io.File;
-
 /**
  * Main configurations needed for the sub search utilities
  *
@@ -21,6 +19,7 @@ public class Configurations {
     public static final String NOVOR_FOLDER = "D:\\Apps\\searchgui\\resources\\Novor";
     public static final String COMET_FOLDER = "D:\\Apps\\searchgui\\resources\\Comet\\windows";
     public static final String DIRECTAG_FOLDER = "D:\\Apps\\searchgui\\resources\\DirecTag\\windows\\windows_64bit";
+    public static final String SAGE_FOLDER = "D:\\Apps\\searchgui\\resources\\Sage\\windows\\";
     /**
      * The configurations folder.
      */
@@ -28,7 +27,7 @@ public class Configurations {
     /**
      * The resources folder.
      */
-//    public static final String RESOURCE_FOLDER = "D:\\Apps\\OptProt\\resources\\";
+    public static final String DATA_FOLDER = "D:\\Apps\\OptProt\\data\\";
     public static final String DEFAULT_RESULT_NAME = "optsearch_results";
 
     /**
@@ -38,20 +37,28 @@ public class Configurations {
     /**
      * The default search param file.
      */
-    public static final String DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE = "D:\\Apps\\OptProt\\data\\default_optprot_search_settings.par";
+    public static final String DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE_NAME = "default_optprot_search_settings.par";
 
+    /**
+     * The default search param file.
+     */
+    public static final String DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE = "D:\\Apps\\OptProt\\data\\default_optprot_search_settings.par";
     /**
      * The active search param file.
      */
-    public static File ACTIVE_SEARCH_SETTINGS_FILE;
+//    public static File ACTIVE_SEARCH_SETTINGS_FILE;
 
     public static String Dataset_Id;
 
     public static final String EXTRACT_MS_TYPE = "TA";//TA  WF
-//    public static int EXTRACT_MAX_MS_SIZE = 1500;
+    public static final int EXTRACT_MAX_MS_SIZE = 3000;
 //    public static int EXTRACT_MIN_MS_SIZE = 1000;
 //    public static int MIN_TAG_SIZE = 1000;
-    public static int REFINED_MS_SIZE =2000;
+    public static final int REFINED_MS_SIZE = 2000;
+
+    public static final double ACCEPTED_REFERENCE_ID_RATIO = 0.05;
+    public static final double ACCEPTED_TAG_EVALUE = 0.01;
+//    public static final double[] VALIDATED_ID_REF_DATA = null;
 
     public static String get_current_file_fingerprent() {
         return "_" + EXTRACT_MS_TYPE;
