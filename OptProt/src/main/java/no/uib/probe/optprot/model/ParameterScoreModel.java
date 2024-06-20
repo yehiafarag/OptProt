@@ -18,6 +18,7 @@ public class ParameterScoreModel implements Comparable<ParameterScoreModel> {
     private String comments;
     private long start;
     private long end;
+    private RawScoreModel rawScoreModel;
 
     public ParameterScoreModel() {
         start = System.currentTimeMillis();
@@ -81,6 +82,14 @@ public class ParameterScoreModel implements Comparable<ParameterScoreModel> {
     @Override
     public String toString() {
         return "Parameter: " + paramId + "  value: " + paramValue + "  delay:" + delayTime + " sec  score: " + score;
+    }
+
+    public RawScoreModel getRawScoreModel() {
+        return rawScoreModel;
+    }
+
+    public void setRawScoreModel(RawScoreModel rawScoreModel) {
+        this.rawScoreModel = rawScoreModel;
     }
 
 }

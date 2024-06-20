@@ -41,8 +41,8 @@ public class OptProtSearchHandler {
 //            IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
             if (searchInputSetting.getSelectedSearchEngine().getIndex() == Advocate.xtandem.getIndex()) {
                 XtandemParameters xtandemParameters = (XtandemParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-                xtandemParameters.setOutputResults("valid");//"valid"
-                xtandemParameters.setMaxEValue(0.01);
+                xtandemParameters.setOutputResults("all");//"valid"
+//                xtandemParameters.setMaxEValue(0.01);
                 xtandemParameters.setProteinQuickAcetyl(false);
                 xtandemParameters.setQuickPyrolidone(false);
                 xtandemParameters.setStpBias(false);

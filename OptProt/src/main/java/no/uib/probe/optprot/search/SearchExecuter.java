@@ -53,19 +53,28 @@ public class SearchExecuter {
                 tempIdParam.getSearchParameters().getModificationParameters().removeVariableModification(mod);
             }
         }
-        System.out.println("searchInputSetting.isRunXTandem() "+searchInputSetting.isRunXTandem()+"   searchInputSetting.isRunSage()"+ searchInputSetting.isRunSage());
-        if (searchInputSetting.isRunXTandem()) {
-            XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-            xtandemParameters.setOutputResults("valid");//"valid"
-            xtandemParameters.setMaxEValue(0.01);
-            if (processId.contains("reference_run_")) {
-                xtandemParameters.setProteinQuickAcetyl(false);
-                xtandemParameters.setQuickPyrolidone(false);
-                xtandemParameters.setStpBias(false);
-                xtandemParameters.setRefine(false);
-            }
-//            
-        }
+//        if (searchInputSetting.isRunXTandem()) {
+//            XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
+////            if (processId.contains("init_input_files")) {
+////                xtandemParameters.setOutputResults("valid");//"valid"
+////                xtandemParameters.setMaxEValue(0.01);
+////                xtandemParameters.setProteinQuickAcetyl(false);
+////                xtandemParameters.setQuickPyrolidone(false);
+////                xtandemParameters.setStpBias(false);
+////                xtandemParameters.setRefine(false);
+////            } else {
+////                xtandemParameters.setOutputResults("all");//"valid"
+////            }
+//////            xtandemParameters.setMaxEValue(0.01);
+////            System.out.println("process id " + processId);
+////            if (processId.contains("reference_run_")) {
+////                xtandemParameters.setProteinQuickAcetyl(false);
+////                xtandemParameters.setQuickPyrolidone(false);
+////                xtandemParameters.setStpBias(false);
+////                xtandemParameters.setRefine(false);
+////            }
+////            
+//        }
         File resultOutput = new File(Configurations.OUTPUT_FOLDER_PATH, processId);
         resultOutput.mkdir();
         File tempSearchEngineFolder = new File(Configurations.OUTPUT_FOLDER_PATH, processId + "_temp");

@@ -20,6 +20,8 @@ public class MyriMatchEnabledParameters {
         this.paramsToOptimize.disableMinCharge();
 //        this.paramsToOptimize.disableMinIsotop();
 //        this.paramsToOptimize.disableMaxIsotop();
+//this.paramsToOptimize.disableParam("Carbamilation of protein N-term");
+//this.paramsToOptimize.disableParam("Acetylation of protein N-term");
     }
 
     public SearchEngineParameterConfigurations getParamsToOptimize() {

@@ -14,18 +14,20 @@ import no.uib.probe.optprot.configurations.SearchEngineParameterConfigurations;
 public class SageEnabledParameters {
 
     private final SearchEngineParameterConfigurations paramsToOptimize;
+
     public SageEnabledParameters() {
-        this.paramsToOptimize=new SearchEngineParameterConfigurations();
+        this.paramsToOptimize = new SearchEngineParameterConfigurations();
 //        this.paramsToOptimize.disableFragmentTypes();
-//        this.paramsToOptimize.disableSpecificCTermOnlyEnzyme();
+        this.paramsToOptimize.disableSpecificCTermOnlyEnzyme();
 //        this.paramsToOptimize.disableMinCharge();
 //        this.paramsToOptimize.disableMinIsotop();
 //        this.paramsToOptimize.disableMaxIsotop();
- this.paramsToOptimize.disableParam("Acetylation of peptide N-term");
+        this.paramsToOptimize.disableParam("Acetylation of peptide N-term");
+        this.paramsToOptimize.disableParam("specificNTermOnly");
     }
 
     public SearchEngineParameterConfigurations getParamsToOptimize() {
         return paramsToOptimize;
     }
-    
+
 }

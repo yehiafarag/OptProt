@@ -104,49 +104,57 @@ public class OptProt {
 //    }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            try {
+                List<String> paramOrder = new ArrayList<>();
+                paramOrder.add("ModificationParameter");
+                paramOrder.add("DigestionParameter_1");
+                paramOrder.add("FragmentIonTypesParameter");
+                paramOrder.add("DigestionParameter_2");
+                paramOrder.add("FragmentToleranceParameter");
+                paramOrder.add("PrecursorChargeParameter");
+                paramOrder.add("IsotopParameter");
 
-            List<String> paramOrder = new ArrayList<>();
-//            paramOrder.add("DigestionParameter_1");
-//            paramOrder.add("FragmentIonTypesParameter");
-//            paramOrder.add("DigestionParameter_2");
-//            paramOrder.add("FragmentToleranceParameter");
-//            paramOrder.add("PrecursorChargeParameter");
-//            paramOrder.add("IsotopParameter");
-            paramOrder.add("ModificationParameter");
-//            paramOrder.add("XtandemAdvancedParameter");
-//            paramOrder.add("MyriMatchAdvancedParameter");
-//            paramOrder.add("PrecursorToleranceParameter");
-            String datasetId = "PXD000561";//PXD047036  PXD028427  PXD009340 PXD000561   PXD000815  PXD001250 PXD001468
-            boolean cleanAll = false;
-            SearchInputSetting searchOpParameter = new SearchInputSetting();
-            boolean all = true;
-            searchOpParameter.setOptimizeAllParameters(all);
-            searchOpParameter.setOptimizeDigestionParameter(false || all);
-//            searchOpParameter.setOptimizeEnzymeParameter(false || all);
-//            searchOpParameter.setOptimizeSpecificityParameter(false || all);
-//            searchOpParameter.setOptimizeMaxMissCleavagesParameter(false || all);
-            searchOpParameter.setOptimizeFragmentIonTypesParameter(false || all);
-            searchOpParameter.setOptimizePrecursorToleranceParameter(false || all);
-            searchOpParameter.setOptimizeFragmentToleranceParameter(false || all);
-            searchOpParameter.setOptimizePrecursorChargeParameter(true || all);
-            searchOpParameter.setOptimizeIsotopsParameter(false || all);
-            searchOpParameter.setOptimizeModificationParameter(false || all);
+                paramOrder.add("XtandemAdvancedParameter");
+                paramOrder.add("MyriMatchAdvancedParameter");
+                paramOrder.add("DigestionParameter_3");
+                paramOrder.add("PrecursorToleranceParameter");
+                String datasetId = "PXD028427";//PXD047036  PXD028427  PXD009340 PXD000561   PXD000815  PXD001250 PXD001468
+                boolean cleanAll = false;
+                SearchInputSetting searchOpParameter = new SearchInputSetting();
+                boolean all = true;
+                searchOpParameter.setOptimizeAllParameters(all);
+                searchOpParameter.setOptimizeDigestionParameter(false || all);
+
+                searchOpParameter.setOptimizeFragmentIonTypesParameter(false || all);
+                searchOpParameter.setOptimizePrecursorToleranceParameter(false || all);
+                searchOpParameter.setOptimizeFragmentToleranceParameter(false || all);
+                searchOpParameter.setOptimizePrecursorChargeParameter(true || all);
+                searchOpParameter.setOptimizeIsotopsParameter(false || all);
+                searchOpParameter.setOptimizeModificationParameter(false || all);
 //            searchOpParameter.setRecalibrateSpectraParameter(false);
-//            searchOpParameter.setRunXTandem(true);
-            searchOpParameter.setSelectedSearchEngine(Advocate.myriMatch);//|| all
-//            searchOpParameter.setOptimizeMyriMatchAdvancedParameter(false || all);//            searchOpParameter.getXtandemOptProtAdvancedSearchParameters().setOptAll(false );//|| all
+//             
+//               //|| all
+//            searchOpParameter.setOptimizeMyriMatchAdvancedParameter(false || all);
+//            searchOpParameter.getXtandemOptProtAdvancedSearchParameters().setOptAll(false );//|| all
 //            runDataset(datasetId, cleanAll, paramOrder, searchOpParameter);
 //            File oreginalMGFFile = new File("D:\\Apps\\OptProt\\data\\sample.mgf");
 //            msFiles.add(oreginalMGFFile);
 //            searchOpParameter.setSelectedSearchEngine(Advocate.xtandem);
 //            searchOpParameter.setOptimizeXtandemAdvancedParameter(false || all);//|| all
 //            runDataset(datasetId, cleanAll, paramOrder, searchOpParameter);
+                searchOpParameter.setSelectedSearchEngine(Advocate.xtandem);
+//                searchOpParameter.setSelectedSearchEngine(Advocate.sage);
+//                searchOpParameter.setSelectedSearchEngine(Advocate.myriMatch);
+                runDataset(datasetId, cleanAll, paramOrder, searchOpParameter);
+                System.exit(0);
 
-            searchOpParameter.setSelectedSearchEngine(Advocate.sage);
-            runDataset(datasetId, cleanAll, paramOrder, searchOpParameter);
-            System.exit(0);
-
-        });
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                System.exit(0);
+            }
+        }
+        );
     }
 
     private static void runDataset(String datasetId, boolean cleanAll, List<String> paramOrder, SearchInputSetting searchOpParameter) {
