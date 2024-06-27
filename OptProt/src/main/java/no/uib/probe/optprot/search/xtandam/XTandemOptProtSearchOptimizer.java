@@ -6,21 +6,13 @@ package no.uib.probe.optprot.search.xtandam;
 
 import com.compomics.util.experiment.biology.enzymes.EnzymeFactory;
 import com.compomics.util.experiment.biology.modifications.ModificationFactory;
-import com.compomics.util.experiment.biology.proteins.Peptide;
 import com.compomics.util.experiment.identification.Advocate;
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
-import com.compomics.util.experiment.identification.modification.search_engine_mapping.ModificationLocalizationMapper;
-import com.compomics.util.experiment.identification.protein_inference.fm_index.FMIndex;
-import com.compomics.util.experiment.identification.spectrum_assumptions.PeptideAssumption;
-import com.compomics.util.experiment.io.identification.IdfileReader;
 import com.compomics.util.experiment.io.identification.IdfileReaderFactory;
-import com.compomics.util.io.IoUtil;
 import com.compomics.util.parameters.identification.IdentificationParameters;
-import com.compomics.util.parameters.identification.advanced.SequenceMatchingParameters;
 import com.compomics.util.parameters.identification.search.DigestionParameters;
 import com.compomics.util.parameters.identification.search.SearchParameters;
 import com.compomics.util.parameters.identification.tool_specific.XtandemParameters;
-import eu.isas.searchgui.SearchHandler;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.Future;
-import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.dataset.model.SearchingSubDataset;
 import no.uib.probe.optprot.model.OptimisedSearchResults;
 import no.uib.probe.optprot.model.ParameterScoreModel;
@@ -40,8 +30,6 @@ import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.search.DefaultOptProtSearchOptimizer;
 import no.uib.probe.optprot.search.SearchExecuter;
 import no.uib.probe.optprot.util.MainUtilities;
-import static no.uib.probe.optprot.util.MainUtilities.executor;
-import no.uib.probe.optprot.util.OptProtWaitingHandler;
 import no.uib.probe.optprot.util.SpectraFileUtilities;
 
 /**
@@ -244,9 +232,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
 //                continue;
 //            }
             if (param.equalsIgnoreCase("ModificationParameter") && searchInputSetting.isOptimizeModificationParameter()) {
-
                 Map<String, Set<String>> modificationsResults = this.optimizeModificationsParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("ModificationsParameter"));
-
                 identificationParameters.getSearchParameters().getModificationParameters().clearFixedModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
@@ -262,10 +248,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                         identificationParameters.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(variableMod));
                     }
                 }
-//                SageParameters sageParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
-//                sageParameters.setMaxVariableMods(modificationsResults.get("variableModifications").size());
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                System.exit(0);
                 continue;
             }
 
@@ -421,7 +404,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
     private boolean advancedParam = true;
 
     @Override
-    public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile) {
+    public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile,boolean pairData) {
 //        try {
         if (!optProtSearchSettings.getXTandemEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);
@@ -435,6 +418,13 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             }
 
         }
+        if (defaultOutputFileName.contains("_resultsf_Carbamilation of protein N-term")||defaultOutputFileName.contains("resultsf_Acetylation of protein N-term")) {
+            System.out.println("param " + paramOption + " is not supported " + paramOption);
+            return new RawScoreModel();
+        }
+        
+        
+        
         SearchParameters searchParameters = tempIdParam.getSearchParameters();
         if (!advancedParam) {
             XtandemParameters xtandemParameters = (XtandemParameters) searchParameters.getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
@@ -445,7 +435,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         }
         File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchSettings, optProtDataset.getSubMsFile(), optProtDataset.getSubFastaFile(), tempIdParam, identificationParametersFile);
         final List<SpectrumMatch> validatedMaches = SpectraFileUtilities.getValidatedIdentificationResults(resultOutput, optProtDataset.getSubMsFile(), Advocate.xtandem, tempIdParam);
-        RawScoreModel rawScore = SpectraFileUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.xtandem);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
+        RawScoreModel rawScore = SpectraFileUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.xtandem,pairData);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
 
         MainUtilities.deleteFolder(resultOutput);
         if (addSpectraList && rawScore.isSignificatChange()) {

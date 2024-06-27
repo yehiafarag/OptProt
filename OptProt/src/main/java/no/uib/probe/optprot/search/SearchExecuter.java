@@ -83,6 +83,7 @@ public class SearchExecuter {
         ArrayList<File> msFileInList = new ArrayList<>();
         msFileInList.add(msFile);
         SearchHandler.setTempSearchEngineFolderPath(tempSearchEngineFolder.getAbsolutePath());
+        SearchHandler.setTempFolderPath(null);
         SearchHandler searchHandler = new SearchHandler(tempIdParam, resultOutput, tempSearchEngineFolder, processId, msFileInList,
                 fastaFile, new ArrayList<>(),
                 identificationParametersFile,
@@ -121,7 +122,7 @@ public class SearchExecuter {
             ex.printStackTrace();
         }
         File resultsFile = searchHandler.getResultsFolder();
-        MainUtilities.deleteFolder(tempSearchEngineFolder);
+//        MainUtilities.deleteFolder(tempSearchEngineFolder);
 //        System.exit(0);
 
         return resultsFile;

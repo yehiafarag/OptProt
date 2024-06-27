@@ -25,9 +25,10 @@ public class Controller {
 
     String v = "";
 
-    public void processDataset(String datasetId, File oreginalMsFile, File oreginalFastaFile, File identificationParametersFile, SearchInputSetting optProtSearchSettings, boolean fullDataTest, List<String> paramOrder) {
+    public void processDataset(String datasetId, File oreginalMsFile, File oreginalFastaFile, File identificationParametersFile, SearchInputSetting optProtSearchSettings, boolean wholeDataTest, List<String> paramOrder) {
 
         File subDataFolder = new File(Configurations.DATA_FOLDER + datasetId, optProtSearchSettings.getSelectedSearchEngine().getName());
+
         if (subDataFolder.exists()) {
 //            for (File f : subDataFolder.listFiles()) {
 //                System.out.println("File found  " + f.getName());
@@ -48,7 +49,7 @@ public class Controller {
         }
 //        System.exit(0);
         MainUtilities.cleanOutputFolder();
-        SearchingSubDataset optProtDataset = optProtDatasetHandler.generateOptProtDataset(oreginalMsFile, oreginalFastaFile, optProtSearchSettings.getSelectedSearchEngine(), subDataFolder, identificationParametersFile, fullDataTest);
+        SearchingSubDataset optProtDataset = optProtDatasetHandler.generateOptProtDataset(oreginalMsFile, oreginalFastaFile, optProtSearchSettings.getSelectedSearchEngine(), subDataFolder, identificationParametersFile, wholeDataTest);
         optProtDataset.setSubDataFolder(subDataFolder);
         File selectedSearchSettingsFile;
 //        optProtDataset.setSubFastaFile(oreginalFastaFile);
@@ -62,15 +63,20 @@ public class Controller {
             optProtDataset.setActiveIdentificationNum(optProtDataset.getUserReferenceIdentificationNum());
         }
         optProtDataset.setSearchSettingsFile(selectedSearchSettingsFile);
+        optProtDataset.setOreginalFastaFile(oreginalFastaFile);
+        MainUtilities.cleanOutputFolder();
 
         OptProtSearchHandler optProtSearchHandler = new OptProtSearchHandler();
         long start = System.currentTimeMillis();
         File generatedFile = optProtSearchHandler.optimizeSearchEngine(optProtDataset, optProtSearchSettings, paramOrder);
         long end = System.currentTimeMillis();
         double total = (end - start) / 60000.0;
-
+        if (total < 0.1) {
+            total = 0.1;
+        }
 //        System.exit(0);
         if (generatedFile != null) {
+            ReportExporter.exportFullReport(generatedFile, optProtDataset, optProtSearchSettings.getSelectedSearchEngine(), datasetId, total);
             ReportExporter.printFullReport(generatedFile, optProtDataset, optProtSearchSettings.getSelectedSearchEngine(), datasetId);
         }
         System.out.println("Total Elapsed Time for optimizing the data in min: " + total);

@@ -16,12 +16,13 @@ public class MyriMatchEnabledParameters {
     public MyriMatchEnabledParameters() {
         this.paramsToOptimize=new SearchEngineParameterConfigurations();
         this.paramsToOptimize.disableFragmentTypes();
-//        this.paramsToOptimize.disableSpecificCTermOnlyEnzyme();
+        this.paramsToOptimize.disableSpecificCTermOnlyEnzyme();
+        this.paramsToOptimize.disableSpecificNTermOnlyEnzyme();
         this.paramsToOptimize.disableMinCharge();
 //        this.paramsToOptimize.disableMinIsotop();
 //        this.paramsToOptimize.disableMaxIsotop();
-//this.paramsToOptimize.disableParam("Carbamilation of protein N-term");
-//this.paramsToOptimize.disableParam("Acetylation of protein N-term");
+this.paramsToOptimize.disableParam("specificNTermOnly");
+this.paramsToOptimize.disableParam("specificCTermOnly");
     }
 
     public SearchEngineParameterConfigurations getParamsToOptimize() {

@@ -129,15 +129,15 @@ public class SearchEngineParameterConfigurations {
     }
 
     public void disableSpecificNTermOnlyEnzyme() {
-        paramMap.replace("specificNTermOnlyEnzyme", false);
+        paramMap.replace("specificNTermOnly", false);
     }
 
     public boolean isSpecificCTermOnlyEnzyme() {
-        return paramMap.get("specificCTermOnlyEnzyme");
+        return paramMap.get("specificCTermOnly");
     }
 
     public void disableSpecificCTermOnlyEnzyme() {
-        paramMap.replace("specificCTermOnlyEnzyme ", false);
+        paramMap.replace("specificCTermOnly ", false);
     }
 
     public void disableEnzyme() {

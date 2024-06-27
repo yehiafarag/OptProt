@@ -66,43 +66,40 @@ public class StatisticsTests {
         return x >= 0 ? 1 - tau : tau - 1;
     }
 
-    public static double pValueForTTest(double[] resultScores, double[] referenceScore) {
-        if (resultScores.length < 2 || referenceScore.length < 2) {
+    public static double pValueForTTest(double[] fromData, double[] toData) {
+        if (toData.length < 2 || fromData.length < 2) {
             return 100.0;
         }
         TTest tTest = new TTest();
         double pValue;
-        if (resultScores.length == referenceScore.length) {
-            pValue = tTest.pairedTTest(resultScores, referenceScore);
+        if (toData.length == fromData.length) {
+            pValue = tTest.pairedTTest(fromData, toData);
         } else {
-            pValue = tTest.tTest(resultScores, referenceScore);
-//          
+            pValue = tTest.tTest(fromData, toData);//          
         }
 
         return pValue;
     }
 
-    public static double tTest(double[] resultScores, double[] referenceScore) {
+    public static double tTest(double[] fromData, double[] toData) {
 
-        if (resultScores.length < 2 || referenceScore.length < 2) {
+        if (toData.length < 2 || fromData.length < 2) {
             return -100.0;
         }
 
         // Paired t-test
         TTest tTest = new TTest();
         double tStatistic;
-        if (resultScores.length == referenceScore.length) {
-            tStatistic = tTest.pairedT(resultScores, referenceScore);
-        } else if (resultScores.length > referenceScore.length) {
-            double[] updatedData = new double[resultScores.length];
-            System.arraycopy(referenceScore, 0, updatedData, 0, referenceScore.length);
-            tStatistic = tTest.pairedT(resultScores, updatedData);//          
-        }else {
-            double[] updatedData = new double[referenceScore.length];
-            System.arraycopy(resultScores, 0, updatedData, 0, resultScores.length);
-            tStatistic = tTest.pairedT(updatedData, referenceScore);//          
+        if (toData.length > fromData.length) {
+            double[] updatedData = new double[toData.length];
+            System.arraycopy(fromData, 0, updatedData, 0, fromData.length);
+            fromData = updatedData;
+        } else if (toData.length < fromData.length) {
+            double[] updatedData = new double[fromData.length];
+            System.arraycopy(toData, 0, updatedData, 0, toData.length);
+            toData = updatedData;
         }
-
+        tStatistic = tTest.pairedT(fromData, toData);
         return tStatistic;
     }
 

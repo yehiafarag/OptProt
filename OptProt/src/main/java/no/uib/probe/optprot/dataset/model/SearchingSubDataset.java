@@ -22,7 +22,17 @@ public class SearchingSubDataset {
     private File subDataFolder;
     private File subMsFile;
     private File subFastaFile;
+     private File oreginalFastaFile;
+
+    public File getOreginalFastaFile() {
+        return oreginalFastaFile;
+    }
+
+    public void setOreginalFastaFile(File oreginalFastaFile) {
+        this.oreginalFastaFile = oreginalFastaFile;
+    }
     private File searchSettingsFile;
+    private double pValueThresholds = -1;
 
     public File getSearchSettingsFile() {
         return searchSettingsFile;
@@ -37,7 +47,7 @@ public class SearchingSubDataset {
     private double processDelay;
     private boolean highResolutionMassSpectrometers = true;
     private double acceptedIDRatioThreshold = -1.0;
-    
+
     private double[] validatedIdRefrenceData;
 
     public double[] getValidatedIdRefrenceData() {
@@ -47,7 +57,7 @@ public class SearchingSubDataset {
     public void setValidatedIdRefrenceData(double[] validatedIdRefrenceData) {
         this.validatedIdRefrenceData = validatedIdRefrenceData;
     }
-    
+
     private String datasetId;
 
     public void setAcceptedIDRatioThreshold(double acceptedIDRatioThreshold) {
@@ -64,7 +74,7 @@ public class SearchingSubDataset {
             } else {
                 acceptedIDRatioThreshold = d * 5 / 20;
             }
-            acceptedIDRatioThreshold=Math.round(acceptedIDRatioThreshold);
+            acceptedIDRatioThreshold = Math.round(acceptedIDRatioThreshold);
 
         }
         return acceptedIDRatioThreshold;
@@ -173,6 +183,19 @@ public class SearchingSubDataset {
 
     public void setDatasetId(String datasetId) {
         this.datasetId = datasetId;
+    }
+
+    public double getpValueThresholds() {
+        if (pValueThresholds == -1) {
+            double res = this.getValidatedIdRefrenceData().length*100/ getTotalSpectraNumber();
+            if (res <= 5) {
+                pValueThresholds = 0.1;
+            } else {
+                pValueThresholds = 0.05;
+            }
+        }
+
+        return pValueThresholds;
     }
 
 }

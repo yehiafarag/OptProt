@@ -107,13 +107,24 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
 
             if (param.equalsIgnoreCase("DigestionParameter_1") && searchInputSetting.isOptimizeDigestionParameter()) {
-                optimisedSearchResults.setDigestionParameter("enzyme");
-                String value = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
+                optimisedSearchResults.setDigestionParameter("enzyme");                
+                String value = this.optimizeEnzymeParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
+                optimisedSearchResults.setEnzymeName(value);                
+                if (!value.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
+                    int nMissesCleavages = identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(value);
+                    identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
+                    identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(value));
+                    identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(value, nMissesCleavages);
+                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+                    System.out.println("optimizeEnzymeParameter " + value + "------------------------------------------------------------------------->>> 2 id rate " + optProtDataset.getActiveIdentificationNum());
+                    
+                }
+                value = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
                 if (!value.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()).name())) {
                     identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(value));
                     System.out.println("optimizeSpecificityParameter " + value + "------------------------------------------------------------------------->>>2 id rate " + optProtDataset.getActiveIdentificationNum());
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.exit(0);
+                
                 }
 
                 continue;
@@ -140,10 +151,9 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                 if (update) {
                     System.out.println("OptimizeFragmentIonTypesParameter" + value + "------------------------------------------------------------------------->>> 4 id rate " + optProtDataset.getActiveIdentificationNum());
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.exit(0);
+                
                 }
                 continue;
-
             }
 //
 ////confusing param
@@ -196,9 +206,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
 
             if (param.equalsIgnoreCase("ModificationParameter") && searchInputSetting.isOptimizeModificationParameter()) {
-
                 Map<String, Set<String>> modificationsResults = this.optimizeModificationsParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("ModificationsParameter"));
-
                 identificationParameters.getSearchParameters().getModificationParameters().clearFixedModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
@@ -216,8 +224,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                 }
                 SageParameters sageParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
                 sageParameters.setMaxVariableMods(modificationsResults.get("variableModifications").size());
-                IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                System.exit(0);
+                IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile); 
                 continue;
             }
 
@@ -280,21 +287,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 ////                IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
 //                continue;
 //            }
-            if (param.equalsIgnoreCase("DigestionParameter_3") && searchInputSetting.isOptimizeDigestionParameter()) {
-                optimisedSearchResults.setDigestionParameter("enzyme");
-                String value = this.optimizeEnzymeParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
-                optimisedSearchResults.setEnzymeName(value);
-                if (!value.contains(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
-                    int nMissesCleavages = identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName());
-                    identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
-                    identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(value));
-                    identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(value, nMissesCleavages);
-                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.out.println("optimizeEnzymeParameter " + value + "------------------------------------------------------------------------->>> 1 id rate " + optProtDataset.getActiveIdentificationNum());
-                }
-                continue;
-
-            }
+          
             if (param.equalsIgnoreCase("PrecursorToleranceParameter") && searchInputSetting.isOptimizePrecursorToleranceParameter()) {
 
                 double value = this.optimizePrecursorToleranceParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("PrecursorToleranceParameter"));
@@ -317,7 +310,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             identificationParameters.getSearchParameters().getDigestionParameters().setCleavageParameter(DigestionParameters.CleavageParameter.valueOf(digestionParameterOpt));
             IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
             digestionParameterOpt = "";
-            System.exit(0);
+//            System.exit(0);
         }
 
 //        for (String key : parameterScoreMap.keySet()) {
@@ -331,15 +324,15 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
     }
 
     @Override
-    public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile) {
+    public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile, boolean pairData) {
         if (!optProtSearchSettings.getSageEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);
             return new RawScoreModel();
         }
-//        if (defaultOutputFileName.contains("_Acetylation of peptide N-term") || defaultOutputFileName.contains("_resultsf_Acetylation of protein N-term")) {
-//            System.out.println("param " + paramOption + " is not supported " + paramOption);
-//            return new RawScoreModel();
-//        }
+        if (defaultOutputFileName.contains("_resultsf_Carbamilation of protein N-term") || defaultOutputFileName.contains("_resultsf_Acetylation of protein N-term")||defaultOutputFileName.contains("_resultsf_Pyrolidone from carbamidomethylated C")) {
+            System.out.println("param " + paramOption + " is not supported " + paramOption);
+            return new RawScoreModel();
+        }
         //            SearchParameters searchParameters = tempIdParam.getSearchParameters();
 //        if (addSpectraList) {
 
@@ -380,7 +373,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 //
 //                }
 //        }
-        RawScoreModel rawScore = SpectraFileUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.sage);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
+        RawScoreModel rawScore = SpectraFileUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.sage,pairData);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
         //
 //            if (rawScore.isSignificatChange()) {
 //                System.out.println("at test ACCEPT CHANGE  " + paramOption + "  " + optProtDataset.getValidatedIdRefrenceData().length + "  " + validatedMaches.size());

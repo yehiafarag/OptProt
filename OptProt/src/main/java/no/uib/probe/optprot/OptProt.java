@@ -1,9 +1,12 @@
 package no.uib.probe.optprot;
 
 import com.compomics.util.experiment.identification.Advocate;
+import static com.sun.tools.xjc.reader.Ring.add;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import javax.swing.SwingUtilities;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.model.SearchInputSetting;
@@ -106,19 +109,23 @@ public class OptProt {
         SwingUtilities.invokeLater(() -> {
             try {
                 List<String> paramOrder = new ArrayList<>();
-                paramOrder.add("ModificationParameter");
-                paramOrder.add("DigestionParameter_1");
-                paramOrder.add("FragmentIonTypesParameter");
-                paramOrder.add("DigestionParameter_2");
-                paramOrder.add("FragmentToleranceParameter");
-                paramOrder.add("PrecursorChargeParameter");
+                Set<Advocate> supportedSearchEngine = new LinkedHashSet<>();
+//                supportedSearchEngine.add(Advocate.xtandem);
+                supportedSearchEngine.add(Advocate.myriMatch);
+//                supportedSearchEngine.add(Advocate.sage);
+//                paramOrder.add("ModificationParameter");
+//                paramOrder.add("DigestionParameter_1");
+//                paramOrder.add("FragmentIonTypesParameter");
+//                paramOrder.add("DigestionParameter_2");
+//                paramOrder.add("FragmentToleranceParameter");
+//                paramOrder.add("PrecursorChargeParameter");
                 paramOrder.add("IsotopParameter");
-
-                paramOrder.add("XtandemAdvancedParameter");
-                paramOrder.add("MyriMatchAdvancedParameter");
-                paramOrder.add("DigestionParameter_3");
-                paramOrder.add("PrecursorToleranceParameter");
-                String datasetId = "PXD028427";//PXD047036  PXD028427  PXD009340 PXD000561   PXD000815  PXD001250 PXD001468
+//
+//                paramOrder.add("XtandemAdvancedParameter");
+//                paramOrder.add("MyriMatchAdvancedParameter");
+//                paramOrder.add("DigestionParameter_3");
+//                paramOrder.add("PrecursorToleranceParameter");
+                String datasetId = "PXD028427";//PXD028427 PXD047036   PXD009340 PXD000561   PXD000815  PXD001250 PXD001468
                 boolean cleanAll = false;
                 SearchInputSetting searchOpParameter = new SearchInputSetting();
                 boolean all = true;
@@ -142,10 +149,13 @@ public class OptProt {
 //            searchOpParameter.setSelectedSearchEngine(Advocate.xtandem);
 //            searchOpParameter.setOptimizeXtandemAdvancedParameter(false || all);//|| all
 //            runDataset(datasetId, cleanAll, paramOrder, searchOpParameter);
-                searchOpParameter.setSelectedSearchEngine(Advocate.xtandem);
+
+                for (Advocate se : supportedSearchEngine) {
+                    searchOpParameter.setSelectedSearchEngine(se);
 //                searchOpParameter.setSelectedSearchEngine(Advocate.sage);
 //                searchOpParameter.setSelectedSearchEngine(Advocate.myriMatch);
-                runDataset(datasetId, cleanAll, paramOrder, searchOpParameter);
+                    runDataset(datasetId, cleanAll, paramOrder, searchOpParameter, false);
+                }
                 System.exit(0);
 
             } catch (Exception e) {
@@ -157,16 +167,16 @@ public class OptProt {
         );
     }
 
-    private static void runDataset(String datasetId, boolean cleanAll, List<String> paramOrder, SearchInputSetting searchOpParameter) {
+    private static void runDataset(String datasetId, boolean cleanAll, List<String> paramOrder, SearchInputSetting searchOpParameter, boolean wholeDataTest) {
         ArrayList<File> msFiles = new ArrayList<>();
-        File datasetFolder = new File("D:\\Apps\\OptProt\\data\\" + datasetId);//  
+        File datasetFolder = new File(Configurations.DATA_FOLDER + datasetId);//  
         File searchParamFile = null;
         File fastaFile = null;
         for (File f : datasetFolder.listFiles()) {
             if (cleanAll) {
                 if (f.isDirectory() && f.getName().equals(searchOpParameter.getSelectedSearchEngine().getName())) {
                     for (File ff : f.listFiles()) {
-                        if (ff.getName().startsWith(Configurations.DEFAULT_RESULT_NAME)) {
+                        if (ff.getName().startsWith(Configurations.DEFAULT_RESULT_NAME) && !ff.getName().endsWith(".txt")) {
                             System.out.println("to be deleted files " + ff.getAbsolutePath());
                             ff.delete();
 
@@ -174,6 +184,7 @@ public class OptProt {
                     }
                 }
             }
+
             if (f.getName().endsWith(".mgf")) {
                 msFiles.add(f);
             } else if (f.getName().endsWith(".fasta")) {
@@ -183,7 +194,7 @@ public class OptProt {
             }
         }
         Controller controller = new Controller();
-        controller.processDataset(datasetId, msFiles.get(0), fastaFile, searchParamFile, searchOpParameter, false, paramOrder);
+        controller.processDataset(datasetId, msFiles.get(0), fastaFile, searchParamFile, searchOpParameter, wholeDataTest, paramOrder);
 
     }
 }

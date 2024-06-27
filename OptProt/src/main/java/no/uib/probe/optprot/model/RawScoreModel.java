@@ -5,7 +5,9 @@
 package no.uib.probe.optprot.model;
 
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -21,6 +23,26 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     private double[] data;
     private boolean restrictedComparison;
     private double improvmentScore;
+private double finalScore;
+
+    public double getFinalScore() {
+        return finalScore;
+    }
+
+    public void setFinalScore(double finalScore) {
+        this.finalScore = finalScore;
+    }
+    private Set<String> specTitles;
+
+    public Set<String> getSpecTitles() {
+        if (specTitles == null && spectrumMatchResult != null) {
+            specTitles = new HashSet<>();
+            for (SpectrumMatch sm : spectrumMatchResult) {
+                specTitles.add(sm.getSpectrumTitle());
+            }
+        }
+        return specTitles;
+    }
 
     public double getImprovmentScore() {
         return improvmentScore;
@@ -84,7 +106,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     @Override
     public int compareTo(RawScoreModel rs) {
-        return Double.compare(improvmentScore, rs.getImprovmentScore());
+        return Double.compare(finalScore, rs.getFinalScore());
 //        int sigComparison = Boolean.compare(this.isSignificatChange(), rs.isSignificatChange());
 //        if (sigComparison != 0) {
 //            return sigComparison;
@@ -95,11 +117,11 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 //        }
 //        System.out.println("up to total number "+tTestStat+"  "+rs.tTestStat);
 //        return Integer.compare(this.totalNumber, rs.getTotalNumber());
-        }
+    }
 
     @Override
     public String toString() {
-        return "Param accepted: " + significatChange + " improvmentScore: " + improvmentScore + "  #Spectra: " + totalNumber;
+        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore +" tstat"+tTestStat+"  pvalue "+pValue+"  #Spectra: " + totalNumber;
     }
 
 }
