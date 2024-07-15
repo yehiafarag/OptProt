@@ -75,11 +75,11 @@ public class ScoreComparison {
         double normPercentageImprovement = normalize(percentageImprovement, 0, 100);
         double normStdDevDiff = normalize(stdDevDifference, 0, 100);
         double normPValue = (1 - pValue) * 100; // Inverting p-value for interpretation
-
-        if (meanDifference == 0) {
-            System.out.println("-----------------------unsupport param was here---------------------- ");
-        }
-        System.out.println("mean  " + meanDifference + "  " + percentageImprovement + "  sdv " + stdDevDifference + "   meanDifference  " + meanDifference);
+//
+//        if (meanDifference == 0) {
+//            System.out.println("-----------------------No change param was here---------------------- ");
+//        }
+//        System.out.println("mean  " + meanDifference + "  " + percentageImprovement + "  sdv " + stdDevDifference + "   meanDifference  " + meanDifference);
         // Combining normalized results into a final score
         double finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue) / 4;
 

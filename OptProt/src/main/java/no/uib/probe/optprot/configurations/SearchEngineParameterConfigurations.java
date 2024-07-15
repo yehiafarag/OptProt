@@ -32,7 +32,7 @@ public class SearchEngineParameterConfigurations {
         paramMap.put("specific", true);
         paramMap.put("semiSpecific", true);
         paramMap.put("specificNTermOnly", true);
-        paramMap.put("specificCTermOnl", true);
+        paramMap.put("specificCTermOnly", true);
         paramMap.put("missedCleavages", true);
         paramMap.put("[0]-[3]", true);
         paramMap.put("[0]-[4]", true);
@@ -47,10 +47,8 @@ public class SearchEngineParameterConfigurations {
         paramMap.put("[2]-[5]", true);
         paramMap.put("fragmentAccuracy", true);
         paramMap.put("precursorAccuracy", true);
-        paramMap.put("maxCharge", true);
-        paramMap.put("minCharge", true);
-        paramMap.put("maxIsotop", true);
-        paramMap.put("minIsotop", true);
+        paramMap.put("charge", true);
+        paramMap.put("isotop", true);
         paramMap.put("reference", true);
         ModificationFactory ptmFactory = ModificationFactory.getInstance();
         List<String> mods = new ArrayList<>(ptmFactory.getModifications(ModificationCategory.Common_Biological));
@@ -91,21 +89,37 @@ public class SearchEngineParameterConfigurations {
         paramMap.put("NumberOfBatches", true);
         paramMap.put("maxPeakCount", true);
 
+        paramMap.put("minFragmentMz", true);
+        paramMap.put("maxFragmentMz", true);
+        paramMap.put("minPeptideMass", true);
+        paramMap.put("maxPeptideMass", true);
+        paramMap.put("Deisotope", true);
+        paramMap.put("minPeaks", true);
+        paramMap.put("maxPeaks", true);
+        paramMap.put("maxFragmentCharge", true);
+        paramMap.put("ionMinIndex", true);
+        paramMap.put("generateDecoy", true);
+        paramMap.put("minMatchedPeaks", true);
+        paramMap.put("Chimera", true);
+        
+         paramMap.put("WideWindow", true);
+        
+        
         for (String mod : mods) {
             paramMap.put(mod, true);
         }
     }
 
     public void disableMinIsotop() {
-        paramMap.replace("minIsotop", false);
+        paramMap.replace("isotop", false);
     }
 
     public void disableMaxIsotop() {
-        paramMap.replace("maxIsotop", false);
+        paramMap.replace("isotop", false);
     }
 
     public void disableMinCharge() {
-        paramMap.replace("minCharge", false);
+        paramMap.replace("charge", false);
     }
 
     public void disableMissedCleavages() {
@@ -137,7 +151,7 @@ public class SearchEngineParameterConfigurations {
     }
 
     public void disableSpecificCTermOnlyEnzyme() {
-        paramMap.replace("specificCTermOnly ", false);
+        paramMap.replace("specificCTermOnly", false);
     }
 
     public void disableEnzyme() {

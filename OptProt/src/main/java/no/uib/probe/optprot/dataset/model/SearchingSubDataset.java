@@ -23,6 +23,15 @@ public class SearchingSubDataset {
     private File subMsFile;
     private File subFastaFile;
      private File oreginalFastaFile;
+     private boolean fullDataSpectaInput;
+
+    public boolean isFullDataSpectaInput() {
+        return fullDataSpectaInput;
+    }
+
+    public void setFullDataSpectaInput(boolean fullDataSpectaInput) {
+        this.fullDataSpectaInput = fullDataSpectaInput;
+    }
 
     public File getOreginalFastaFile() {
         return oreginalFastaFile;

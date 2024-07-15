@@ -1,7 +1,6 @@
 package no.uib.probe.optprot;
 
 import com.compomics.util.experiment.identification.Advocate;
-import static com.sun.tools.xjc.reader.Ring.add;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -10,6 +9,7 @@ import java.util.Set;
 import javax.swing.SwingUtilities;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.model.SearchInputSetting;
+import no.uib.probe.optprot.util.MainUtilities;
 
 /**
  * This app is search settings optimization workflow that aim to optimize search
@@ -110,22 +110,36 @@ public class OptProt {
             try {
                 List<String> paramOrder = new ArrayList<>();
                 Set<Advocate> supportedSearchEngine = new LinkedHashSet<>();
-//                supportedSearchEngine.add(Advocate.xtandem);
-                supportedSearchEngine.add(Advocate.myriMatch);
+                supportedSearchEngine.add(Advocate.xtandem);
+//                supportedSearchEngine.add(Advocate.myriMatch);
 //                supportedSearchEngine.add(Advocate.sage);
-//                paramOrder.add("ModificationParameter");
-//                paramOrder.add("DigestionParameter_1");
-//                paramOrder.add("FragmentIonTypesParameter");
-//                paramOrder.add("DigestionParameter_2");
-//                paramOrder.add("FragmentToleranceParameter");
-//                paramOrder.add("PrecursorChargeParameter");
+////
+                paramOrder.add("DigestionParameter_1");
+                paramOrder.add("FragmentIonTypesParameter");
+                paramOrder.add("FragmentToleranceParameter");
+                paramOrder.add("PrecursorChargeParameter");
                 paramOrder.add("IsotopParameter");
-//
-//                paramOrder.add("XtandemAdvancedParameter");
-//                paramOrder.add("MyriMatchAdvancedParameter");
-//                paramOrder.add("DigestionParameter_3");
-//                paramOrder.add("PrecursorToleranceParameter");
-                String datasetId = "PXD028427";//PXD028427 PXD047036   PXD009340 PXD000561   PXD000815  PXD001250 PXD001468
+                paramOrder.add("DigestionParameter_2");
+                paramOrder.add("DigestionParameter_3");
+                paramOrder.add("XtandemAdvancedParameter");
+                paramOrder.add("XtandemAdvancedParameter_A");//                
+                paramOrder.add("ModificationParameter");
+                paramOrder.add("XtandemAdvancedParameter_B");
+                paramOrder.add("MyriMatchAdvancedParameter");
+                paramOrder.add("SageAdvancedParameter");//           
+                paramOrder.add("PrecursorToleranceParameter");
+
+//                  String datasetId = "PXD028427";//        PXD000815  PXD001250 PXD001468
+                Set<String> datasettoTestSet = new LinkedHashSet<>();
+                datasettoTestSet.add("PXD028427");
+//                datasettoTestSet.add("PXD000561");
+//                datasettoTestSet.add("PXD009340");
+
+//                datasettoTestSet.add("PXD047036");
+//                datasettoTestSet.add("PXD000815");
+//                datasettoTestSet.add("PXD001250");
+//                datasettoTestSet.add("PXD001468");
+                
                 boolean cleanAll = false;
                 SearchInputSetting searchOpParameter = new SearchInputSetting();
                 boolean all = true;
@@ -139,28 +153,23 @@ public class OptProt {
                 searchOpParameter.setOptimizeIsotopsParameter(false || all);
                 searchOpParameter.setOptimizeModificationParameter(false || all);
 //            searchOpParameter.setRecalibrateSpectraParameter(false);
-//             
-//               //|| all
-//            searchOpParameter.setOptimizeMyriMatchAdvancedParameter(false || all);
-//            searchOpParameter.getXtandemOptProtAdvancedSearchParameters().setOptAll(false );//|| all
-//            runDataset(datasetId, cleanAll, paramOrder, searchOpParameter);
-//            File oreginalMGFFile = new File("D:\\Apps\\OptProt\\data\\sample.mgf");
-//            msFiles.add(oreginalMGFFile);
-//            searchOpParameter.setSelectedSearchEngine(Advocate.xtandem);
-//            searchOpParameter.setOptimizeXtandemAdvancedParameter(false || all);//|| all
-//            runDataset(datasetId, cleanAll, paramOrder, searchOpParameter);
 
-                for (Advocate se : supportedSearchEngine) {
-                    searchOpParameter.setSelectedSearchEngine(se);
-//                searchOpParameter.setSelectedSearchEngine(Advocate.sage);
-//                searchOpParameter.setSelectedSearchEngine(Advocate.myriMatch);
-                    runDataset(datasetId, cleanAll, paramOrder, searchOpParameter, false);
+                for (String datasetId : datasettoTestSet) {
+                    for (Advocate se : supportedSearchEngine) {
+                        searchOpParameter.setSelectedSearchEngine(se);
+                        runDataset(datasetId, cleanAll, paramOrder, searchOpParameter, false);
+//                        System.gc();
+//                        runDataset(datasetId, cleanAll, paramOrder, searchOpParameter, true);
+
+                    }
                 }
+                MainUtilities.cleanOutputFolder();
                 System.exit(0);
 
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
+                MainUtilities.cleanOutputFolder();
                 System.exit(0);
             }
         }
@@ -195,6 +204,7 @@ public class OptProt {
         }
         Controller controller = new Controller();
         controller.processDataset(datasetId, msFiles.get(0), fastaFile, searchParamFile, searchOpParameter, wholeDataTest, paramOrder);
+        MainUtilities.cleanOutputFolder();
 
     }
 }

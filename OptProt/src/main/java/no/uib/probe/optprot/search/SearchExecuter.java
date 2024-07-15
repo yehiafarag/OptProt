@@ -5,13 +5,10 @@
 package no.uib.probe.optprot.search;
 
 import com.compomics.util.experiment.biology.modifications.ModificationFactory;
-import com.compomics.util.experiment.identification.Advocate;
 import com.compomics.util.parameters.identification.IdentificationParameters;
-import com.compomics.util.parameters.identification.tool_specific.XtandemParameters;
 import eu.isas.searchgui.SearchHandler;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.model.SearchInputSetting;
@@ -121,6 +118,7 @@ public class SearchExecuter {
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
+        
         File resultsFile = searchHandler.getResultsFolder();
 //        MainUtilities.deleteFolder(tempSearchEngineFolder);
 //        System.exit(0);

@@ -46,16 +46,16 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
      * The compomics PTM factory.
      */
     private final ModificationFactory ptmFactory = ModificationFactory.getInstance();
-    
+
     private final SearchingSubDataset optProtDataset;
     private final SearchInputSetting searchInputSetting;
     private final File identificationParametersFile;
     private final OptimisedSearchResults optimisedSearchResults;
     private final IdentificationParameters identificationParameters;
     private final Map<String, TreeSet<ParameterScoreModel>> parameterScoreMap;
-    
+
     public MyrimatchOptProtSearchOptimizer(SearchingSubDataset optProtDataset, SearchInputSetting searchInputSetting, File identificationParametersFile) throws IOException {
-        
+
         this.optProtDataset = optProtDataset;
         this.searchInputSetting = searchInputSetting;
         this.identificationParametersFile = identificationParametersFile;
@@ -75,12 +75,12 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
         parameterScoreMap.put("PrecursorChargeParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("IsotopParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("ModificationsParameter", new TreeSet<>(Collections.reverseOrder()));
-        
+
         parameterScoreMap.put("MyriMatchPeptideLengthParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("MyriMatchPrecursorMassParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("MyriMatchMaxVarPTMsParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("MyriMatchFragmentationMethiodParameter", new TreeSet<>(Collections.reverseOrder()));
-        
+
         parameterScoreMap.put("MyriMatchEnzymatricTerminalsParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("MyriMatchUseSmartPlus3ModelParameter", new TreeSet<>(Collections.reverseOrder()));
 //
@@ -101,56 +101,37 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
 //        xtandemParameters.setStpBias(false);
 //        IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
     }
-    
-    private String digestionParameterOpt;
-    
-    public void startProcess(List<String> paramOrder) throws IOException {
-//        System.out.println("thershuld for id is " + optProtDataset.getAcceptedIDRatioThreshold());
-        if (searchInputSetting.isOptimizeAllParameters()) {
-//            advancedParam = false;
 
-        }
+    private String digestionParameterOpt;
+
+    public void startProcess(List<String> paramOrder) throws IOException {
         digestionParameterOpt = identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name();
         for (String param : paramOrder) {
-
-//        System.exit(0);
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
             if (param.equalsIgnoreCase("DigestionParameter_1") && searchInputSetting.isOptimizeDigestionParameter()) {
-                optimisedSearchResults.setDigestionParameter("enzyme");                
-                String  value = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
-                if (!value.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()).name())) {
-                    identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(value));
-                    System.out.println("optimizeSpecificityParameter " + value + "------------------------------------------------------------------------->>> 3 id rate " + optProtDataset.getActiveIdentificationNum());
-                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                }
-                continue;
-                
-            }
-                 if (param.equalsIgnoreCase("DigestionParameter_2") && searchInputSetting.isOptimizeDigestionParameter()) {
-                int value = this.optimizeMaxMissCleavagesParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("MaxMissCleavagesParameter"));
-                if (value != identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
-                    identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), value);
-                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.out.println("optimizeMaxMissCleavagesParameter " + value + "------------------------------------------------------------------------->>> 6 id rate " + optProtDataset.getActiveIdentificationNum());
-                }
-                
-                digestionParameterOpt = this.optimizeDigestionParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
-                
-            }
-              if (param.equalsIgnoreCase("DigestionParameter_3") && searchInputSetting.isOptimizeDigestionParameter()) {
                 optimisedSearchResults.setDigestionParameter("enzyme");
                 String value = this.optimizeEnzymeParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
                 optimisedSearchResults.setEnzymeName(value);
-                if (!value.contains(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
-                    int nMissesCleavages = identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName());
+                if (!value.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
+                    int nMissesCleavages = identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(value);
                     identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
                     identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(value));
                     identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(value, nMissesCleavages);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.out.println("optimizeEnzymeParameter " + value + "------------------------------------------------------------------------->>> 1 id rate " + optProtDataset.getActiveIdentificationNum());
+                }
+                if (optProtDataset.getIdentificationRate() < 10) {
+                    value = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
+                    if (!value.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()).name())) {
+                        identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(value));
+                        IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+                    }
+
+                    digestionParameterOpt = this.optimizeDigestionParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
                 }
                 continue;
+
             }
+
             if (param.equalsIgnoreCase("FragmentIonTypesParameter") && searchInputSetting.isOptimizeFragmentIonTypesParameter()) {
                 String value = this.optimizeFragmentIonTypesParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("FragmentIonTypesParameter"));
                 int forward = Integer.parseInt(value.split("-")[0]);
@@ -169,52 +150,48 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
                     update = true;
                 }
                 if (update) {
-                    System.out.println("OptimizeFragmentIonTypesParameter" + value + "------------------------------------------------------------------------->>> 4 id rate " + optProtDataset.getActiveIdentificationNum());
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
                 }
                 continue;
-                
+
             }
 
 //confusing param
-       
-            
+            if (param.equalsIgnoreCase("DigestionParameter_2") && searchInputSetting.isOptimizeDigestionParameter()) {
+                int value = this.optimizeMaxMissCleavagesParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("MaxMissCleavagesParameter"));
+                if (value != identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
+                    identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), value);
+                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+                }
+                if (optProtDataset.getIdentificationRate() < 10) {
+                    digestionParameterOpt = this.optimizeDigestionParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
+                }
+                continue;
+
+            }
+
             if (param.equalsIgnoreCase("FragmentToleranceParameter") && searchInputSetting.isOptimizeFragmentToleranceParameter()) {
                 double value = this.optimizeFragmentToleranceParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("FragmentToleranceParameter"));
                 if (value != identificationParameters.getSearchParameters().getFragmentIonAccuracy()) {
                     identificationParameters.getSearchParameters().setFragmentIonAccuracy(value);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.out.println("optimizeFragmentToleranceParameter" + value + "------------------------------------------------------------------------->>> 8 id rate " + optProtDataset.getActiveIdentificationNum());
                 }
                 continue;
             }
-            
+
             if (param.equalsIgnoreCase("PrecursorChargeParameter") && searchInputSetting.isOptimizePrecursorChargeParameter()) {
-                
+
                 int[] values = this.optimizePrecursorChargeParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("PrecursorChargeParameter"));
                 if (values[1] != identificationParameters.getSearchParameters().getMaxChargeSearched()) {
                     identificationParameters.getSearchParameters().setMinChargeSearched(values[0]);
                     identificationParameters.getSearchParameters().setMaxChargeSearched(values[1]);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.out.println("optimizePrecursorChargeParameter" + values[0] + "--" + values[1] + "------------------------------------------------------------------------->>> 9 id rate " + optProtDataset.getActiveIdentificationNum());
                 }
                 continue;
-                
             }
-            if (param.equalsIgnoreCase("IsotopParameter") && searchInputSetting.isOptimizeIsotopsParameter()) {
-                int[] values = this.optimizeIsotopParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("IsotopParameter"));
-                if (values[1] != identificationParameters.getSearchParameters().getMaxIsotopicCorrection() || values[0] != identificationParameters.getSearchParameters().getMinIsotopicCorrection()) {
-                    identificationParameters.getSearchParameters().setMinIsotopicCorrection(values[0]);
-                    identificationParameters.getSearchParameters().setMaxIsotopicCorrection(values[1]);
-                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.out.println("optimizeIsotopParameter" + values[0] + "--" + values[1] + "------------------------------------------------------------------------->>> 10 id rate " + optProtDataset.getActiveIdentificationNum());
-                }
-                continue;
-                
-            }
+
             if (param.equalsIgnoreCase("ModificationParameter") && searchInputSetting.isOptimizeModificationParameter()) {
-                
-                Map<String, Set<String>> modificationsResults = this.optimizeModificationsParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("ModificationsParameter"));         
+                Map<String, Set<String>> modificationsResults = this.optimizeModificationsParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("ModificationsParameter"));
                 identificationParameters.getSearchParameters().getModificationParameters().clearFixedModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
@@ -235,6 +212,137 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
                 continue;
             }
+
+////        System.out.println("thershuld for id is " + optProtDataset.getAcceptedIDRatioThreshold());
+//        if (searchInputSetting.isOptimizeAllParameters()) {
+////            advancedParam = false;
+//
+//        }
+//        digestionParameterOpt = identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name();
+//        for (String param : paramOrder) {
+//
+////        System.exit(0);
+//            System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
+//            if (param.equalsIgnoreCase("DigestionParameter_1") && searchInputSetting.isOptimizeDigestionParameter()) {
+//                optimisedSearchResults.setDigestionParameter("enzyme");                
+//                String  value = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
+//                if (!value.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()).name())) {
+//                    identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(value));
+//                    System.out.println("optimizeSpecificityParameter " + value + "------------------------------------------------------------------------->>> 3 id rate " + optProtDataset.getActiveIdentificationNum());
+//                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+//                }
+//                continue;
+//                
+//            }
+//                 if (param.equalsIgnoreCase("DigestionParameter_2") && searchInputSetting.isOptimizeDigestionParameter()) {
+//                int value = this.optimizeMaxMissCleavagesParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("MaxMissCleavagesParameter"));
+//                if (value != identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
+//                    identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), value);
+//                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+//                    System.out.println("optimizeMaxMissCleavagesParameter " + value + "------------------------------------------------------------------------->>> 6 id rate " + optProtDataset.getActiveIdentificationNum());
+//                }
+//                
+//                digestionParameterOpt = this.optimizeDigestionParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
+//                
+//            }
+//              if (param.equalsIgnoreCase("DigestionParameter_3") && searchInputSetting.isOptimizeDigestionParameter()) {
+//                optimisedSearchResults.setDigestionParameter("enzyme");
+//                String value = this.optimizeEnzymeParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
+//                optimisedSearchResults.setEnzymeName(value);
+//                if (!value.contains(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
+//                    int nMissesCleavages = identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName());
+//                    identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
+//                    identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(value));
+//                    identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(value, nMissesCleavages);
+//                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+//                    System.out.println("optimizeEnzymeParameter " + value + "------------------------------------------------------------------------->>> 1 id rate " + optProtDataset.getActiveIdentificationNum());
+//                }
+//                continue;
+//            }
+//            if (param.equalsIgnoreCase("FragmentIonTypesParameter") && searchInputSetting.isOptimizeFragmentIonTypesParameter()) {
+//                String value = this.optimizeFragmentIonTypesParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("FragmentIonTypesParameter"));
+//                int forward = Integer.parseInt(value.split("-")[0]);
+//                int rewind = Integer.parseInt(value.split("-")[1]);
+//                boolean update = false;
+//                if (!identificationParameters.getSearchParameters().getForwardIons().contains(forward)) {
+//                    ArrayList<Integer> forwardIonsList = new ArrayList<>();
+//                    forwardIonsList.add(forward);
+//                    identificationParameters.getSearchParameters().setForwardIons(forwardIonsList);
+//                    update = true;
+//                }
+//                if (!identificationParameters.getSearchParameters().getRewindIons().contains(rewind)) {
+//                    ArrayList<Integer> rewindIonsList = new ArrayList<>();
+//                    rewindIonsList.add(rewind);
+//                    identificationParameters.getSearchParameters().setRewindIons(rewindIonsList);
+//                    update = true;
+//                }
+//                if (update) {
+//                    System.out.println("OptimizeFragmentIonTypesParameter" + value + "------------------------------------------------------------------------->>> 4 id rate " + optProtDataset.getActiveIdentificationNum());
+//                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+//                }
+//                continue;
+//                
+//            }
+//
+////confusing param
+//       
+//            
+//            if (param.equalsIgnoreCase("FragmentToleranceParameter") && searchInputSetting.isOptimizeFragmentToleranceParameter()) {
+//                double value = this.optimizeFragmentToleranceParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("FragmentToleranceParameter"));
+//                if (value != identificationParameters.getSearchParameters().getFragmentIonAccuracy()) {
+//                    identificationParameters.getSearchParameters().setFragmentIonAccuracy(value);
+//                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+//                    System.out.println("optimizeFragmentToleranceParameter" + value + "------------------------------------------------------------------------->>> 8 id rate " + optProtDataset.getActiveIdentificationNum());
+//                }
+//                continue;
+//            }
+//            
+//            if (param.equalsIgnoreCase("PrecursorChargeParameter") && searchInputSetting.isOptimizePrecursorChargeParameter()) {
+//                
+//                int[] values = this.optimizePrecursorChargeParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("PrecursorChargeParameter"));
+//                if (values[1] != identificationParameters.getSearchParameters().getMaxChargeSearched()) {
+//                    identificationParameters.getSearchParameters().setMinChargeSearched(values[0]);
+//                    identificationParameters.getSearchParameters().setMaxChargeSearched(values[1]);
+//                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+//                    System.out.println("optimizePrecursorChargeParameter" + values[0] + "--" + values[1] + "------------------------------------------------------------------------->>> 9 id rate " + optProtDataset.getActiveIdentificationNum());
+//                }
+//                continue;
+//                
+//            }
+//            if (param.equalsIgnoreCase("IsotopParameter") && searchInputSetting.isOptimizeIsotopsParameter()) {
+//                int[] values = this.optimizeIsotopParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("IsotopParameter"));
+//                if (values[1] != identificationParameters.getSearchParameters().getMaxIsotopicCorrection() || values[0] != identificationParameters.getSearchParameters().getMinIsotopicCorrection()) {
+//                    identificationParameters.getSearchParameters().setMinIsotopicCorrection(values[0]);
+//                    identificationParameters.getSearchParameters().setMaxIsotopicCorrection(values[1]);
+//                    IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+//                    System.out.println("optimizeIsotopParameter" + values[0] + "--" + values[1] + "------------------------------------------------------------------------->>> 10 id rate " + optProtDataset.getActiveIdentificationNum());
+//                }
+//                continue;
+//                
+//            }
+//            if (param.equalsIgnoreCase("ModificationParameter") && searchInputSetting.isOptimizeModificationParameter()) {
+//                
+//                Map<String, Set<String>> modificationsResults = this.optimizeModificationsParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("ModificationsParameter"));         
+//                identificationParameters.getSearchParameters().getModificationParameters().clearFixedModifications();
+//                identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
+//                identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
+//                identificationParameters.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
+//                for (String fixedMod : modificationsResults.get("fixedModifications")) {
+//                    if (ptmFactory.getModification(fixedMod) != null) {
+//                        identificationParameters.getSearchParameters().getModificationParameters().addFixedModification(ptmFactory.getModification(fixedMod));
+//                        identificationParameters.getSearchParameters().getModificationParameters().addRefinementFixedModification(ptmFactory.getModification(fixedMod));
+//                    }
+//                }
+//                for (String variableMod : modificationsResults.get("variableModifications")) {
+//                    if (ptmFactory.getModification(variableMod) != null) {
+//                        identificationParameters.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(variableMod));
+//                    }
+//                }
+//                MyriMatchParameters myriMatchParameters = (MyriMatchParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
+//                myriMatchParameters.setMaxDynamicMods(modificationsResults.get("variableModifications").size());
+//                IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+//                continue;
+//            }
 //            if (param.equalsIgnoreCase("ModificationParameter") && searchInputSetting.isOptimizeModificationParameter()) {
 //
 //                Map<String, Set<String>> modificationsResults = this.optimizeModificationsParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("ModificationsParameter"));
@@ -265,10 +373,9 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
 //                IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
 //                continue;
 //            }
-
             if (param.equalsIgnoreCase("MyriMatchAdvancedParameter") && searchInputSetting.isOptimizeMyriMatchAdvancedParameter()) {
 //                MyriMatchParameters myriMatchParameters = (MyriMatchParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
-                
+
 //                int[] values = optimizePeptideLengthParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("MyriMatchPeptideLengthParameter"));
 //                if (values[1] != myriMatchParameters.getMaxPeptideLength() || values[0] != myriMatchParameters.getMinPeptideLength()) {
 //                    myriMatchParameters.setMinPeptideLength(values[0]);
@@ -324,12 +431,11 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
 //                value = optimizeMaxPeakCount(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("MyriMatchMaxPeakCountParameter"));
 //                myriMatchParameters.setMaxPeakCount(value);
 //                IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                
                 continue;
             }
-            
+
             if (param.equalsIgnoreCase("PrecursorToleranceParameter") && searchInputSetting.isOptimizePrecursorToleranceParameter()) {
-                
+
                 double value = this.optimizePrecursorToleranceParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("PrecursorToleranceParameter"));
                 if (value != identificationParameters.getSearchParameters().getPrecursorAccuracy()) {
                     identificationParameters.getSearchParameters().setPrecursorAccuracy(value);
@@ -339,49 +445,37 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
                         identificationParameters.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.DA);
                     }
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-                    System.out.println("OptimizePrecursorToleranceParameter" + value + "------------------------------------------------------------------------->>> 5 id rate " + optProtDataset.getActiveIdentificationNum());
                 }
             }
         }
-//        if (!digestionParameterOpt.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name()) && searchInputSetting.isOptimizeDigestionParameter()) {
-//            System.out.println("optimizeDigestionParameter " + digestionParameterOpt + "------------------------------------------------------------------------->>> 7 id rate " + optProtDataset.getActiveIdentificationNum() + " results:  " + optProtDataset.getTempIdentificationNum());
-//            optimisedSearchResults.setDigestionParameter(digestionParameterOpt);
-//            identificationParameters.getSearchParameters().getDigestionParameters().setCleavageParameter(DigestionParameters.CleavageParameter.valueOf(digestionParameterOpt));
-//            IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
-//            digestionParameterOpt = "";
-//        }
-
-//        for (String key : parameterScoreMap.keySet()) {
-//            System.out.println("at param map " + key);
-//            for (ParameterScoreModel m : parameterScoreMap.get(key)) {
-//                System.out.println(" " + m);
-//            }
-//            System.out.println("---------------------------------------");
-//        }
-//        System.exit(0);
+        if (!digestionParameterOpt.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name())) {
+            optimisedSearchResults.setDigestionParameter(digestionParameterOpt);
+            identificationParameters.getSearchParameters().getDigestionParameters().setCleavageParameter(DigestionParameters.CleavageParameter.valueOf(digestionParameterOpt));
+            IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
+        }
     }
-    
+
     @Override
     public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile, boolean pairData) {
-        
+
         if (!optProtSearchSettings.getMyriMatchEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);
             return new RawScoreModel();
         }
-        if (defaultOutputFileName.contains("_resultsf_Pyrolidon") || defaultOutputFileName.contains("_resultsf_Acetylation of protein N-term")|| defaultOutputFileName.contains("_resultsf_Carbamilation of protein N-term")) {
+        if (defaultOutputFileName.contains("_resultsf_Pyrolidon") || defaultOutputFileName.contains("_resultsf_Acetylation of protein N-term") || defaultOutputFileName.contains("_resultsf_Carbamilation of protein N-term")) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);
             return new RawScoreModel();
         }
-        File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchSettings, optProtDataset.getSubMsFile(), optProtDataset.getSubFastaFile(), tempIdParam, identificationParametersFile);       
+        File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchSettings, optProtDataset.getSubMsFile(), optProtDataset.getSubFastaFile(), tempIdParam, identificationParametersFile);
         List<SpectrumMatch> validatedMaches = SpectraFileUtilities.getValidatedIdentificationResults(resultOutput, optProtDataset.getSubMsFile(), Advocate.myriMatch, tempIdParam);
-        RawScoreModel rawScore = SpectraFileUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.myriMatch,pairData);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
+        RawScoreModel rawScore = SpectraFileUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.myriMatch, pairData);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
         MainUtilities.deleteFolder(resultOutput);
         if (addSpectraList && rawScore.isSignificatChange()) {
             rawScore.setSpectrumMatchResult(validatedMaches);
         }
         return (rawScore);
     }
-    
+
 //    public int[] optimizePeptideLengthParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
 //        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
 //        MyriMatchParameters myriMatchParameters = (MyriMatchParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());

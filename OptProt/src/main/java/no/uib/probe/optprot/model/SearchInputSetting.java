@@ -8,6 +8,7 @@ import com.compomics.util.experiment.identification.Advocate;
 import java.io.File;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.search.myrimatch.MyriMatchEnabledParameters;
+import no.uib.probe.optprot.search.sage.OptProtSageAdvancedSearchParameter;
 import no.uib.probe.optprot.search.sage.SageEnabledParameters;
 import no.uib.probe.optprot.search.xtandam.OptProtXtandemAdvancedSearchParameter;
 import no.uib.probe.optprot.search.xtandam.XTandemEnabledParameters;
@@ -65,6 +66,19 @@ public class SearchInputSetting {
     private boolean recalibrateSpectraParameter;
     private boolean optimizeXtandemAdvancedParameter;
     private boolean optimizeMyriMatchAdvancedParameter;
+    private boolean optimizeSageAdvancedParameter;
+
+    public boolean isOptimizeSageAdvancedParameter() {
+        return optimizeSageAdvancedParameter|| optimizeAllParameters;
+    }
+
+    public OptProtSageAdvancedSearchParameter getSageOptProtAdvancedSearchParameters() {
+        return sageOptProtAdvancedSearchParameters;
+    }
+
+    public void setOptimizeSageAdvancedParameter(boolean optimizeSageAdvancedParameter) {
+        this.optimizeSageAdvancedParameter = optimizeSageAdvancedParameter;
+    }
     private Advocate selectedSearchEngine = Advocate.xtandem;
     private boolean optimizeAllParameters;
 
@@ -92,7 +106,7 @@ public class SearchInputSetting {
             this.setRunSage(true);
         }
     }
-
+ private final OptProtSageAdvancedSearchParameter sageOptProtAdvancedSearchParameters = new OptProtSageAdvancedSearchParameter();
     private final OptProtXtandemAdvancedSearchParameter xtandemOptProtAdvancedSearchParameters = new OptProtXtandemAdvancedSearchParameter();
 
     public boolean isOptimizeXtandemAdvancedParameter() {
@@ -104,7 +118,7 @@ public class SearchInputSetting {
     }
 
     public void setOptimizeMyriMatchAdvancedParameter(boolean optimizeMyriMatchAdvancedParameter) {
-        this.optimizeMyriMatchAdvancedParameter = optimizeMyriMatchAdvancedParameter;
+        this.optimizeMyriMatchAdvancedParameter = optimizeMyriMatchAdvancedParameter || optimizeAllParameters;
     }
 
     public void setOptimizeXtandemAdvancedParameter(boolean optimizeXtandemAdvancedParameter) {

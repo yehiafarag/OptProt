@@ -17,7 +17,7 @@ public class XTandemEnabledParameters {
         this.paramsToOptimize=new SearchEngineParameterConfigurations();
         this.paramsToOptimize.disableSpecificNTermOnlyEnzyme();
         this.paramsToOptimize.disableSpecificCTermOnlyEnzyme();
-        this.paramsToOptimize.disableMinCharge();
+//        this.paramsToOptimize.disableMinCharge();
         this.paramsToOptimize.disableMinIsotop();
         this.paramsToOptimize.disableMaxIsotop();
     }

@@ -19,6 +19,8 @@ public class Controller {
     private final OptProtDatasetHandler optProtDatasetHandler;
 
     public Controller() {
+             File f= new File("resources\\XTandem\\windows\\windows_64bit");
+        System.out.println("file exist "+f.getAbsolutePath());
         this.optProtDatasetHandler = new OptProtDatasetHandler();
 
     }
@@ -51,6 +53,7 @@ public class Controller {
         MainUtilities.cleanOutputFolder();
         SearchingSubDataset optProtDataset = optProtDatasetHandler.generateOptProtDataset(oreginalMsFile, oreginalFastaFile, optProtSearchSettings.getSelectedSearchEngine(), subDataFolder, identificationParametersFile, wholeDataTest);
         optProtDataset.setSubDataFolder(subDataFolder);
+        optProtDataset.setFullDataSpectaInput(wholeDataTest);
         File selectedSearchSettingsFile;
 //        optProtDataset.setSubFastaFile(oreginalFastaFile);
 //        optProtDataset.setSubMsFile(oreginalMsFile);
@@ -70,15 +73,15 @@ public class Controller {
         long start = System.currentTimeMillis();
         File generatedFile = optProtSearchHandler.optimizeSearchEngine(optProtDataset, optProtSearchSettings, paramOrder);
         long end = System.currentTimeMillis();
-        double total = (end - start) / 60000.0;
-        if (total < 0.1) {
-            total = 0.1;
-        }
+        String  totalTime = MainUtilities.msToTime(end - start);
+//        if (total < 0.1) {
+//            total = 0.1;
+//        }
 //        System.exit(0);
         if (generatedFile != null) {
-            ReportExporter.exportFullReport(generatedFile, optProtDataset, optProtSearchSettings.getSelectedSearchEngine(), datasetId, total);
+            ReportExporter.exportFullReport(generatedFile, optProtDataset, optProtSearchSettings.getSelectedSearchEngine(), datasetId, totalTime);
             ReportExporter.printFullReport(generatedFile, optProtDataset, optProtSearchSettings.getSelectedSearchEngine(), datasetId);
         }
-        System.out.println("Total Elapsed Time for optimizing the data in min: " + total);
+        System.out.println("Total Elapsed Time for optimizing the data in : " + totalTime);
     }
 }

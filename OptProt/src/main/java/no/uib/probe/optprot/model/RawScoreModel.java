@@ -18,12 +18,29 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     private int totalNumber = 0;
     private double tTestStat;
     private double pValue;
+    private boolean sameData;
+
+    public boolean isSameData() {
+        return sameData;
+    }
+
+    public void setSameData(boolean sameData) {
+        this.sameData = sameData;
+    }
+
+    public void setSensitiveChange(boolean sensitiveChange) {
+        this.sensitiveChange = sensitiveChange;
+    }
     private boolean significatChange;
+    private boolean sensitiveChange;
+
+    public boolean isSensitiveChange() {
+        return sensitiveChange;
+    }
     private List<SpectrumMatch> spectrumMatchResult;
     private double[] data;
-    private boolean restrictedComparison;
     private double improvmentScore;
-private double finalScore;
+    private double finalScore;
 
     public double getFinalScore() {
         return finalScore;
@@ -50,10 +67,6 @@ private double finalScore;
 
     public void setImprovmentScore(double improvmentScore) {
         this.improvmentScore = improvmentScore;
-    }
-
-    public void setRestrictedComparison(boolean restrictedComparison) {
-        this.restrictedComparison = restrictedComparison;
     }
 
     public double[] getData() {
@@ -102,6 +115,10 @@ private double finalScore;
 
     public void setSignificatChange(boolean significatChange) {
         this.significatChange = significatChange;
+        if (significatChange) {
+            sensitiveChange = true;
+        }
+
     }
 
     @Override
@@ -121,7 +138,7 @@ private double finalScore;
 
     @Override
     public String toString() {
-        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore +" tstat"+tTestStat+"  pvalue "+pValue+"  #Spectra: " + totalNumber;
+        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore + " tstat" + tTestStat + "  pvalue " + pValue + "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData;
     }
 
 }

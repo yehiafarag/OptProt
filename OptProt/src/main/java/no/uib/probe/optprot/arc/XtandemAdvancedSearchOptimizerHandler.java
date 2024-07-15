@@ -28,16 +28,13 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.concurrent.Future;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 import no.uib.probe.optprot.configurations.Configurations;
-import no.uib.probe.optprot.model.ParameterScoreModel;
 import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.search.SearchExecuter;
 import no.uib.probe.optprot.util.MainUtilities;
-import static no.uib.probe.optprot.util.MainUtilities.executor;
 import no.uib.probe.optprot.util.OptProtWaitingHandler;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -91,7 +88,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
             final String option = "spectrumDR_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setDynamicRange(i);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
             });
             while (!future.isDone()) {
@@ -117,7 +114,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
             final String option = "peaksNum_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setnPeaks(i);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
             });
             while (!future.isDone()) {
@@ -143,7 +140,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
             final String option = "minimumFragmentMz_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setMinFragmentMz(i);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
             });
             while (!future.isDone()) {
@@ -170,7 +167,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
             final String option = "minpeaksNum_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setMinPeaksPerSpectrum(i);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
             });
             while (!future.isDone()) {
@@ -200,7 +197,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
         double minPrecursorMass = -1;
         final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
         xtandemParameters.setUseNoiseSuppression(false);
-        Future future = executor.submit(() -> {
+        Future future = MainUtilities.getExecutorService().submit(() -> {
             resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
         });
@@ -211,7 +208,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
             final String suboption = "noiseSupression_" + true + "_" + j;
             final String subupdatedName = Configurations.DEFAULT_RESULT_NAME + "_" + suboption;
             xtandemParameters.setMinPrecursorMass(j);
-            future = executor.submit(() -> {
+            future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(suboption, excuteXTandomSearches(subupdatedName, false).size());
 
             });
@@ -241,7 +238,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setParentMonoisotopicMassIsotopeError(useParentIsotopExpansion);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -271,7 +268,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setProteinQuickAcetyl(useQuickAcetyl);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -301,7 +298,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setQuickPyrolidone(useQuickPyrolidone);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -331,7 +328,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setStpBias(useStPBias);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -361,7 +358,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setRefine(useRefine);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -394,7 +391,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setRefineUnanticipatedCleavages(useUnanticipatedCleavage);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -427,7 +424,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setRefineSemi(simiEnzymaticCleavage);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -460,7 +457,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setPotentialModificationsForFullRefinment(useRefinePotintialModification);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -493,7 +490,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setRefinePointMutations(useUnanticipatedCleavage);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -526,7 +523,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setRefineSnaps(useRefineSnaps);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -559,7 +556,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option;
             xtandemParameters.setRefineSpectrumSynthesis(useSpectrumSynthesis);
-            Future future = executor.submit(() -> {
+            Future future = MainUtilities.getExecutorService().submit(() -> {
                 resultsMap.put(option, excuteXTandomSearches(updatedName, false).size());
 
             });
@@ -593,7 +590,7 @@ public class XtandemAdvancedSearchOptimizerHandler {
                 SequenceMatchingParameters modificationSequenceMatchingParameters = identificationParam.getModificationLocalizationParameters().getSequenceMatchingParameters();
                 FMIndex sequenceProvider = new FMIndex(subFastaFile, null, new OptProtWaitingHandler(), false, identificationParam);
 //                executor = Executors.newFixedThreadPool(2);
-                Future future = executor.submit(() -> {
+                Future future = MainUtilities.getExecutorService().submit(() -> {
                     for (SpectrumMatch sm : matches) {
                         for (PeptideAssumption pepAss : sm.getAllPeptideAssumptions().toList()) {
                             Peptide pep = pepAss.getPeptide();

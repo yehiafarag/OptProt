@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package no.uib.probe.optprot.search;
 
 import com.compomics.util.experiment.biology.enzymes.Enzyme;
@@ -36,9 +32,7 @@ import no.uib.probe.optprot.dataset.model.SearchingSubDataset;
 import no.uib.probe.optprot.model.ParameterScoreModel;
 import no.uib.probe.optprot.model.RawScoreModel;
 import no.uib.probe.optprot.model.SearchInputSetting;
-import no.uib.probe.optprot.model.StringSorter;
 import no.uib.probe.optprot.util.MainUtilities;
-import static no.uib.probe.optprot.util.MainUtilities.executor;
 import no.uib.probe.optprot.util.SpectraFileUtilities;
 
 /**
@@ -56,6 +50,8 @@ public abstract class DefaultOptProtSearchOptimizer {
     }
 
     public String optimizeDigestionParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("CleavageParameter");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         String selectedOption = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getCleavageParameter().name();
         int idRate = optProtDataset.getActiveIdentificationNum();
@@ -76,20 +72,14 @@ public abstract class DefaultOptProtSearchOptimizer {
             final String option = cleavageParameter;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
 
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("CleavageParameter");
-
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
                 if (scoreModel.isSignificatChange()) {
-                    resultsMap.put(option, f.get());
-                    paramScore.setScore(resultsMap.get(option).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
+                    resultsMap.put(option, f.get());;
                 }
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
@@ -107,6 +97,10 @@ public abstract class DefaultOptProtSearchOptimizer {
 
             }
         }
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        paramScore.setParamValue(selectedOption);
+        parameterScoreSet.add(paramScore);
+
         return selectedOption;
 
     }
@@ -122,6 +116,15 @@ public abstract class DefaultOptProtSearchOptimizer {
      * @throws IOException
      */
     public String optimizeEnzymeParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("Enzyme");
+
+        if (optProtDataset.getIdentificationRate() > 30) {
+            paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+            paramScore.setParamValue("Trypsin");
+            parameterScoreSet.add(paramScore);
+            return "Trypsin";
+        }
 
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         if (!oreginaltempIdParam.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equalsIgnoreCase("enzyme")) {
@@ -132,9 +135,9 @@ public abstract class DefaultOptProtSearchOptimizer {
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         //optimise enzyme  
-        Enzyme[] enzymes = new Enzyme[EnzymeFactory.getInstance().getEnzymes().size()];
-        enzymes[0] = EnzymeFactory.getInstance().getEnzyme("Trypsin");
-        int i = 1;
+        Enzyme[] enzymes = new Enzyme[EnzymeFactory.getInstance().getEnzymes().size() - 1];
+//        enzymes[0] = EnzymeFactory.getInstance().getEnzyme("Trypsin");
+        int i = 0;
         for (Enzyme enzyme : EnzymeFactory.getInstance().getEnzymes()) {
             if (enzyme.getName().equals("Trypsin")) {
                 continue;
@@ -152,19 +155,15 @@ public abstract class DefaultOptProtSearchOptimizer {
             tempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(enzyme.getName(), nMissesCleavages);
             final String option = enzyme.getName();
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("Enzyme");
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
+
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
                 if (scoreModel.isSignificatChange()) {
                     resultsMap.put(option, scoreModel);
-                    paramScore.setScore(scoreModel.getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -178,6 +177,9 @@ public abstract class DefaultOptProtSearchOptimizer {
             selectedOption = sortedResultsMap.firstEntry().getValue();
             optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
         }
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        paramScore.setParamValue(selectedOption);
+        parameterScoreSet.add(paramScore);
         return selectedOption;
 
     }
@@ -192,6 +194,8 @@ public abstract class DefaultOptProtSearchOptimizer {
      * @throws IOException
      */
     public String optimizeSpecificityParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("Specificity");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         if (!oreginaltempIdParam.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equalsIgnoreCase("enzyme")) {
             return null;
@@ -209,21 +213,15 @@ public abstract class DefaultOptProtSearchOptimizer {
             tempIdParam.getSearchParameters().getDigestionParameters().setSpecificity(enzymeName, DigestionParameters.Specificity.getSpecificity(i));
 
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("Specificity");
 
-            Future<RawScoreModel> f = executor.submit(() -> {
-                System.out.println("--------------------------------->>>> at run option " + updatedName + "  " + optProtDataset.getSubMsFile().getAbsolutePath());
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
                 if (scoreModel.isSignificatChange()) {
                     resultsMap.put(option, scoreModel);
-                    paramScore.setScore(resultsMap.get(option).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
                 }
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
@@ -237,13 +235,17 @@ public abstract class DefaultOptProtSearchOptimizer {
             }
             selectedOption = sortedResultsMap.firstEntry().getValue();
             optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
-            System.out.println("updated id ref data " + selectedOption);
         }
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        paramScore.setParamValue(selectedOption);
+        parameterScoreSet.add(paramScore);
         return selectedOption;
 
     }
 
     public String optimizeFragmentIonTypesParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("FragmentIons");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
@@ -269,19 +271,15 @@ public abstract class DefaultOptProtSearchOptimizer {
                 }
 
                 final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-                final ParameterScoreModel paramScore = new ParameterScoreModel();
-                paramScore.setParamId("FragmentIons");
-                Future<RawScoreModel> f = executor.submit(() -> {
-                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
+
+                Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
                     return scoreModel;
                 });
                 try {
                     RawScoreModel scoreModel = f.get();
                     if (scoreModel.isSignificatChange()) {
                         resultsMap.put(option, scoreModel);
-                        paramScore.setScore(resultsMap.get(option).getTotalNumber());
-                        paramScore.setParamValue(option);
-                        parameterScoreSet.add(paramScore);
                     }
                 } catch (ExecutionException | InterruptedException ex) {
                     ex.printStackTrace();
@@ -296,15 +294,18 @@ public abstract class DefaultOptProtSearchOptimizer {
             }
             selectedOption = sortedResultsMap.firstEntry().getValue();
             optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
-            System.out.println("updated id ref data " + selectedOption);
         }
 
         selectedOption = selectedOption.replace("[", "").replace("]", "");
-
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        paramScore.setParamValue(selectedOption);
+        parameterScoreSet.add(paramScore);
         return selectedOption;
     }
 
     public Integer optimizeMaxMissCleavagesParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("missedCleavages");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         if (!oreginaltempIdParam.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equalsIgnoreCase("enzyme")) {
             return -1;
@@ -314,7 +315,7 @@ public abstract class DefaultOptProtSearchOptimizer {
         Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
 
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 5; i++) {
             if (i == selectedOption) {
                 continue;
             }
@@ -322,19 +323,17 @@ public abstract class DefaultOptProtSearchOptimizer {
             tempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(enzymeName, i);
             final String option = "missedCleavages_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("missedCleavages");
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
+
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, true);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
                 if (scoreModel.isSignificatChange()) {
                     resultsMap.put(i, scoreModel);
-                    paramScore.setScore(resultsMap.get(i).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
+                } else if (i > selectedOption && !scoreModel.isSensitiveChange()) {
+                    break;
                 }
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
@@ -347,14 +346,18 @@ public abstract class DefaultOptProtSearchOptimizer {
             }
             selectedOption = sortedResultsMap.firstEntry().getValue();
             optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
-            System.out.println("updated id ref data " + selectedOption);
         }
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        paramScore.setParamValue(selectedOption + "");
+        parameterScoreSet.add(paramScore);
 
         return selectedOption;
 
     }
 
     public double optimizeFragmentToleranceParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("fragmentAccuracy");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         double selectedOption = oreginaltempIdParam.getSearchParameters().getFragmentIonAccuracy();
@@ -369,21 +372,19 @@ public abstract class DefaultOptProtSearchOptimizer {
             tempIdParam.getSearchParameters().setFragmentAccuracyType(SearchParameters.MassAccuracyType.DA);
             final String option = "fragmentAccuracy_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("fragmentAccuracy");
 
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
                 if (scoreModel.isSignificatChange()) {
                     resultsMap.put(i, scoreModel);
-                    paramScore.setScore(resultsMap.get(i).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
+                } else if (i > selectedOption && !scoreModel.isSensitiveChange()) {
+                    break;
                 }
+
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
             }
@@ -396,208 +397,131 @@ public abstract class DefaultOptProtSearchOptimizer {
             }
             selectedOption = sortedResultsMap.firstEntry().getValue();
             optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
-            System.out.println("updated id ref data " + selectedOption);
         }
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        paramScore.setParamValue(selectedOption + "");
+        parameterScoreSet.add(paramScore);
+
         return selectedOption;
 
     }
 
     public int[] optimizePrecursorChargeParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("charge");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         int selectedMaxChargeOption = oreginaltempIdParam.getSearchParameters().getMaxChargeSearched();
         int selectedMinChargeOption = oreginaltempIdParam.getSearchParameters().getMinChargeSearched();
-        Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
+        Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
+        IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
 
-        for (int i = 2; i < 6; i++) {
-            if (i == selectedMaxChargeOption) {
-                continue;
-            }
+        for (int i = 1; i < 5; i++) {
 
-            IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-            tempIdParam.getSearchParameters().setMaxChargeSearched(i);
-            if (i <= selectedMinChargeOption) {
-//                selectedMinChargeOption = i;
-                tempIdParam.getSearchParameters().setMinChargeSearched(i - 1);
-            } else {
-                tempIdParam.getSearchParameters().setMinChargeSearched(selectedMinChargeOption);
-            }
-            final String option = "maxCharge_" + i;
-            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("maxCharge");
-
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
-                return scoreModel;
-            });
-            try {
-                RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
-                    resultsMap.put(i, scoreModel);
-                    paramScore.setScore(resultsMap.get(i).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
+            for (int j = 2; j <= 5; j++) {
+                if (j <= i) {
+                    continue;
                 }
-            } catch (ExecutionException | InterruptedException ex) {
-                ex.printStackTrace();
+                tempIdParam.getSearchParameters().setMinChargeSearched(i);
+                tempIdParam.getSearchParameters().setMaxChargeSearched(j);
+
+                final String option = "charge_" + i + "," + j;
+                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
+
+                Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
+                    return scoreModel;
+                });
+                try {
+                    RawScoreModel scoreModel = f.get();
+                    if (scoreModel.isSignificatChange()) {
+                        resultsMap.put(option, scoreModel);
+
+                    }
+                } catch (ExecutionException | InterruptedException ex) {
+                    ex.printStackTrace();
+                }
             }
 
         }
-        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
+        TreeMap<RawScoreModel, String> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
         if (!resultsMap.isEmpty()) {
-            for (int option : resultsMap.keySet()) {
+            for (String option : resultsMap.keySet()) {
                 sortedResultsMap.put(resultsMap.get(option), option);
             }
-            selectedMaxChargeOption = sortedResultsMap.firstEntry().getValue();
+            String[] topOption = sortedResultsMap.firstEntry().getValue().split("_")[1].split(",");
+            selectedMinChargeOption = Integer.parseInt(topOption[0]);
+            selectedMaxChargeOption = Integer.parseInt(topOption[1]);
             optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
-            System.out.println("updated id ref data selectedMaxCharge" + selectedMaxChargeOption);
         }
-        resultsMap.clear();
-
-        for (int i = selectedMaxChargeOption; i > 0; i--) {
-            if (i == selectedMinChargeOption) {
-                continue;
-            }
-            IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-            tempIdParam.getSearchParameters().setMaxChargeSearched(selectedMaxChargeOption);
-            tempIdParam.getSearchParameters().setMinChargeSearched(i);
-            final String option = "minCharge_" + i;
-            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("minCharge");
-
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
-                return scoreModel;
-            });
-            try {
-                RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
-                    resultsMap.put(i, scoreModel);
-                    paramScore.setScore(resultsMap.get(i).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
-                }
-            } catch (ExecutionException | InterruptedException ex) {
-                ex.printStackTrace();
-            }
-
-        }
-        sortedResultsMap.clear();
-        if (!resultsMap.isEmpty()) {
-            for (int option : resultsMap.keySet()) {
-                sortedResultsMap.put(resultsMap.get(option), option);
-            }
-            selectedMinChargeOption = sortedResultsMap.firstEntry().getValue();
-            optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
-            System.out.println("updated id ref data MinCharge " + selectedMinChargeOption);
-        }
-        MainUtilities.cleanOutputFolder();
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        paramScore.setParamValue(selectedMinChargeOption + "," + selectedMaxChargeOption);
+        parameterScoreSet.add(paramScore);
         return new int[]{selectedMinChargeOption, selectedMaxChargeOption};
 
     }
 
     public int[] optimizeIsotopParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("isotop_");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         int selectedMaxIsotopicCorrectionOption = oreginaltempIdParam.getSearchParameters().getMaxIsotopicCorrection();
         int selectedMinIsotopicCorrectioneOption = oreginaltempIdParam.getSearchParameters().getMinIsotopicCorrection();
-        Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
+        Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-        tempIdParam.getSearchParameters().setMaxIsotopicCorrection(8);
-        for (int i = -8; i < 8; i++) {
-            if (i == selectedMinIsotopicCorrectioneOption) {
-                continue;
-            }
-//            if (i > selectedMaxIsotopicCorrectionOption) {
-//                tempIdParam.getSearchParameters().setMaxIsotopicCorrection(i + 1);
-//            } else {
-//                
-//            }
-            tempIdParam.getSearchParameters().setMinIsotopicCorrection(i);
-            final String option = "minIsotop_" + i;
-            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("minIsotop");
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
-                return scoreModel;
-            });
-            try {
-                RawScoreModel scoreModel = f.get();
-//                if (scoreModel.isSignificatChange()) {
-                    resultsMap.put(i, scoreModel);
-                    paramScore.setScore(resultsMap.get(i).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
-//                }
-            } catch (ExecutionException | InterruptedException ex) {
-                ex.printStackTrace();
-            }
 
-        }
-        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-        if (!resultsMap.isEmpty()) {
-            for (int option : resultsMap.keySet()) {
-                sortedResultsMap.put(resultsMap.get(option), option);
-            }
-            selectedMinIsotopicCorrectioneOption = sortedResultsMap.firstEntry().getValue();
-            optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
-            System.out.println("updated id ref data minIstop " + selectedMinIsotopicCorrectioneOption);
-        }
-
-        resultsMap.clear();
-
-        tempIdParam.getSearchParameters().setMinIsotopicCorrection(selectedMinIsotopicCorrectioneOption);
-        for (int i = selectedMinIsotopicCorrectioneOption; i < 9; i++) {
-            if (i == selectedMaxIsotopicCorrectionOption) {
-                continue;
-            }
-            tempIdParam.getSearchParameters().setMaxIsotopicCorrection(i);
-            final String option = "maxIsotop_" + i;
-            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("maxIsotop");
-
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
-                return scoreModel;
-            });
-            try {
-                RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
-                    resultsMap.put(i, scoreModel);
-                    paramScore.setScore(resultsMap.get(i).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
+        for (int i = -2; i < 2; i++) {
+            for (int j = -1; j <= 2; j++) {
+                if (j <= i) {
+                    continue;
                 }
-            } catch (ExecutionException | InterruptedException ex) {
-                ex.printStackTrace();
-            }
+                tempIdParam.getSearchParameters().setMinIsotopicCorrection(i);
+                tempIdParam.getSearchParameters().setMaxIsotopicCorrection(j);
+                final String option = "isotop_" + i + "," + j;
+                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
 
+                Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
+                    return scoreModel;
+                });
+                try {
+                    RawScoreModel scoreModel = f.get();
+                    if (scoreModel.isSignificatChange()) {
+                        resultsMap.put(option, scoreModel);
+                    }
+                } catch (ExecutionException | InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+            }
         }
-        sortedResultsMap.clear();
+        TreeMap<RawScoreModel, String> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
         if (!resultsMap.isEmpty()) {
-            for (int option : resultsMap.keySet()) {
+            for (String option : resultsMap.keySet()) {
                 sortedResultsMap.put(resultsMap.get(option), option);
             }
-            selectedMaxIsotopicCorrectionOption = sortedResultsMap.firstEntry().getValue();
+            String[] topOption = sortedResultsMap.firstEntry().getValue().split("_")[1].split(",");
+            selectedMinIsotopicCorrectioneOption = Integer.parseInt(topOption[0]);
+            selectedMaxIsotopicCorrectionOption = Integer.parseInt(topOption[1]);
             optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
-            System.out.println("updated id ref data MaxIsotop" + selectedMaxIsotopicCorrectionOption);
         }
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        paramScore.setParamValue(selectedMinIsotopicCorrectioneOption + "," + selectedMaxIsotopicCorrectionOption);
+        parameterScoreSet.add(paramScore);
 
         return new int[]{selectedMinIsotopicCorrectioneOption, selectedMaxIsotopicCorrectionOption};
     }
 
     public double optimizePrecursorToleranceParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+        final ParameterScoreModel paramScore = new ParameterScoreModel();
+        paramScore.setParamId("PrecursorAccuracy");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         double selectedOption = oreginaltempIdParam.getSearchParameters().getPrecursorAccuracy();
         Map<Double, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-        double[] iValues = new double[]{5, 10, 15, 20};
+        double[] iValues = new double[]{10, 15, 20, 25};
+        boolean toEnd = false;
         for (double i : iValues) {
             if (i == selectedOption) {
                 continue;
@@ -607,11 +531,9 @@ public abstract class DefaultOptProtSearchOptimizer {
             tempIdParam.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.PPM);
             final String option = "precursorAccuracy_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-            final ParameterScoreModel paramScore = new ParameterScoreModel();
-            paramScore.setParamId("PrecursorAccuracy_PPM");
-            System.out.println("at-------------------------------------------------- value to search " + i);
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option + "_noupdate", tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
+
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
                 return scoreModel;
             });
             try {
@@ -619,11 +541,9 @@ public abstract class DefaultOptProtSearchOptimizer {
                 RawScoreModel scoreModel = f.get();
                 if (scoreModel.isSignificatChange()) {
                     resultsMap.put(i, scoreModel);
-                    paramScore.setScore(resultsMap.get(i).getTotalNumber());
-                    paramScore.setParamValue(option);
-                    parameterScoreSet.add(paramScore);
-                    paramScore.setComments("High-Resolution Mass Spectrometers: Instruments like Orbitrap or Fourier Transform Ion Cyclotron Resonance (FT-ICR)");
-                    System.out.println("value " + i + " ppm " + scoreModel);
+                } else if (i > selectedOption && !scoreModel.isSensitiveChange()) {
+                    toEnd = true;
+                    break;
 
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -632,35 +552,29 @@ public abstract class DefaultOptProtSearchOptimizer {
 
         }
 
-        iValues = new double[]{0.1, 0.3, 0.5, 0.7, 0.9};
-        if (!optProtDataset.isHighResolutionMassSpectrometers()) {
-            for (double i : iValues) {
-                IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-                tempIdParam.getSearchParameters().setPrecursorAccuracy(i);
-                tempIdParam.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.DA);
-                final String option = "precursorAccuracy_Da" + i;
-                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-                final ParameterScoreModel paramScore = new ParameterScoreModel();
-                paramScore.setParamId("PrecursorAccuracy_Da");
-
-                Future<RawScoreModel> f = executor.submit(() -> {
-                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile,false);
-                    return scoreModel;
-                });
-                try {
-                    RawScoreModel scoreModel = f.get();
-                    if (scoreModel.isSignificatChange()) {
-                        resultsMap.put(i, scoreModel);
-                        paramScore.setScore(resultsMap.get(i).getTotalNumber());
-                        paramScore.setParamValue(option);
-                        parameterScoreSet.add(paramScore);
-                        paramScore.setComments("Low-Resolution Mass Spectrometers: Quadrupole and ion trap mass spectrometers have lower mass accuracy");
-                        System.out.println("value " + i + " kd " + scoreModel);
+        if (!toEnd) {
+            iValues = new double[]{0.1, 0.3, 0.5, 0.7, 0.9};
+            if (!optProtDataset.isHighResolutionMassSpectrometers()) {
+                for (double i : iValues) {
+                    IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
+                    tempIdParam.getSearchParameters().setPrecursorAccuracy(i);
+                    tempIdParam.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.DA);
+                    final String option = "precursorAccuracy_Da" + i;
+                    final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
+                    Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                        RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
+                        return scoreModel;
+                    });
+                    try {
+                        RawScoreModel scoreModel = f.get();
+                        if (scoreModel.isSignificatChange()) {
+                            resultsMap.put(i, scoreModel);
+                        }
+                    } catch (ExecutionException | InterruptedException ex) {
+                        ex.printStackTrace();
                     }
-                } catch (ExecutionException | InterruptedException ex) {
-                    ex.printStackTrace();
-                }
 
+                }
             }
         }
         TreeMap<RawScoreModel, Double> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
@@ -672,6 +586,16 @@ public abstract class DefaultOptProtSearchOptimizer {
             optProtDataset.setValidatedIdRefrenceData(sortedResultsMap.firstEntry().getKey().getData());
         }
 
+        paramScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+
+        parameterScoreSet.add(paramScore);
+        if (selectedOption >= 5) {
+            paramScore.setParamValue(selectedOption + "PPM");
+            paramScore.setComments("High-Resolution Mass Spectrometers: Instruments like Orbitrap or Fourier Transform Ion Cyclotron Resonance (FT-ICR)");
+        } else {
+            paramScore.setParamValue(selectedOption + "Da");
+            paramScore.setComments("Low-Resolution Mass Spectrometers: Quadrupole and ion trap mass spectrometers have lower mass accuracy");
+        }
         return selectedOption;
     }
 
@@ -687,6 +611,9 @@ public abstract class DefaultOptProtSearchOptimizer {
      * @throws IOException
      */
     public Map<String, Set<String>> optimizeModificationsParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting searchInputSetting, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
+
+        final ParameterScoreModel fixedModParamScore = new ParameterScoreModel();
+        fixedModParamScore.setParamId("FixedModifications");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         ArrayList<String> selectedFixedModificationOption = new ArrayList<>(oreginaltempIdParam.getSearchParameters().getModificationParameters().getFixedModifications());
@@ -703,18 +630,22 @@ public abstract class DefaultOptProtSearchOptimizer {
         tempIdParam.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         TreeMap<RawScoreModel, String> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
+        Set<String> potintialVariableMod = new LinkedHashSet<>();
         for (String modId : mods) {
             final String option = modId;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "f_" + option + "_" + msFileName;
             tempIdParam.getSearchParameters().getModificationParameters().clearFixedModifications();
             tempIdParam.getSearchParameters().getModificationParameters().addFixedModification(ptmFactory.getModification(modId));
 
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting, identificationParametersFile,true);
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting, identificationParametersFile, false);
                 return scoreModel;
             });
             try {
                 resultsMap.put(modId, f.get());
+                if (resultsMap.get(modId).getImprovmentScore() > -0.5) {
+                    potintialVariableMod.add(modId);
+                }
                 if (resultsMap.get(modId).isSignificatChange()) {
                     sortedResultsMap.put(resultsMap.get(modId), modId);
                 }
@@ -763,16 +694,16 @@ public abstract class DefaultOptProtSearchOptimizer {
             tempIdParam.getSearchParameters().getModificationParameters().clearVariableModifications();
             tempIdParam.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(modId));
 
-            Future<RawScoreModel> f = executor.submit(() -> {
-                System.out.println("run mod again " + modId);
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting,  identificationParametersFile,true);
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting, identificationParametersFile, true);
                 return scoreModel;
             });
             try {
                 RawScoreModel vScore = f.get();
                 if (vScore.isSignificatChange()) {
-                    double[] compscores = SpectraFileUtilities.compareData(resultsMap.get(modId).getData(), vScore.getData(),true);
-                    if (compscores[3] > resultsMap.get(modId).getFinalScore() * 1.1) {
+//                    double[] compscores = SpectraFileUtilities.compareData(resultsMap.get(modId).getData(), vScore.getData(), true);
+//                    if (compscores[3] > resultsMap.get(modId).getFinalScore() * 1.1) {
+                    if (SpectraFileUtilities.isBetterScore(resultsMap.get(modId).getData(), vScore.getData(), true)) {
                         resultsMap.remove(modId);
                     }
                 }
@@ -801,8 +732,8 @@ public abstract class DefaultOptProtSearchOptimizer {
                 tempIdParam.getSearchParameters().getModificationParameters().addFixedModification(ptmFactory.getModification(mod2Id));
                 final String option = mod1Id + "_" + mod2Id;
                 final String updatedName = Configurations.DEFAULT_RESULT_NAME + "f_" + option + "_" + msFileName;
-                Future<RawScoreModel> f = executor.submit(() -> {
-                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
+                Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting, identificationParametersFile, true);
                     return scoreModel;
                 });
                 try {
@@ -835,8 +766,8 @@ public abstract class DefaultOptProtSearchOptimizer {
                     tempIdParam.getSearchParameters().getModificationParameters().addFixedModification(ptmFactory.getModification(mod2Id.split("_")[1]));
                     final String option = mod1Id + "_" + mod2Id;
                     final String updatedName = Configurations.DEFAULT_RESULT_NAME + "f_" + option + "_" + msFileName;
-                    Future<RawScoreModel> f = executor.submit(() -> {
-                        RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
+                    Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                        RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting, identificationParametersFile, true);
                         return scoreModel;
                     });
                     try {
@@ -872,8 +803,8 @@ public abstract class DefaultOptProtSearchOptimizer {
                     final String option = mod1Id + "_" + mod2Id;
                     final String updatedName = Configurations.DEFAULT_RESULT_NAME + "f_" + option + "_" + msFileName;
 
-                    Future<RawScoreModel> f = executor.submit(() -> {
-                        RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
+                    Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                        RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting, identificationParametersFile, true);
                         return scoreModel;
                     });
                     try {
@@ -933,27 +864,28 @@ public abstract class DefaultOptProtSearchOptimizer {
         modificationsResults.put("refinmentFixedModifications", new HashSet<>(selectedFixedModificationOption));
         MainUtilities.cleanOutputFolder();
         RawScoreModel fixedModScore;
-        final ParameterScoreModel fixedModParamScore = new ParameterScoreModel();
-        fixedModParamScore.setParamId("FixedModifications");
+
         final String finalFTOption = ftoption;
-        Future<RawScoreModel> fFuture = executor.submit(() -> {
-            RawScoreModel scoreModel = excuteSearch(optProtDataset, ftupdatedName, finalFTOption, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
+        Future<RawScoreModel> fFuture = MainUtilities.getExecutorService().submit(() -> {
+            RawScoreModel scoreModel = excuteSearch(optProtDataset, ftupdatedName, finalFTOption, tempIdParam, false, searchInputSetting, identificationParametersFile, true);
             return scoreModel;
         });
         try {
             fixedModScore = fFuture.get();
             if (fixedModScore.isSignificatChange()) {
-                fixedModParamScore.setScore(fixedModScore.getTotalNumber());
-                fixedModParamScore.setParamValue(ftoption);
-                parameterScoreSet.add(fixedModParamScore);
                 optProtDataset.setValidatedIdRefrenceData(fixedModScore.getData());
             }
         } catch (ExecutionException | InterruptedException ex) {
             ex.printStackTrace();
         }
         MainUtilities.cleanOutputFolder();
-        System.out.println("selected fixed final " + selectedFixedModificationOption);
+        fixedModParamScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        fixedModParamScore.setParamValue(selectedFixedModificationOption.toString());
+        parameterScoreSet.add(fixedModParamScore);
+
         //process variable modifications
+        final ParameterScoreModel variableModParamScore = new ParameterScoreModel();
+        variableModParamScore.setParamId("VariableModifications");
         resultsMap.clear();
         oneDResultsMap.clear();
         twoDResultsMap.clear();
@@ -964,7 +896,7 @@ public abstract class DefaultOptProtSearchOptimizer {
         Map<String, Set<String>> modifiedSpectrumMap = new LinkedHashMap<>();
 //        Map<String, Set<String>> fullSpectrumMap = new LinkedHashMap<>();
         tempIdParam.getSearchParameters().getModificationParameters().clearRefinementModifications();
-        for (String modId : mods) {
+        for (String modId : potintialVariableMod) {  //mods
             if (selectedFixedModificationOption.contains(modId)) {
                 continue;
             }
@@ -973,13 +905,12 @@ public abstract class DefaultOptProtSearchOptimizer {
             tempIdParam.getSearchParameters().getModificationParameters().clearVariableModifications();
             tempIdParam.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(modId));
 
-            Future<RawScoreModel> f = executor.submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting,  identificationParametersFile,true);
+            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting, identificationParametersFile, false);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
-
                 if (scoreModel.isSignificatChange()) {
                     sortingModificationMap.put(scoreModel, modId);
                     List<SpectrumMatch> spectraResults = scoreModel.getSpectrumMatchResult();
@@ -991,7 +922,6 @@ public abstract class DefaultOptProtSearchOptimizer {
             }
 
         }
-
 //        //filter 1 d map to max 4 modifications
         int modcounter = 0;
         if (!sortingModificationMap.isEmpty()) {
@@ -1026,8 +956,8 @@ public abstract class DefaultOptProtSearchOptimizer {
                         tempIdParam.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(variableModI));
                         tempIdParam.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(variableModII));
                         final String updatedName = Configurations.DEFAULT_RESULT_NAME + "v_" + option + "_" + msFileName;
-                        Future<RawScoreModel> f = executor.submit(() -> {
-                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting,  identificationParametersFile,true);
+                        Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting, identificationParametersFile, true);
                             return scoreModel;
                         });
                         try {
@@ -1075,8 +1005,8 @@ public abstract class DefaultOptProtSearchOptimizer {
                         tempIdParam.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(variableModII.split("_")[0]));
                         tempIdParam.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(variableModII.split("_")[1]));
                         final String updatedName = Configurations.DEFAULT_RESULT_NAME + "v_" + option + "_" + msFileName;
-                        Future<RawScoreModel> f = executor.submit(() -> {
-                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting,  identificationParametersFile,true);
+                        Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting, identificationParametersFile, true);
                             return scoreModel;
                         });
                         try {
@@ -1119,8 +1049,8 @@ public abstract class DefaultOptProtSearchOptimizer {
                         tempIdParam.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(variableModII.split("_")[1]));
                         tempIdParam.getSearchParameters().getModificationParameters().addVariableModification(ptmFactory.getModification(variableModII.split("_")[2]));
                         final String updatedName = Configurations.DEFAULT_RESULT_NAME + "v_" + option + "_" + msFileName;
-                        Future<RawScoreModel> f = executor.submit(() -> {
-                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting,  identificationParametersFile,true);
+                        Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, searchInputSetting, identificationParametersFile, true);
                             return scoreModel;
                         });
                         try {
@@ -1161,8 +1091,7 @@ public abstract class DefaultOptProtSearchOptimizer {
                 selectedVariableModificationOption.add(varMod);
             }
         }
-        final ParameterScoreModel variable = new ParameterScoreModel();
-        variable.setParamId("VariableModifications");
+
         String vtOption = "";
         tempIdParam.getSearchParameters().getModificationParameters().clearVariableModifications();
         for (String mod : selectedVariableModificationOption) {
@@ -1171,207 +1100,26 @@ public abstract class DefaultOptProtSearchOptimizer {
         }
         final String finalvOption = vtOption;
         final String fvupdatedName = Configurations.DEFAULT_RESULT_NAME + "fv_" + vtOption + "_" + msFileName;
-        Future<RawScoreModel> vFuture = executor.submit(() -> {
-            RawScoreModel scoreModel = excuteSearch(optProtDataset, fvupdatedName, finalvOption, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
+        Future<RawScoreModel> vFuture = MainUtilities.getExecutorService().submit(() -> {
+            RawScoreModel scoreModel = excuteSearch(optProtDataset, fvupdatedName, finalvOption, tempIdParam, false, searchInputSetting, identificationParametersFile, true);
             return scoreModel;
         });
         try {
             RawScoreModel variableScoreModel = vFuture.get();
             if (variableScoreModel.isSignificatChange()) {
-                variable.setScore(variableScoreModel.getTotalNumber());
-                variable.setParamValue(ftoption);
-                parameterScoreSet.add(variable);
                 optProtDataset.setValidatedIdRefrenceData(variableScoreModel.getData());
             }
         } catch (ExecutionException | InterruptedException ex) {
             ex.printStackTrace();
         }
+
+        variableModParamScore.setScore(optProtDataset.getValidatedIdRefrenceData().length);
+        variableModParamScore.setParamValue(selectedVariableModificationOption.toString());
+        parameterScoreSet.add(variableModParamScore);
         modificationsResults.put("variableModifications", new HashSet<>(selectedVariableModificationOption));
+
 //        //test refine mod 
-        MainUtilities.cleanOutputFolder();
-        if (searchInputSetting.getSelectedSearchEngine().getIndex() == Advocate.xtandem.getIndex()) {
-            resultsMap.clear();
-            oneDResultsMap.clear();
-            twoDResultsMap.clear();
-            threeDResultsMap.clear();
-            fourDResultsMap.clear();
-            sorterSet.clear();
-
-//           
-            for (String vMod : resultsMap.keySet()) {
-                if (ptmFactory.getModification(vMod) == null) {
-                    continue;
-                }
-                tempIdParam.getSearchParameters().getModificationParameters().clearRefinementModifications();
-                tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(vMod));
-
-                final String option = vMod;
-                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "rv_" + option + "_" + msFileName;
-                final ParameterScoreModel paramScore = new ParameterScoreModel();
-                paramScore.setParamId("refineVariableModifications");
-
-                Future<RawScoreModel> f = executor.submit(() -> {
-                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
-                    return scoreModel;
-                });
-                try {
-                    RawScoreModel scoreModel = f.get();
-                    if (scoreModel.isSignificatChange()) {
-                        oneDResultsMap.put(option, scoreModel);
-                        paramScore.setScore(oneDResultsMap.get(option).getTotalNumber());
-                        paramScore.setParamValue(option);
-                        parameterScoreSet.add(paramScore);
-                    }
-                } catch (ExecutionException | InterruptedException ex) {
-                    ex.printStackTrace();
-                }
-
-            }
-            //2d refinment
-            resultsMap.clear();
-            if (oneDResultsMap.size() > 1) {
-                for (String selectedRef : oneDResultsMap.keySet()) {
-                    for (String vMod : oneDResultsMap.keySet()) {
-                        if (vMod.equals(selectedRef)) {
-                            continue;
-                        }
-                        tempIdParam.getSearchParameters().getModificationParameters().clearRefinementModifications();
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(vMod));
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(selectedRef));
-                        final String option = vMod + "_" + selectedRef;
-                        final String updatedName = Configurations.DEFAULT_RESULT_NAME + "rv_" + option + "_" + msFileName;
-                        final ParameterScoreModel paramScore = new ParameterScoreModel();
-                        paramScore.setParamId("refinmentVariableModifications");
-                        Future<RawScoreModel> f = executor.submit(() -> {
-                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
-                            return scoreModel;
-                        });
-                        try {
-                            RawScoreModel scoreModel = f.get();
-                            if (scoreModel.isSignificatChange()) {
-                                paramScore.setScore(scoreModel.getTotalNumber());
-                                paramScore.setParamValue(option);
-                                parameterScoreSet.add(paramScore);
-                                sorterSet.add(scoreModel);
-                                sorterSet.add(oneDResultsMap.get(selectedRef));
-                                sorterSet.add(oneDResultsMap.get(vMod));
-                                if (sorterSet.first() == scoreModel) {
-                                    twoDResultsMap.put(option, scoreModel);
-                                }
-                                sorterSet.clear();
-
-                            }
-                        } catch (ExecutionException | InterruptedException ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            }
-            //3d refinment
-            if (!twoDResultsMap.isEmpty() && oneDResultsMap.size() > 2) {
-                for (String selectedRef : oneDResultsMap.keySet()) {
-                    for (String vMod : twoDResultsMap.keySet()) {
-                        if (vMod.contains(selectedRef)) {
-                            continue;
-                        }
-                        tempIdParam.getSearchParameters().getModificationParameters().clearRefinementModifications();
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(vMod.split("_")[0]));
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(vMod.split("_")[1]));
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(selectedRef));
-                        final String option = vMod + "_" + selectedRef;
-                        final String updatedName = Configurations.DEFAULT_RESULT_NAME + "rv_" + option + "_" + msFileName;
-                        final ParameterScoreModel paramScore = new ParameterScoreModel();
-                        paramScore.setParamId("refinmentVariableModifications");
-                        Future<RawScoreModel> f = executor.submit(() -> {
-                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
-                            return scoreModel;
-                        });
-                        try {
-                            RawScoreModel scoreModel = f.get();
-                            if (scoreModel.isSignificatChange()) {
-                                paramScore.setScore(scoreModel.getTotalNumber());
-                                paramScore.setParamValue(option);
-                                parameterScoreSet.add(paramScore);
-                                sorterSet.add(scoreModel);
-                                sorterSet.add(oneDResultsMap.get(selectedRef));
-                                sorterSet.add(twoDResultsMap.get(vMod));
-                                if (sorterSet.first() == scoreModel) {
-                                    threeDResultsMap.put(option, scoreModel);
-                                }
-                                sorterSet.clear();
-
-                            }
-                        } catch (ExecutionException | InterruptedException ex) {
-                            ex.printStackTrace();
-                        }
-
-                    }
-                }
-
-            }
-            //4d refinment
-            if (!threeDResultsMap.isEmpty() && oneDResultsMap.size() > 3) {
-                for (String selectedRef : oneDResultsMap.keySet()) {
-                    for (String vMod : threeDResultsMap.keySet()) {
-                        if (vMod.equals(selectedRef)) {
-                            continue;
-                        }
-                        tempIdParam.getSearchParameters().getModificationParameters().clearRefinementModifications();
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(vMod.split("_")[0]));
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(vMod.split("_")[1]));
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(vMod.split("_")[2]));
-                        tempIdParam.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(selectedRef));
-                        final String option = vMod + "_" + selectedRef;
-                        final String updatedName = Configurations.DEFAULT_RESULT_NAME + "rv_" + option + "_" + msFileName;
-                        final ParameterScoreModel paramScore = new ParameterScoreModel();
-                        paramScore.setParamId("refinmentVariableModifications");
-                        Future<RawScoreModel> f = executor.submit(() -> {
-                            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, searchInputSetting,  identificationParametersFile,true);
-                            return scoreModel;
-                        });
-                        try {
-                            RawScoreModel scoreModel = f.get();
-                            if (scoreModel.isSignificatChange()) {
-                                paramScore.setScore(scoreModel.getTotalNumber());
-                                paramScore.setParamValue(option);
-                                parameterScoreSet.add(paramScore);
-                                sorterSet.add(scoreModel);
-                                sorterSet.add(oneDResultsMap.get(selectedRef));
-                                sorterSet.add(threeDResultsMap.get(vMod));
-                                if (sorterSet.first() == scoreModel) {
-                                    fourDResultsMap.put(option, scoreModel);
-                                }
-                                sorterSet.clear();
-
-                            }
-                        } catch (ExecutionException | InterruptedException ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-
-            }
-            resultsMap.clear();
-            resultsMap.putAll(oneDResultsMap);
-            resultsMap.putAll(twoDResultsMap);
-            resultsMap.putAll(threeDResultsMap);
-            resultsMap.putAll(fourDResultsMap);
-            sortedResultsMap.clear();
-            for (String key : resultsMap.keySet()) {
-                sortedResultsMap.put(resultsMap.get(key), key);
-            }
-
-            Set<String> refinementVarModMap = new HashSet<>();
-            if (!sortedResultsMap.isEmpty()) {
-                String varMod = sortedResultsMap.firstEntry().getValue();
-                if (varMod.contains("_")) {
-                    refinementVarModMap.addAll(Arrays.asList(varMod.split("_")));
-                } else {
-                    refinementVarModMap.add(varMod);
-                }
-            }
-            modificationsResults.put("refinmentVariableModifications", refinementVarModMap);
-        }
+      
         MainUtilities.cleanOutputFolder();
         return modificationsResults;
 

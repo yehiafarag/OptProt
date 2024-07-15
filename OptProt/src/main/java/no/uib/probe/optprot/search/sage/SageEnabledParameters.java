@@ -24,6 +24,9 @@ public class SageEnabledParameters {
 //        this.paramsToOptimize.disableMaxIsotop();
         this.paramsToOptimize.disableParam("Acetylation of peptide N-term");
         this.paramsToOptimize.disableParam("specificNTermOnly");
+        this.paramsToOptimize.disableParam("unSpecific");
+        this.paramsToOptimize.disableParam("wholeProtein");
+          this.paramsToOptimize.disableParam("charge");
     }
 
     public SearchEngineParameterConfigurations getParamsToOptimize() {

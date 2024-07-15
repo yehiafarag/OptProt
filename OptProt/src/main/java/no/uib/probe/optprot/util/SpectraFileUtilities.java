@@ -531,7 +531,7 @@ public class SpectraFileUtilities {
 
         try {
             int total = 0;
-            int left = 0;
+            int included = 0;
             int specIndex = 0;
             FastaIterator fastaIterator = new FastaIterator(fastaIn);
 
@@ -555,6 +555,52 @@ public class SpectraFileUtilities {
                         continue;
                     }
 
+                    included++;
+                    String sequence = protein.getSequence();
+                    String rawHeader = header.getRawHeader();
+                    bw.write(rawHeader);
+                    bw.newLine();
+                    bw.write(sequence);
+                    bw.newLine();
+
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            if (included < 50) {
+                System.out.println("Fasta copy all total: " + total + "  included " + included + "  seq not exist ");
+                copySubFastaFile(fastaIn, fastaOut);
+            }
+            System.out.println("Fasta total: " + total + "  included " + included + "  seq not exist " + specIndex);
+
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+        }
+
+    }
+
+    public static void copySubFastaFile(
+            File fastaIn,
+            File fastaOut
+    ) {
+
+        try {
+            fastaOut.delete();
+            fastaOut.createNewFile();
+            int total = 0;
+            int left = 0;
+            int specIndex = 0;
+            FastaIterator fastaIterator = new FastaIterator(fastaIn);
+
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(fastaOut))) {
+                Protein protein;
+                while ((protein = fastaIterator.getNextProtein()) != null) {
+                    Header header = fastaIterator.getLastHeader();
+                    total++;
+                    if (header.getProteinEvidence() != 1 || protein.getAccession().endsWith("_REVERSED")) { //&& !header.asGenericHeader().contains("SV=2")|| protein.getLength() <= 400
+                        continue;
+                    }
+
                     left++;
                     String sequence = protein.getSequence();
                     String rawHeader = header.getRawHeader();
@@ -567,13 +613,17 @@ public class SpectraFileUtilities {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
+
             System.out.println("Fasta total: " + total + "  left " + left + "  seq not exist " + specIndex);
 
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
+        } catch (IOException ex) {
+            Logger.getLogger(SpectraFileUtilities.class.getName()).log(Level.SEVERE, null, ex);
         }
 
     }
+
 //
 //    public static Set<String> getTagsSequences(File directTag) {
 //        String line;
@@ -598,7 +648,6 @@ public class SpectraFileUtilities {
 //        }
 //        return sequences;
 //    }
-
     public static Set<String> getSequences(File novorOutputFile) {
         String line;
         String splitBy = ",";
@@ -893,7 +942,7 @@ public class SpectraFileUtilities {
 //
 //        }
 
-        double[] improved = SpectraFileUtilities.compareData(fromData, toData,pairData);
+        double[] improved = SpectraFileUtilities.compareData(fromData, toData, pairData);
         rawScore.setTotalNumber(data.length);
         rawScore.setImprovmentScore(improved[0]);
         rawScore.settTestStat(improved[1]);
@@ -904,14 +953,22 @@ public class SpectraFileUtilities {
             accepted = false;
         } else if (improved[1] < 0 && improved[2] < optProtDataset.getpValueThresholds()) {
             accepted = false;
-        } else {
-            System.out.println("pass all check time to compare score " + improved[3]);
-
+        } else if (Double.isNaN(improved[3])) {
+            accepted = false;
+        }
+//        else {
+//            System.out.println("pass all check time to compare score " + improved[3]);
+//        }
+//        System.out.println("rawScore.getTotalNumber() > optProtDataset.getValidatedIdRefrenceData().length " + rawScore.getTotalNumber() + " > " + optProtDataset.getValidatedIdRefrenceData().length + "  " + optProtDataset.getpValueThresholds());
+        rawScore.setSensitiveChange(rawScore.getImprovmentScore() > 0 && rawScore.gettTestStat() > 0 && rawScore.getTotalNumber() >= optProtDataset.getValidatedIdRefrenceData().length);
+        rawScore.setSameData(rawScore.getImprovmentScore() == 0 && Double.isNaN(rawScore.gettTestStat()));
+        if (optProtDataset.isFullDataSpectaInput()) {
+            accepted = rawScore.isSensitiveChange();
         }
         rawScore.setSignificatChange(accepted);
-        System.out.println("is it accepted score " + accepted + "  " + rawScore);
 
-        if (rawScore.isSignificatChange()) {
+//        System.out.println("is it accepted score " + accepted + "  " + rawScore);
+        if (rawScore.isSignificatChange() || rawScore.isSensitiveChange() || rawScore.isSameData()) {
             rawScore.setData(data);
         }
         return rawScore;
@@ -951,6 +1008,10 @@ public class SpectraFileUtilities {
 //    }
     public static List<SpectrumMatch> getValidatedIdentificationResults(File resultOutput, File msFile, Advocate searchEngine, IdentificationParameters identificationParameters) {
         List<SpectrumMatch> validatedMaches = Collections.synchronizedList(new ArrayList<>());
+        if (resultOutput == null) {
+            System.out.println("output result file was null");
+            return validatedMaches;
+        }
         try {
             File idResultsFile = null;
             if (searchEngine.getIndex() == Advocate.myriMatch.getIndex()) {
@@ -963,6 +1024,7 @@ public class SpectraFileUtilities {
                 idResultsFile = new File(resultOutput, (IoUtil.removeExtension(msFile.getName()) + ".sage.tsv"));
             }
             if (idResultsFile == null || !idResultsFile.exists()) {
+
                 System.out.println("id result file was null " + resultOutput.getAbsolutePath() + "   ---  " + searchEngine.getName() + "  " + idResultsFile);
 //                System.exit(0);
                 return validatedMaches;
@@ -977,6 +1039,7 @@ public class SpectraFileUtilities {
             System.out.println("no.uib.probe.optprot.util.SpectraFileUtilities.getValidatedIdentificationResults() " + ex.getLocalizedMessage());
             ex.printStackTrace();
         }
+//         MainUtilities.cleanOutputFolder();
         return validatedMaches;
     }
 
@@ -1016,6 +1079,47 @@ public class SpectraFileUtilities {
 
     }
 
+    public static boolean isBetterScore(double[] data1, double[] data2, boolean pairData) {
+        ScoreComparison sc = new ScoreComparison();
+        if (pairData) {
+            if (data2.length > data1.length) {
+                double[] updatedData = new double[data2.length];
+                System.arraycopy(data1, 0, updatedData, 0, data1.length);
+                data1 = updatedData;
+            } else if (data2.length < data1.length) {
+                double[] updatedData = new double[data1.length];
+                System.arraycopy(data2, 0, updatedData, 0, data2.length);
+                data2 = updatedData;
+            }
+        }
+//        double p = sc.(fromData, toData);
+//        double pvalue = sc.performTTest(data1, data2);
+//        double tvalue = sc.performTStatTest(data1, data2);
+        double improvmentScore = sc.percentageImprovement(data1, data2);
+//        double finalScore = sc.calculateFinalScore(data1, data2);
+//        System.out.println("final improvment score " + improvmentScore + "  t " + tvalue + " Pvalue " + pvalue + "  Final:   " + finalScore);
+////        if (improvmentScore <= 0) {
+//            return new double[]{-1, -1, -1, 1};
+//        }
+//         if (tvalue < 0 && pvalue <= 0.1) {
+//            return false;
+//        } 
+//        if (tvalue<0 && pvalue < 0.05) {
+//             System.out.println("----------------------supposed to be false but -------------------------finalScore "+finalScore+", improvmentScore "+improvmentScore+"----");
+//             return new double[]{-1, -1,-1,1};
+//            
+//        }
+//        else if (finalScore < 10) {
+//            return false;
+//        } else {
+//            System.out.println("----------------------return true-----------------------------");
+//
+//        }
+
+        return improvmentScore > 0;
+
+    }
+
     public static double[] compareData(double[] fromData, double[] toData, boolean pairData) {
         ScoreComparison sc = new ScoreComparison();
         if (pairData) {
@@ -1034,10 +1138,10 @@ public class SpectraFileUtilities {
         double tvalue = sc.performTStatTest(fromData, toData);
         double improvmentScore = sc.percentageImprovement(fromData, toData);
         double finalScore = sc.calculateFinalScore(fromData, toData);
-        if (improvmentScore == 0) {
-            System.out.println("final improvment score " + improvmentScore + "  t " + tvalue + " Pvalue " + pvalue + "  Final:   " + finalScore);
-            return new double[]{-1, -1, 1, -1};
-        }
+//        if (improvmentScore == 0) {
+//            System.out.println("final improvment score " + improvmentScore + "  t " + tvalue + " Pvalue " + pvalue + "  Final:   " + finalScore);
+//            return new double[]{-1, -1, 1, -1};
+//        }
 //        if (improvmentScore <= 0) {
 //            return new double[]{-1, -1, -1, 1};
 //        }
@@ -1063,7 +1167,7 @@ public class SpectraFileUtilities {
     public static void main(String[] args) {
         double[] from = new double[]{5, 10, 15, 20, 25, 30, 40, 50};
         double[] to = new double[]{10, 15, 20, 25, 30, 40, 50, 60};
-        compareData(to, to,true);
+        compareData(to, to, true);
     }
 
 }

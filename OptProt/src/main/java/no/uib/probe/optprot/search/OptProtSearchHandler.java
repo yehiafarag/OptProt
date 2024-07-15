@@ -38,17 +38,17 @@ public class OptProtSearchHandler {
 //            identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
 //            identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
 //            identificationParameters.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
-//            IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
+            IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
             if (searchInputSetting.getSelectedSearchEngine().getIndex() == Advocate.xtandem.getIndex()) {
                 XtandemParameters xtandemParameters = (XtandemParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-                xtandemParameters.setOutputResults("all");//"valid"
+//                xtandemParameters.setOutputResults("all");//"valid"
 //                xtandemParameters.setMaxEValue(0.01);
-                xtandemParameters.setProteinQuickAcetyl(false);
-                xtandemParameters.setQuickPyrolidone(false);
-                xtandemParameters.setStpBias(false);
-                xtandemParameters.setRefine(false);
-//                searchingSubDataset.setAcceptedIDRatioThreshold(0);
-                IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
+//                xtandemParameters.setProteinQuickAcetyl(false);
+//                xtandemParameters.setQuickPyrolidone(false);
+//                xtandemParameters.setStpBias(false);
+//                xtandemParameters.setRefine(false);
+//                IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
+                System.out.println("default xtandom param " + xtandemParameters.getOutputResults() + "  " + xtandemParameters.isRefine());
                 XTandemOptProtSearchOptimizer xTandemOptProtSearchOptimizer = new XTandemOptProtSearchOptimizer(searchingSubDataset, searchInputSetting, generatedIdentificationParametersFile);
                 xTandemOptProtSearchOptimizer.startProcess(paramOrder);
             } else if (searchInputSetting.getSelectedSearchEngine().getIndex() == Advocate.myriMatch.getIndex()) {
