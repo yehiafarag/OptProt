@@ -101,10 +101,16 @@ public class SearchEngineParameterConfigurations {
         paramMap.put("generateDecoy", true);
         paramMap.put("minMatchedPeaks", true);
         paramMap.put("Chimera", true);
-        
-         paramMap.put("WideWindow", true);
-        
-        
+        paramMap.put("WideWindow", true);
+        for (int i = 1;i < 5; i++) {
+            for (int j = 2; j <= 5; j++) {
+                if (j <= i) {
+                    continue;
+                }
+                paramMap.put("charge-" + i + "," + j, true);
+            }
+        }
+
         for (String mod : mods) {
             paramMap.put(mod, true);
         }
@@ -119,7 +125,15 @@ public class SearchEngineParameterConfigurations {
     }
 
     public void disableMinCharge() {
-        paramMap.replace("charge", false);
+   for (int i = 2;i < 5; i++) {
+            for (int j = 2; j <= 5; j++) {
+                if (j <= i) {
+                    continue;
+                }
+                paramMap.replace("charge-" + i + "," + j, false);
+            }
+        }
+       
     }
 
     public void disableMissedCleavages() {

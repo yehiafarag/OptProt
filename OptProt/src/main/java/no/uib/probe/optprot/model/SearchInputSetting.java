@@ -21,7 +21,15 @@ public class SearchInputSetting {
 
     public SearchInputSetting() {
     }
+String digestionParameterOpt;
 
+    public String getDigestionParameterOpt() {
+        return digestionParameterOpt;
+    }
+
+    public void setDigestionParameterOpt(String digestionParameterOpt) {
+        this.digestionParameterOpt = digestionParameterOpt;
+    }
     private final XTandemEnabledParameters XTandemEnabledParameters = new XTandemEnabledParameters();
     private final MyriMatchEnabledParameters MyriMatchEnabledParameters = new MyriMatchEnabledParameters();
     private final SageEnabledParameters SageEnabledParameters = new SageEnabledParameters();

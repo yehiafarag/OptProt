@@ -22,13 +22,17 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 import no.uib.probe.optprot.configurations.Configurations;
@@ -38,7 +42,7 @@ import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.search.SearchExecuter;
 import no.uib.probe.optprot.util.MainUtilities;
 import no.uib.probe.optprot.util.OptProtWaitingHandler;
-import no.uib.probe.optprot.util.SpectraFileUtilities;
+import no.uib.probe.optprot.util.SpectraUtilities;
 import org.xmlpull.v1.XmlPullParserException;
 
 /**
@@ -46,15 +50,16 @@ import org.xmlpull.v1.XmlPullParserException;
  * @author yfa041
  */
 public class OptProtDatasetHandler {
-    
+
     private final SearchInputSetting searchInputSetting = new SearchInputSetting();
     private int startIndex = 0;
     private File subFastaFile = null;
-    
+
     private File subMsFile = null;
-    private int counter = 0;
+//    private int counter = 0;
     private double acceptedTagEvalue;
-    
+//    private boolean smallDataset;
+
     public SearchingSubDataset generateOptProtDataset(File msFile, File fastaFile, Advocate searchEngineToOptimise, File subDataFolder, File identificationParametersFile, boolean wholeDataTest) {
         acceptedTagEvalue = Configurations.ACCEPTED_TAG_EVALUE;
         long start1 = System.currentTimeMillis();
@@ -63,11 +68,11 @@ public class OptProtDatasetHandler {
         subDataset.setSubMsFile(msFile);
         subDataset.setSubFastaFile(fastaFile);
         TreeMap<String, File> subFilesMap = new TreeMap<>(Collections.reverseOrder());
-        
+
         if (!wholeDataTest) {
             subFastaFile = new File(subDataFolder, Configurations.DEFAULT_RESULT_NAME + Configurations.get_current_file_fingerprent() + "_" + fastaFile.getName());
             subMsFile = new File(subDataFolder, Configurations.DEFAULT_RESULT_NAME + Configurations.get_current_file_fingerprent() + "_" + msFile.getName());
-            
+
         } else {
             subFastaFile = new File(subDataFolder, Configurations.DEFAULT_RESULT_NAME + Configurations.get_current_file_fingerprent() + "_Full_" + fastaFile.getName());
             subMsFile = new File(subDataFolder, Configurations.DEFAULT_RESULT_NAME + Configurations.get_current_file_fingerprent() + "_Full_" + msFile.getName());
@@ -79,25 +84,11 @@ public class OptProtDatasetHandler {
                 f.delete();
             }
         }
-
-//        for (String fName : subFilesMap.keySet()) {
-//            if (fName.endsWith(".mgf") && subMsFile == null) {
-//                subMsFile = subFilesMap.get(fName);
-//                System.out.println("f name " + fName);
-//            } else if (fName.endsWith(".mgf") && subMsFile != null) {
-//                subFilesMap.get(fName).delete();
-//            } else if (fName.endsWith(".fasta") && subFastaFile == null) {
-//                subFastaFile = subFilesMap.get(fName);
-//                System.out.println("f name " + fName);
-//            } else if (fName.endsWith(".fasta") && subFastaFile != null) {
-//                subFilesMap.get(fName).delete();
-//            }
-//        }
         final String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
         MsFileHandler msFileHandler = new MsFileHandler();
         try {
             msFileHandler.register(msFile, new OptProtWaitingHandler());
-            
+
         } catch (IOException ex) {
             if (subMsFile != null) {
                 subMsFile.delete();
@@ -107,204 +98,135 @@ public class OptProtDatasetHandler {
             }
             ex.printStackTrace();
         }
-        
+
         String[] spectrumTitles = msFileHandler.getSpectrumTitles(fileNameWithoutExtension);
-//        int finalSpectraNumberInGeneratedFile;
         subDataset.setOreginalDatasize(spectrumTitles.length);
-        
-        final Map<String, Spectrum> fullSpectrumMap = new LinkedHashMap<>();
-        final Set<ConfidentTagSorter> fullConfidentSpectraSet = new TreeSet<>();
-        
-        final double coveragePercent;
-        final int initialIndex;
-        if (spectrumTitles.length < 20000) {
-            initialIndex = 0;
-            coveragePercent = 1;
-        } else {
-            initialIndex = (int) Math.round((double) spectrumTitles.length * 0.25);
-            coveragePercent = 0.5;
-        }
-        startIndex = initialIndex;
-        
-        int coverageSize;
         int step;
         int lastIndex;
-        int extendor;
-        boolean update;
-        
-        if (wholeDataTest) {
-            coverageSize = spectrumTitles.length;
-            step = 1;
-            lastIndex = startIndex + coverageSize;
-            extendor = 0;
-            update = false;
-        } else {
-            double startRatio = 0.2;
-            int finalSpectraNumberInGeneratedFile = Math.max((int) (Configurations.REFINED_MS_SIZE * 1.5), (int) (spectrumTitles.length * startRatio));
-            coverageSize = (int) Math.round((double) spectrumTitles.length * coveragePercent);
-            step = coverageSize / (finalSpectraNumberInGeneratedFile);
-            lastIndex = startIndex + coverageSize;
-            extendor = 0;
-            update = false;
-        }
+        boolean update = false;
+        try {
+            final IdentificationParameters identificationParameters = IdentificationParameters.getIdentificationParameters(new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
+            if (!subMsFile.exists()) {
+                update = true;
+                System.out.println("sub ms not exist");
+                subMsFile.createNewFile();
+                //initial param to handel only one time
+                SearchParameters searchParameters = identificationParameters.getSearchParameters();
+                searchParameters.getModificationParameters().clearVariableModifications();
+                searchParameters.getModificationParameters().clearFixedModifications();
+                //initial direcTag param
+                DirecTagParameters direcTagParameters = (DirecTagParameters) searchParameters.getIdentificationAlgorithmParameter(Advocate.direcTag.getIndex());
+                direcTagParameters.setMaxTagCount(1);
+                direcTagParameters.setTagLength(3);
+                direcTagParameters.setNumChargeStates(4);
+                direcTagParameters.setDuplicateSpectra(false);
+                direcTagParameters.setUseChargeStateFromMS(false);
+                //generate subset of spectra 
+                Map<String, Spectrum> spectraMap = new LinkedHashMap<>();
+                //init Q1
+                int subSize;
+                int left;
+                List<Double> quartileRatios;
+                if (wholeDataTest) {
 
-//        if (!wholeDataTest) {
-        while (true) {
-            try {
-                final IdentificationParameters identificationParameters = IdentificationParameters.getIdentificationParameters(new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
-                if (!subMsFile.exists()) {
-                    update = true;
-                    System.out.println("sub ms not exist");
-//                    subMsFile = new File(subDataFolder, Configurations.DEFAULT_RESULT_NAME + Configurations.get_current_file_fingerprent() + "_" + counter + "_" + msFile.getName());
-                    subMsFile.createNewFile();
-                    //initial param to handel only one time
-
-                    SearchParameters searchParameters = identificationParameters.getSearchParameters();
-                    searchParameters.getModificationParameters().clearVariableModifications();
-                    searchParameters.getModificationParameters().clearFixedModifications();
-                    //initial direcTag param
-                    DirecTagParameters direcTagParameters = (DirecTagParameters) searchParameters.getIdentificationAlgorithmParameter(Advocate.direcTag.getIndex());
-                    direcTagParameters.setMaxTagCount(1);
-                    direcTagParameters.setTagLength(3);
-                    direcTagParameters.setNumChargeStates(4);
-                    direcTagParameters.setDuplicateSpectra(false);
-                    direcTagParameters.setUseChargeStateFromMS(false);
-                    
-                    while (true) {
-//                            System.out.println("----------------------------------------------------------------------------------------------------------------->>>" + counter + " round " + subDataset.getOreginalDatasize() + "  final size " + finalSpectraNumberInGeneratedFile + "  start index " + startIndex);
-                        //generate subset of spectra 
-                        System.out.println("start index updated " + startIndex + "   " + lastIndex + "  " + step);
-                        Map<String, Spectrum> spectraMap = substractSpectraFirstLevelDataFiltering(msFile, msFileHandler, startIndex, step, lastIndex);
-                        System.out.println("spectraMap " + spectraMap.size());
-                        fullSpectrumMap.putAll(spectraMap);
-
-                        //generate submsFile
-                        File destinationFile = new File(Configurations.OUTPUT_FOLDER_PATH, Configurations.DEFAULT_RESULT_NAME + "_" + counter + fileNameWithoutExtension + ".mgf");
-                        if (destinationFile.exists()) {
-                            destinationFile.delete();
-                        }
-                        destinationFile.createNewFile();
-                        destinationFile = generateMsSubFile(spectraMap, destinationFile);
-                        final String subfileNameWithoutExtension = IoUtil.removeExtension(destinationFile.getName());
-                        //run direct tag and get confident tags                
-                        Set<ConfidentTagSorter> confidentSpectraSet = getSpectraWithConfidentTagSecondStageFiltering(destinationFile, fastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE), subfileNameWithoutExtension);
-                        fullConfidentSpectraSet.addAll(confidentSpectraSet);
-                        System.out.println("full size " + fullConfidentSpectraSet.size() + "  " + confidentSpectraSet.size());
-                        if (counter == 2) {     
-                            counter=0;
-                            subFastaFile.delete();
-                            subMsFile.delete();
-                            subFastaFile=null;
-                            subMsFile=null;
-                            startIndex = 0;
-                            return generateOptProtDataset(msFile, fastaFile, searchEngineToOptimise, subDataFolder, identificationParametersFile, true);                            
-                        }
-                        if (!wholeDataTest && fullConfidentSpectraSet.size() < Configurations.REFINED_MS_SIZE + extendor) {
-                            startIndex++;
-                            if (startIndex == initialIndex + step || counter == 8) {
-                                System.out.println("the file is totally covered and data is so bad " + confidentSpectraSet.size() + "/" + Configurations.REFINED_MS_SIZE);
-                                break;
-                            }
-                            counter++;
-                        } else {
-                            break;
-                        }
-                    }
-                    int refinedIndex = 0;
-                    final Map<String, Spectrum> refinedSpectrumMap = new LinkedHashMap<>();
-                    //first refine to run 
-                    for (ConfidentTagSorter tag : fullConfidentSpectraSet) {
-                        refinedSpectrumMap.put(tag.getTitle(), fullSpectrumMap.get(tag.getTitle()));
-                        if (!wholeDataTest && refinedIndex > Configurations.REFINED_MS_SIZE + (extendor * 0.5)) {
-                            break;
-                        }
-                        refinedIndex++;
-                    }
-                    System.out.println("refined spectrum map size " + refinedSpectrumMap.size());
-                    //create stabkle subMs file
-                    subMsFile = generateMsSubFile(refinedSpectrumMap, subMsFile);
-                    subFastaFile.delete();
-                }
-                //create stabkle subfasta file
-                if (!subFastaFile.exists() || update) {
-                    update = true;
-                    System.out.println("sub fasta not exist");
-                    subFastaFile.createNewFile();
-                    long start3 = System.currentTimeMillis();
-                    searchInputSetting.setRunNovor(true);
-                    final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + fileNameWithoutExtension + Configurations.get_current_file_fingerprent();
-                    File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, fastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
-                    File NovorFile = new File(resultsFolder, IoUtil.removeExtension(subMsFile.getName()) + ".novor.csv");
-                    Set<String> sequences = SpectraFileUtilities.getSequences(NovorFile);
-                    System.out.println("sequence from nover " + sequences.size());
-                    long end3rd = System.currentTimeMillis();
-                    double total = (end3rd - start3) / 1000.0;
-                    System.out.println("process III ( Novor ) in seconds: " + total);
-                    long start4 = System.currentTimeMillis();
-                    subFastaFile = initSubFastaFile(subDataFolder, subFastaFile, fastaFile, sequences);
-                    long end4th = System.currentTimeMillis();
-                    total = (end4th - start4) / 1000.0;
-                    System.out.println("process IV ( Generated Fasta) in seconds: " + total);
-                    long end = System.currentTimeMillis();
-                    total = (end - start1) / 1000.0;
-                    System.out.println("Total Elapsed Time for initInputSubSetFiles in seconds: " + total);
-//                    MainUtilities.deleteFolder(NovorFile.getParentFile());
-                }
-                if (update && !wholeDataTest) {
-                    //run initial identification with user selected SE
-                    long s1 = System.currentTimeMillis();
-                    searchInputSetting.setSelectedSearchEngine(standeredReferenceSearchEngine);
-                    final String option = "init_input_files" + standeredReferenceSearchEngine;
-                    final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + fileNameWithoutExtension;
-//                    XtandemParameters xtandemParameters = (XtandemParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-//                    xtandemParameters.setProteinQuickAcetyl(false);
-//                    xtandemParameters.setQuickPyrolidone(false);
-//                    xtandemParameters.setStpBias(false);
-//                    xtandemParameters.setRefine(false);
-//                    xtandemParameters.setOutputResults("valid");//"valid"
-//                    xtandemParameters.setMaxEValue(0.01);
-                    
-                    File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, subFastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
-                    List<SpectrumMatch> validatedMaches = SpectraFileUtilities.getValidatedIdentificationResults(resultsFolder, subMsFile, standeredReferenceSearchEngine, identificationParameters);
-                    long e = System.currentTimeMillis();
-                    double t = (e - s1) / 1000.0;
-                    subDataset.setProcessDelay(t);
-                    String subfileNameWithoutExtension = IoUtil.removeExtension(subMsFile.getName());
-                    MsFileHandler subMsFileHandler = new MsFileHandler();
-                    subMsFileHandler.register(subMsFile, new OptProtWaitingHandler());
-                    MainUtilities.deleteFolder(resultsFolder);
-                    int total = subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension).length;
-//                       subDataset.setTotalSpectraNumber(total);
-                    MainUtilities.cleanOutputFolder();                    
-                    if (validatedMaches.size() >= (subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension).length * Configurations.ACCEPTED_REFERENCE_ID_RATIO) || total >= Configurations.EXTRACT_MAX_MS_SIZE) {
-                        subDataset.setDefaultSettingIdentificationNum(validatedMaches.size());
-                        subMsFileHandler.close();
-                        subMsFileHandler.getCmsFilePaths().clear();
-                        break;
-                    } else {
-                        subMsFileHandler.close();
-                        subMsFile.delete();
-                        subFastaFile.delete();
-                        File cms = new File(subDataFolder, subMsFile.getName().replace(".mgf", ".cms"));
-                        cms.delete();
-                        counter++;
-                        startIndex++;
-                        extendor += 500;                        
-                    }
+                    quartileRatios = this.getQuartileRatios(msFile, msFileHandler, 0, 1, spectrumTitles.length, fastaFile, identificationParameters);
+                    subSize = (int) Math.round(quartileRatios.get(4) * spectrumTitles.length);
+                    left = subSize;
+//                    spectraMap.putAll(initSubDatasetPart(msFile, msFileHandler, 0, 1, spectrumTitles.length, spectrumTitles.length, fastaFile, identificationParameters, 0.8));
+//                    MainUtilities.cleanOutputFolder();
+//                    System.exit(0);
                 } else {
-                    break;
+                    left = Configurations.EXTRACT_MAX_MS_SIZE;
+                    subSize = SpectraUtilities.scaleSubsetSize(spectrumTitles.length);
+                    System.out.println("at subsetSize " + subSize);
+                    step = (int) Math.round((double) spectrumTitles.length / (double) subSize);
+                    quartileRatios = this.getQuartileRatios(msFile, msFileHandler, 0, step, spectrumTitles.length, fastaFile, identificationParameters);
                 }
-            } catch (IOException ex) {
-                if (subMsFile != null) {
-                    subMsFile.delete();
+                startIndex = 0;
+
+                int Q_1_4_coverageSize = (int) Math.round((double) spectrumTitles.length / 4.0);
+                lastIndex = startIndex + Q_1_4_coverageSize;
+                if (wholeDataTest) {
+                    step = 1;
+                } else {
+                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
                 }
-                if (subFastaFile != null) {
-                    subFastaFile.delete();
+
+                int qSize = (int) Math.round(Configurations.EXTRACT_MAX_MS_SIZE * quartileRatios.get(0));
+                Map<String, Spectrum> Q1_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, 1.0 - quartileRatios.get(0));
+                spectraMap.putAll(Q1_spectraMap);
+                left = left - Q1_spectraMap.size();
+
+                startIndex = lastIndex + 1;
+                lastIndex = startIndex + +Q_1_4_coverageSize;
+                if (wholeDataTest) {
+                    step = 1;
+                } else {
+                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
                 }
-                ex.printStackTrace();
+                qSize = (int) Math.round(Configurations.EXTRACT_MAX_MS_SIZE * quartileRatios.get(1));
+                Map<String, Spectrum> Q2_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, 1.0 - quartileRatios.get(1));
+                spectraMap.putAll(Q2_spectraMap);
+                left = left - Q2_spectraMap.size();
+                startIndex = lastIndex + 1;
+                lastIndex = startIndex + +Q_1_4_coverageSize;
+                if (wholeDataTest) {
+                    step = 1;
+                } else {
+                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
+                }
+                qSize = (int) Math.round(Configurations.EXTRACT_MAX_MS_SIZE * quartileRatios.get(2));
+                Map<String, Spectrum> Q3_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, 1.0 - quartileRatios.get(2));
+                spectraMap.putAll(Q3_spectraMap);
+                left = left - Q3_spectraMap.size();
+                startIndex = lastIndex + 1;
+                lastIndex = startIndex + +Q_1_4_coverageSize;
+                if (wholeDataTest) {
+                    step = 1;
+                } else {
+                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
+                }
+                qSize = left;
+                Map<String, Spectrum> Q4_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, 1.0 - quartileRatios.get(3));
+                spectraMap.putAll(Q4_spectraMap);
+//                }
+                MainUtilities.cleanOutputFolder();
+                //create stabkle subMs file
+                subMsFile = generateMsSubFile(spectraMap, subMsFile);
+                subFastaFile.delete();
             }
-            
+            //create stabkle subfasta file
+            if (!subFastaFile.exists() || update) {
+                subFastaFile.createNewFile();
+                long start3 = System.currentTimeMillis();
+                searchInputSetting.setRunNovor(true);
+                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + fileNameWithoutExtension + Configurations.get_current_file_fingerprent();
+                File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, fastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
+                File NovorFile = new File(resultsFolder, IoUtil.removeExtension(subMsFile.getName()) + ".novor.csv");
+                Set<String> sequences = SpectraUtilities.getSequences(NovorFile);
+                System.out.println("sequence from nover " + sequences.size());
+                long end3rd = System.currentTimeMillis();
+                double total = (end3rd - start3) / 1000.0;
+                System.out.println("process III ( Novor ) in seconds: " + total);
+                long start4 = System.currentTimeMillis();
+                subFastaFile = initSubFastaFile(subFastaFile, fastaFile, sequences);
+                long end4th = System.currentTimeMillis();
+                total = (end4th - start4) / 1000.0;
+                System.out.println("process IV ( Generated Fasta) in seconds: " + total);
+                long end = System.currentTimeMillis();
+                total = (end - start1) / 1000.0;
+                System.out.println("Total Elapsed Time for initInputSubSetFiles in seconds: " + total);
+            }
+        } catch (IOException ex) {
+            if (subMsFile != null) {
+                subMsFile.delete();
+            }
+            if (subFastaFile != null) {
+                subFastaFile.delete();
+            }
+            ex.printStackTrace();
         }
+
         if (subFastaFile != null) {
             subDataset.setSubFastaFile(subFastaFile);
         }
@@ -312,18 +234,19 @@ public class OptProtDatasetHandler {
             subDataset.setSubMsFile(subMsFile);
         }
         try {
+
             //run initial identification with user selected SE
             final IdentificationParameters identificationParameters = IdentificationParameters.getIdentificationParameters(new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
             searchInputSetting.setSelectedSearchEngine(searchEngineToOptimise);
             final String option = "reference_run_default_" + searchEngineToOptimise;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + fileNameWithoutExtension;
-            
+
             if (standeredReferenceSearchEngine.getIndex() == Advocate.sage.getIndex()) {
                 SageParameters sageParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
                 sageParameters.setMaxVariableMods(0);
                 sageParameters.setNumPsmsPerSpectrum(1);
                 sageParameters.setGenerateDecoys(false);
-                
+
             } else if (standeredReferenceSearchEngine.getIndex() == Advocate.xtandem.getIndex()) {
                 XtandemParameters xtandemParameters = (XtandemParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
                 xtandemParameters.setProteinQuickAcetyl(false);
@@ -331,18 +254,27 @@ public class OptProtDatasetHandler {
                 xtandemParameters.setStpBias(false);
                 xtandemParameters.setRefine(false);
                 xtandemParameters.setOutputResults("all");
-                
+
             }
-            File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, subFastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
-            
-            List<SpectrumMatch> validatedMaches = SpectraFileUtilities.getValidatedIdentificationResults(resultsFolder, subMsFile, searchEngineToOptimise, identificationParameters);
-            System.out.println("refrence default " + validatedMaches.size());
-            subDataset.setDefaultSettingIdentificationNum(validatedMaches.size());//                }
-//            subDataset.setValidatedIdRefrenceData(SpectraFileUtilities.getValidatedIdentificationReferenceData(resultsFolder, subMsFile, searchEngineToOptimise, identificationParameters, subDataset.getDefaultSettingIdentificationNum()));
-            subDataset.setValidatedIdRefrenceData(SpectraFileUtilities.getValidatedIdentificationReferenceData(validatedMaches, searchEngineToOptimise));
             String subfileNameWithoutExtension = IoUtil.removeExtension(subMsFile.getName());
             MsFileHandler subMsFileHandler = new MsFileHandler();
             subMsFileHandler.register(subMsFile, new OptProtWaitingHandler());
+            //init spectra map
+            subDataset.setSpectraTitiles(subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension));
+
+            File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, subFastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
+          System.out.println("system excuted "+resultsFolder.getName()+"  and done "+MainUtilities.OptProt_Waiting_Handler.isRunFinished()+"  "+Arrays.asList(resultsFolder.list())); 
+//          if(MainUtilities.OptProt_Waiting_Handler.isRunFinished())
+          
+          List<SpectrumMatch> validatedMaches = SpectraUtilities.getValidatedIdentificationResults(resultsFolder, subMsFile, searchEngineToOptimise, identificationParameters);
+            
+            if (validatedMaches==null || validatedMaches.isEmpty()) {
+                System.out.println("Error in the system please restart!");
+                System.exit(0);
+            }
+            subDataset.setDefaultSettingIdentificationNum(validatedMaches.size());
+            subDataset.updateValidatedIdRefrenceData(validatedMaches);
+
             MainUtilities.deleteFolder(resultsFolder);
             int total = subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension).length;
             subDataset.setTotalSpectraNumber(total);
@@ -356,78 +288,9 @@ public class OptProtDatasetHandler {
             }
             ex.printStackTrace();
         }
-
-//        }
-        //run nonEvalue score search engine
-//        if (searchEngineToOptimise.getIndex() == Advocate.myriMatch.getIndex()) {
-//            try {
-//
-//                //run initial identification with user selected SE
-//                final IdentificationParameters identificationParameters = IdentificationParameters.getIdentificationParameters(new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
-//                searchInputSetting.setSelectedSearchEngine(searchEngineToOptimise);
-//                final String option = "reference_run_default_" + searchEngineToOptimise;
-//                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + fileNameWithoutExtension;
-//                File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, subFastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
-//                Configurations.VALIDATED_ID_REF_DATA = SpectraFileUtilities.getValidatedIdentificationReferenceData(resultsFolder, subMsFile, searchEngineToOptimise, identificationParameters, subDataset.getDefaultSettingIdentificationNum());
-//                System.out.println("refrence default threshold " + Configurations.VALIDATED_ID_REF_DATA.length + "  " + resultsFolder.getAbsolutePath());
-//                MainUtilities.cleanOutputFolder();
-//            } catch (IOException ex) {
-//                ex.printStackTrace();
-//            }
-//
-//        }
-        //re run with user input search to get the reference number
-//        try {
-//            final String option = "reference_run_user_" + searchEngineToOptimise;
-//            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + fileNameWithoutExtension;
-//            final IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-//            tempIdParam.getSearchParameters().getModificationParameters().clearFixedModifications();
-//            tempIdParam.getSearchParameters().getModificationParameters().clearVariableModifications();
-//            tempIdParam.getSearchParameters().getModificationParameters().clearRefinementModifications();
-//            tempIdParam.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
-//            System.out.println("at searchEngineToOptimise " + searchEngineToOptimise);
-//            File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, subFastaFile, tempIdParam, identificationParametersFile);
-//            List<SpectrumMatch> validatedMaches = SpectraFileUtilities.getValidatedIdentificationResults(resultsFolder, subMsFile, searchEngineToOptimise, tempIdParam);
-//            double ratio = (validatedMaches.size() * 100.0 / subDataset.getTotalSpectraNumber());
-//            subDataset.setHighResolutionMassSpectrometers(ratio >= 20);
-//            String subfileNameWithoutExtension = IoUtil.removeExtension(subMsFile.getName());
-//            MsFileHandler subMsFileHandler = new MsFileHandler();
-//            subMsFileHandler.register(subMsFile, new OptProtWaitingHandler());
-//            subDataset.setUserReferenceIdentificationNum(validatedMaches.size());
-//            subDataset.setTotalSpectraNumber(subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension).length);
-//            System.out.println("refrence user " + validatedMaches.size());
-//            MainUtilities.cleanOutputFolder();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-        //re run quality with user input search to get the reference number
-//        double ratio = (subDataset.getDefaultSettingIdentificationNum() * 100.0 / subDataset.getTotalSpectraNumber());
-//        subDataset.setHighResolutionMassSpectrometers(ratio >= 20);
-//        try {
-//            final String option = "reference_run_user_Quality_" + searchEngineToOptimise;
-//            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + fileNameWithoutExtension;
-//            final IdentificationParameters identificationParameters;
-////            if (subDataset.getUserReferenceIdentificationNum() > subDataset.getDefaultSettingIdentificationNum()) {
-////                identificationParameters = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-////            } else {
-//            identificationParameters = IdentificationParameters.getIdentificationParameters(new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
-////            }
-//            identificationParameters.getSearchParameters().getModificationParameters().clearFixedModifications();
-//            identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
-//            identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
-//            identificationParameters.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
-//            File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, fastaFile, identificationParameters, identificationParametersFile);
-//            ArrayList<SpectrumMatch> validatedMaches = SpectraFileUtilities.getValidatedIdentificationResults(resultsFolder, subMsFile, searchEngineToOptimise, identificationParameters);
-//            double ratio = (validatedMaches.size() * 100.0 / subDataset.getTotalSpectraNumber());
-//            subDataset.setHighResolutionMassSpectrometers(ratio >= 20);
-//            MainUtilities.cleanOutputFolder();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        System.out.println("final ds handleing " + subDataset.getActiveIdentificationNum() + "/" + subDataset.getTotalSpectraNumber());
         return subDataset;
     }
-    
+
     private Map<String, Spectrum> substractSpectraFirstLevelDataFiltering(File msFile, MsFileHandler msFileHandler, int startIndex, int stepSize, int lastIndex) {
         Map<String, Spectrum> spectraMap = new LinkedHashMap<>();
         String msFileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
@@ -439,11 +302,11 @@ public class OptProtDatasetHandler {
         }
         return spectraMap;
     }
-    
+
     private File generateMsSubFile(Map<String, Spectrum> spectraMap, File destinationFile) {
-        
+
         try {
-            
+
             if (destinationFile.exists()) {
                 destinationFile.delete();
             }
@@ -455,7 +318,7 @@ public class OptProtDatasetHandler {
                 }
                 writer.close();
             }
-            
+
         } catch (IOException ex) {
             if (subMsFile != null) {
                 subMsFile.delete();
@@ -466,17 +329,80 @@ public class OptProtDatasetHandler {
             ex.printStackTrace();
         }
         return destinationFile;
-        
+
     }
-    
-    private Set<ConfidentTagSorter> getSpectraWithConfidentTagSecondStageFiltering(File destinationFile, File fastaFile, IdentificationParameters identificationParameters, File identificationParametersFile, String msFileNameWithoutExtension) {
-        Set<ConfidentTagSorter> confidentSpectraSet = new TreeSet<>();
+
+    private List<Double> getQuartileRatios(File msFile, MsFileHandler msFileHandler, int startIndex, int step, int lastIndex, File fastaFile, IdentificationParameters identificationParameters) {
+        ArrayList<Double> arrayList = new ArrayList<>();
+        try {
+            arrayList.add(0.25);
+            arrayList.add(0.25);
+            arrayList.add(0.25);
+            arrayList.add(0.25);
+            arrayList.add(1.0);
+
+            Map<String, Spectrum> spectraMap = substractSpectraFirstLevelDataFiltering(msFile, msFileHandler, startIndex, step, lastIndex);
+            System.out.println("sub file size " + spectraMap.size());
+            final String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
+            File destinationFile = new File(Configurations.GET_OUTPUT_FOLDER_PATH(), Configurations.DEFAULT_RESULT_NAME + "_temp_" + startIndex + "_" + lastIndex + "_" + spectraMap.size() + "_-_" + fileNameWithoutExtension + ".mgf");
+            if (destinationFile.exists()) {
+                destinationFile.delete();
+            }
+            destinationFile.createNewFile();
+            destinationFile = generateMsSubFile(spectraMap, destinationFile);
+            final String subfileNameWithoutExtension = IoUtil.removeExtension(destinationFile.getName());
+
+            ArrayList<SpectrumMatch> matches = getTagMaches(destinationFile, fastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE), subfileNameWithoutExtension);
+            if (matches.isEmpty()) {
+                System.out.println("there is no tags in the file ...very poor data " + subfileNameWithoutExtension);
+                return arrayList;
+
+            }
+            MsFileHandler subMsFileHandler = new MsFileHandler();
+            subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
+
+//            DataAnalysisHandler.showTagDistribution(subfileNameWithoutExtension.split("_-_")[1], subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(destinationFile.getName())), matches);
+            arrayList.clear();
+            arrayList.addAll(SpectraUtilities.getQuartileRatio(subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(destinationFile.getName())), matches));
+            arrayList.add((double) matches.size() / (double) spectraMap.size());
+        } catch (IOException ex) {
+            Logger.getLogger(OptProtDatasetHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return arrayList;
+    }
+
+    private Map<String, Spectrum> initSubDatasetPart(File msFile, MsFileHandler msFileHandler, int startIndex, int step, int lastIndex, int refinSize, File fastaFile, IdentificationParameters identificationParameters, double highQualityRatio) {
+        Map<String, Spectrum> spectraMap = substractSpectraFirstLevelDataFiltering(msFile, msFileHandler, startIndex, step, lastIndex);
+        System.out.println("sub file size " + spectraMap.size());
+        try {
+
+            //generate submsFile
+            final String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
+            File destinationFile = new File(Configurations.GET_OUTPUT_FOLDER_PATH(), Configurations.DEFAULT_RESULT_NAME + "_temp_" + startIndex + "_" + lastIndex + "_" + spectraMap.size() + "_-_" + fileNameWithoutExtension + ".mgf");
+            if (destinationFile.exists()) {
+                destinationFile.delete();
+            }
+            destinationFile.createNewFile();
+            destinationFile = generateMsSubFile(spectraMap, destinationFile);
+            final String subfileNameWithoutExtension = IoUtil.removeExtension(destinationFile.getName());
+            //run direct tag and get confident tags    File destinationFile, File fastaFile, IdentificationParameters identificationParameters, File identificationParametersFile, String msFileNameWithoutExtension, int spectraSizeLimit
+            Map<String, Spectrum> confidentSpectraSet = getSubSpectraWithConfidentTag(destinationFile, fastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE), subfileNameWithoutExtension, refinSize, highQualityRatio);
+
+            return confidentSpectraSet;
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return new HashMap<>();
+    }
+
+    private ArrayList<SpectrumMatch> getTagMaches(File destinationFile, File fastaFile, IdentificationParameters identificationParameters, File identificationParametersFile, String msFileNameWithoutExtension) {
         try {
             searchInputSetting.setRunDirecTag(true);
             String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + msFileNameWithoutExtension + Configurations.get_current_file_fingerprent();
             File tempResultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, destinationFile, fastaFile, identificationParameters, identificationParametersFile);
             File direcTagFile = new File(tempResultsFolder, IoUtil.removeExtension(destinationFile.getName()) + ".tags");
-            
+
             if (!direcTagFile.exists()) {
                 System.out.println("there is no tags in the file ...very poor data " + msFileNameWithoutExtension);
 //                //delete previos sub mgf and cms files
@@ -485,38 +411,146 @@ public class OptProtDatasetHandler {
 //                cms.delete();
 //                //not enough confident tag , increase the number 
 //                substractSpectraWithConfidentTag(msFile, fastaFile, startIndex, maxSpectraNumber + 500, msFileHandler, identificationParameters, identificationParametersFile);
-                return confidentSpectraSet;
+                return new ArrayList<>();
             }
-            
+
             IdfileReader idReader = IdfileReaderFactory.getInstance().getFileReader(direcTagFile);
-            
+            System.out.println("file name " + msFileNameWithoutExtension + "   " + IoUtil.removeExtension(destinationFile.getName()));
             MsFileHandler subMsFileHandler = new MsFileHandler();
             subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
             ArrayList<SpectrumMatch> matches = idReader.getAllSpectrumMatches(subMsFileHandler, MainUtilities.OptProt_Waiting_Handler, identificationParameters.getSearchParameters());
-            
+            return matches;
+        } catch (IOException | SQLException | ClassNotFoundException | InterruptedException | JAXBException | XmlPullParserException | XMLStreamException ex) {
+            Logger.getLogger(OptProtDatasetHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return new ArrayList<>();
+
+    }
+
+    private Map<String, Spectrum> getSubSpectraWithConfidentTag(File destinationFile, File fastaFile, IdentificationParameters identificationParameters, File identificationParametersFile, String msFileNameWithoutExtension, int spectraSizeLimit, double highQualityRatio) {
+        Set<ConfidentTagSorter> confidentSpectraSet = new LinkedHashSet<>();
+        Map<String, Spectrum> subSpectraMap = new LinkedHashMap<>();
+        try {
+            ArrayList<SpectrumMatch> matches = getTagMaches(destinationFile, fastaFile, identificationParameters, identificationParametersFile, msFileNameWithoutExtension);
+            if (matches.isEmpty()) {
+                System.out.println("there is no tags in the file ...very poor data " + msFileNameWithoutExtension);
+//                //delete previos sub mgf and cms files
+//                destinationFile.delete();
+//                File cms = new File(destinationFile.getParent(), destinationFile.getName().replace(".mgf", ".cms"));
+//                cms.delete();
+//                //not enough confident tag , increase the number 
+//                substractSpectraWithConfidentTag(msFile, fastaFile, startIndex, maxSpectraNumber + 500, msFileHandler, identificationParameters, identificationParametersFile);
+                return subSpectraMap;
+            }
+
+            MsFileHandler subMsFileHandler = new MsFileHandler();
+            subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
+
+//            DataAnalysisHandler.showTagDistribution(msFileNameWithoutExtension.split("_-_")[1], subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(destinationFile.getName())), matches);
             for (SpectrumMatch sm : matches) {
                 TagAssumption tag = sm.getAllTagAssumptions().toList().get(0);
-                if (tag.getScore() < acceptedTagEvalue) {
-                    confidentSpectraSet.add(new ConfidentTagSorter(tag.getScore(), sm.getSpectrumTitle()));
-                }
+//                if (tag.getScore() < acceptedTagEvalue) {
+                confidentSpectraSet.add(new ConfidentTagSorter(tag.getScore(), sm.getSpectrumTitle(), subMsFileHandler.getSpectrum(msFileNameWithoutExtension, sm.getSpectrumTitle())));
+//                }
             }
             File cms = new File(destinationFile.getParent(), destinationFile.getName().replace(".mgf", ".cms"));
             cms.delete();
-            
-        } catch (IOException | SQLException | ClassNotFoundException | InterruptedException | JAXBException | XmlPullParserException | XMLStreamException ex) {
+            int counter = 0;
+            double highQualitylimit = (double) spectraSizeLimit * highQualityRatio;
+            double avgQualityLimit = spectraSizeLimit - highQualitylimit;
+            int n = (int) (confidentSpectraSet.size() / highQualitylimit);
+            int step = 0;
+            for (ConfidentTagSorter tag : confidentSpectraSet) {
+                step++;
+                if (tag.getValue() > 0.01 || step < n) {
+                    continue;
+                }
+                subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+                counter++;
+                step = 0;
+                if (counter >= highQualitylimit) {
+                    break;
+                }
+            }
+//            highQualitylimit += avgQualityLimit - counter;
+//            counter = 0;
+            step = 0;
+            n = (int) (confidentSpectraSet.size() / avgQualityLimit);
+            for (ConfidentTagSorter tag : confidentSpectraSet) {
+                step++;
+                if (tag.getValue() > 0.1 || tag.getValue() <= 0.01 || step < n) {
+                    continue;
+                }
+                subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+                step = 0;
+                counter++;
+                if (counter >= avgQualityLimit) {
+                    break;
+                }
+            }
+            if (subSpectraMap.size() < spectraSizeLimit) {
+                for (ConfidentTagSorter tag : confidentSpectraSet) {
+                    if (tag.getValue() > 0.01 || subSpectraMap.containsKey(tag.getTitle())) {
+                        continue;
+                    }
+                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+                    if (subSpectraMap.size() >= spectraSizeLimit) {
+                        break;
+                    }
+
+                }
+            }
+
+            if (subSpectraMap.size() < spectraSizeLimit) {
+                for (ConfidentTagSorter tag : confidentSpectraSet) {
+                    if (tag.getValue() < 0.1 || tag.getValue() >= 1.0) {
+                        continue;
+                    }
+                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+                    if (subSpectraMap.size() >= spectraSizeLimit) {
+                        break;
+                    }
+                }
+            }
+            if (subSpectraMap.size() < spectraSizeLimit) {
+                for (ConfidentTagSorter tag : confidentSpectraSet) {
+                    if (tag.getValue() < 1) {
+                        continue;
+                    }
+                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+                    if (subSpectraMap.size() >= spectraSizeLimit) {
+                        break;
+                    }
+                }
+            }
+
+            if (subSpectraMap.size() < spectraSizeLimit) {
+                String[] titiles = subMsFileHandler.getSpectrumTitles(msFileNameWithoutExtension);
+                for (String str : titiles) {
+                    if (!subSpectraMap.containsKey(str)) {
+                        subSpectraMap.put(str, subMsFileHandler.getSpectrum(msFileNameWithoutExtension, str));
+                    }
+                    if (subSpectraMap.size() >= spectraSizeLimit) {
+                        break;
+                    }
+                }
+//                  subMsFileHandler.getSpectrum(msFileNameWithoutExtension, updatedName)
+            }
+
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
-        return confidentSpectraSet;
+        return subSpectraMap;
     }
-    
-    private File initSubFastaFile(File subDataFolder, File tempSubFastaFile, File fastaFile, Set<String> sequences) {
-        
+
+    private File initSubFastaFile(File tempSubFastaFile, File fastaFile, Set<String> sequences) {
+
         if (tempSubFastaFile.exists()) {
             tempSubFastaFile.delete();
         }
-        SpectraFileUtilities.createSubFastaFile(fastaFile, tempSubFastaFile, sequences);
+        SpectraUtilities.createSubFastaFile(fastaFile, tempSubFastaFile, sequences);
         return tempSubFastaFile;
-        
+
     }
-    
+
 }

@@ -36,7 +36,7 @@ public class MainUtilities {
         userParameters.setRenameXTandemFile(true);
         UtilitiesUserParameters.saveUserParameters(userParameters);
         SearchHandler.setCloseProcessWhenDone(false);
-        File resultsOutput = new File(Configurations.OUTPUT_FOLDER_PATH);
+        File resultsOutput = new File(Configurations.GET_OUTPUT_FOLDER_PATH());
 //        if (resultsOutput.exists()) {
 ////            cleanFolder(resultsOutput);
 //        }
@@ -95,7 +95,7 @@ public class MainUtilities {
 
     public static void cleanOutputFolder() {
 
-        File outputFolder = new File(Configurations.OUTPUT_FOLDER_PATH);
+        File outputFolder = new File(Configurations.GET_OUTPUT_FOLDER_PATH());
         deleteFolder(outputFolder);
         outputFolder.mkdir();
 

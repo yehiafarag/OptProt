@@ -1,9 +1,7 @@
 package no.uib.probe.optprot.util;
 
-import com.compomics.util.experiment.biology.modifications.Modification;
 import com.compomics.util.experiment.biology.proteins.Protein;
 import com.compomics.util.experiment.identification.Advocate;
-import com.compomics.util.experiment.identification.matches.ModificationMatch;
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import com.compomics.util.experiment.identification.protein_inference.fm_index.FMIndex;
 import com.compomics.util.experiment.identification.spectrum_assumptions.PeptideAssumption;
@@ -31,13 +29,16 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 import no.uib.probe.optprot.configurations.Configurations;
@@ -45,18 +46,17 @@ import no.uib.probe.optprot.dataset.model.SearchingSubDataset;
 import no.uib.probe.optprot.model.RawScoreModel;
 import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.search.SearchExecuter;
-import org.apache.commons.math3.util.Precision;
 import org.xmlpull.v1.XmlPullParserException;
 
 /**
  *
  * @author yfa041
  */
-public class SpectraFileUtilities {
+public class SpectraUtilities {
 
     private final SearchInputSetting searchOptimizerParameters;
 
-    public SpectraFileUtilities() {
+    public SpectraUtilities() {
         searchOptimizerParameters = new SearchInputSetting();
     }
 
@@ -93,7 +93,7 @@ public class SpectraFileUtilities {
             if (filteredSubMsFile == null) {
                 filteredSubMsFile = new File(msFile.getParent(), Configurations.DEFAULT_RESULT_NAME + Configurations.get_current_file_fingerprent() + "_" + fullSpectrumSize + "_" + msFile.getName());
             }
-            System.out.println("file name ms " + filteredSubMsFile.getName() + "   " + filteredSubMsFile.exists());
+//            System.out.println("file name ms " + filteredSubMsFile.getName() + "   " + filteredSubMsFile.exists());
             if (!filteredSubMsFile.exists()) {
 
                 /**
@@ -121,7 +121,7 @@ public class SpectraFileUtilities {
                     currentSpectrumSize += (currentSpectrumSize * 0.1);
                     spectrumMap.putAll(substractSpectraWithConfidentTag(startIndex, currentSpectrumSize, msFileHandler, spectrumTitles, fileNameWithoutExtension));
                     startIndex += step;
-                    System.out.println("final size is " + spectrumMap.size() + "   " + currentSpectrumSize);
+//                    System.out.println("final size is " + spectrumMap.size() + "   " + currentSpectrumSize);
 
                 }
 
@@ -207,7 +207,7 @@ public class SpectraFileUtilities {
                 searchOptimizerParameters.setRunNovor(true);
                 resultsFolder = SearchExecuter.executeSearch(updatedName, searchOptimizerParameters, filteredSubMsFile, fastaFile, identificationParameters, identificationParametersFile);
                 File NovorFile = new File(resultsFolder, IoUtil.removeExtension(filteredSubMsFile.getName()) + ".novor.csv");
-                Set<String> sequences = SpectraFileUtilities.getSequences(NovorFile);
+                Set<String> sequences = SpectraUtilities.getSequences(NovorFile);
                 System.out.println("sequence from nover " + sequences.size());
                 long end3rd = System.currentTimeMillis();
                 double total = (end3rd - start3) / 1000.0;
@@ -233,14 +233,32 @@ public class SpectraFileUtilities {
 
     }
 
+    public static Map<String, Integer> initSpectraIndexMap(File msFile) {
+        Map<String, Integer> spectraIndexMap = new HashMap<>();
+        try {
+
+            String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
+            MsFileHandler msFileHandler = new MsFileHandler();
+            msFileHandler.register(msFile, new OptProtWaitingHandler());
+            String[] spectrumTitles = msFileHandler.getSpectrumTitles(fileNameWithoutExtension);
+            for (int i = 0; i < spectrumTitles.length; i++) {
+                spectraIndexMap.put(spectrumTitles[i], i);
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(SpectraUtilities.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return spectraIndexMap;
+
+    }
+
     private File initSubFastaFile(File fastaFile, Set<String> sequences) {
 
         File subFastaFile = new File(fastaFile.getParent(), Configurations.DEFAULT_RESULT_NAME + Configurations.get_current_file_fingerprent() + "_" + fastaFile.getName());
         if (subFastaFile.exists()) {
             subFastaFile.delete();
         }
-        SpectraFileUtilities.createSubFastaFile(fastaFile, subFastaFile, sequences);
-//        SpectraFileUtilities.createSubFastaFile(fastaFile, subFastaFile,true);
+        SpectraUtilities.createSubFastaFile(fastaFile, subFastaFile, sequences);
+//        SpectraUtilities.createSubFastaFile(fastaFile, subFastaFile,true);
         return subFastaFile;
 
     }
@@ -257,7 +275,7 @@ public class SpectraFileUtilities {
             } else {
                 subMsFile.createNewFile();
             }
-            SpectraFileUtilities.writeFilteredMgfFile(oreginalMsFile, subMsFile, spectraTags);
+            SpectraUtilities.writeFilteredMgfFile(oreginalMsFile, subMsFile, spectraTags);
             return subMsFile;
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -277,9 +295,9 @@ public class SpectraFileUtilities {
 //            }
 //
 //            if (targtedArea) {
-//                SpectraFileUtilities.writeSubSetTargtedFileAreaMgfFile(oreginalMsFile, subMsFile, Configurations.EXTRACT_MIN_MS_SIZE, Configurations.EXTRACT_MAX_MS_SIZE);
+//                SpectraUtilities.writeSubSetTargtedFileAreaMgfFile(oreginalMsFile, subMsFile, Configurations.EXTRACT_MIN_MS_SIZE, Configurations.EXTRACT_MAX_MS_SIZE);
 //            } else {
-//                SpectraFileUtilities.writeSubSetEveryNMgfFile(oreginalMsFile, subMsFile, Configurations.EXTRACT_MIN_MS_SIZE, Configurations.EXTRACT_MAX_MS_SIZE);
+//                SpectraUtilities.writeSubSetEveryNMgfFile(oreginalMsFile, subMsFile, Configurations.EXTRACT_MIN_MS_SIZE, Configurations.EXTRACT_MAX_MS_SIZE);
 //            }
 //            return subMsFile;
 //        } catch (IOException ex) {
@@ -308,7 +326,7 @@ public class SpectraFileUtilities {
 
             int initiSize = Math.min((int) maxSpectNum, (int) Math.round(spectrumTitles.length * 20 / 100));
             initiSize = Math.max(initiSize, (int) minSpectNum);
-            System.out.println("initial zer " + initiSize + "  vs " + maxSpectNum);
+//            System.out.println("initial zer " + initiSize + "  vs " + maxSpectNum);
 
             int n = (int) Math.round(spectrumTitles.length / initiSize);
             if (spectrumTitles == null) {
@@ -364,7 +382,7 @@ public class SpectraFileUtilities {
                     counter++;
                 }
             }
-            System.out.println("total filtered subset mgf " + counter);
+//            System.out.println("total filtered subset mgf " + counter);
             writer.close();
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -397,7 +415,7 @@ public class SpectraFileUtilities {
 
             int initiSize = Math.min((int) maxSpectNum, (int) Math.round(targetedAreaStep * 20 / 100));
             initiSize = Math.max(initiSize, (int) minSpecNum);
-            System.out.println("initial zer " + initiSize + "  vs " + maxSpectNum);
+//            System.out.println("initial zer " + initiSize + "  vs " + maxSpectNum);
 
             int n = (int) Math.round(targetedAreaStep * 2 / initiSize);
 
@@ -415,7 +433,7 @@ public class SpectraFileUtilities {
             }
 
             writer.close();
-            System.out.println("at n: " + n + "  " + targetedAreaStep * 2 + "  " + spectrumTitles.length);
+//            System.out.println("at n: " + n + "  " + targetedAreaStep * 2 + "  " + spectrumTitles.length);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -517,7 +535,7 @@ public class SpectraFileUtilities {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            System.out.println("total: " + total + "  left " + left);
+//            System.out.println("total: " + total + "  left " + left);
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
         }
@@ -568,10 +586,10 @@ public class SpectraFileUtilities {
                 ex.printStackTrace();
             }
             if (included < 50) {
-                System.out.println("Fasta copy all total: " + total + "  included " + included + "  seq not exist ");
+//                System.out.println("Fasta copy all total: " + total + "  included " + included + "  seq not exist ");
                 copySubFastaFile(fastaIn, fastaOut);
             }
-            System.out.println("Fasta total: " + total + "  included " + included + "  seq not exist " + specIndex);
+//            System.out.println("Fasta total: " + total + "  included " + included + "  seq not exist " + specIndex);
 
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
@@ -614,12 +632,11 @@ public class SpectraFileUtilities {
                 ex.printStackTrace();
             }
 
-            System.out.println("Fasta total: " + total + "  left " + left + "  seq not exist " + specIndex);
-
+//            System.out.println("Fasta total: " + total + "  left " + left + "  seq not exist " + specIndex);
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
         } catch (IOException ex) {
-            Logger.getLogger(SpectraFileUtilities.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(SpectraUtilities.class.getName()).log(Level.SEVERE, null, ex);
         }
 
     }
@@ -681,6 +698,7 @@ public class SpectraFileUtilities {
      * @param fastaFile
      * @param spectrumMatches
      * @param identificationParameters
+     * @return
      */
     public static File recalibrateSpectra(File sourceMgfFile, File fastaFile, ArrayList<SpectrumMatch> spectrumMatches, IdentificationParameters identificationParameters) {
 
@@ -705,14 +723,14 @@ public class SpectraFileUtilities {
                         identificationParameters
                 ).get(0);
 
-            } catch (Exception e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             } finally {
                 System.out.println("clean after");
             }
 
         } catch (IOException ex) {
-            Logger.getLogger(SpectraFileUtilities.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(SpectraUtilities.class.getName()).log(Level.SEVERE, null, ex);
         }
         return null;
     }
@@ -727,15 +745,14 @@ public class SpectraFileUtilities {
             int n = targetedAreaStep * 2 / (maxSpectraNumber);
             File destinationFile = new File(oreginalMsFile.getParentFile(), Configurations.DEFAULT_RESULT_NAME + "_" + msFileNameWithoutExtension + ".mgf");
             destinationFile.createNewFile();
-            MgfFileWriter writer = new MgfFileWriter(destinationFile);
-
-            for (int i = startIndex + targetedAreaStep; i < (spectrumTitles.length - targetedAreaStep);) {
-                Spectrum spectrum = msFileHandler.getSpectrum(msFileNameWithoutExtension, spectrumTitles[i]);
-                writer.writeSpectrum(spectrumTitles[i], spectrum);
-                spectraMap.put(spectrumTitles[i], spectrum);
-                i += n;
+            try (MgfFileWriter writer = new MgfFileWriter(destinationFile)) {
+                for (int i = startIndex + targetedAreaStep; i < (spectrumTitles.length - targetedAreaStep);) {
+                    Spectrum spectrum = msFileHandler.getSpectrum(msFileNameWithoutExtension, spectrumTitles[i]);
+                    writer.writeSpectrum(spectrumTitles[i], spectrum);
+                    spectraMap.put(spectrumTitles[i], spectrum);
+                    i += n;
+                }
             }
-            writer.close();
             String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + msFileNameWithoutExtension + Configurations.get_current_file_fingerprent();
 
             File tempResultsFolder = SearchExecuter.executeSearch(updatedName, searchOptimizerParameters, destinationFile, oreginalFastaFile, identificationParameters, oreginalIdentificationFile);
@@ -755,14 +772,14 @@ public class SpectraFileUtilities {
             MsFileHandler subMsFileHandler = new MsFileHandler();
             subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
             ArrayList<SpectrumMatch> matches = idReader.getAllSpectrumMatches(subMsFileHandler, MainUtilities.OptProt_Waiting_Handler, identificationParameters.getSearchParameters());
-            System.out.println("tag size before" + spectraMap.size());
+//            System.out.println("tag size before" + spectraMap.size());
             for (SpectrumMatch sm : matches) {
                 TagAssumption tag = sm.getAllTagAssumptions().toList().get(0);
                 if (tag.getScore() > 0.01) {
                     spectraMap.remove(sm.getSpectrumTitle());
                 }
             }
-            System.out.println("tag size after" + spectraMap.size());
+//            System.out.println("tag size after" + spectraMap.size());
             destinationFile.delete();
             File cms = new File(destinationFile.getParent(), destinationFile.getName().replace(".mgf", ".cms"));
             cms.delete();
@@ -823,7 +840,7 @@ public class SpectraFileUtilities {
 ////            }
 //
 //        } catch (IOException | SQLException | ClassNotFoundException | InterruptedException | JAXBException | XmlPullParserException | XMLStreamException ex) {
-//            System.out.println("no.uib.probe.optprot.util.SpectraFileUtilities.getValidatedIdentificationResults() " + ex.getLocalizedMessage());
+//            System.out.println("no.uib.probe.optprot.util.SpectraUtilities.getValidatedIdentificationResults() " + ex.getLocalizedMessage());
 //            ex.printStackTrace();
 //        }
 //        return new double[]{};
@@ -879,10 +896,17 @@ public class SpectraFileUtilities {
         return data;
     }
 
-    public static RawScoreModel getComparableRawScore(SearchingSubDataset optProtDataset, List<SpectrumMatch> matches, Advocate searchEngine, boolean pairData) {
+    public static RawScoreModel getComparableRawScore(SearchingSubDataset optProtDataset, List<SpectrumMatch> matches, Advocate searchEngine, boolean pairData, boolean addData) {
 
-        double[] data = new double[matches.size()];
-        int index = 0;
+//        double[] data = new double[matches.size()];
+//        int index = 0;
+        List<Double> sharedToData = new ArrayList<>();
+        List<Double> sharedFromData = new ArrayList<>();
+        List<Double> onlyFromData = new ArrayList<>();
+        Set<Double> sortedSharedFromData = new TreeSet<>();
+        List<Double> onlyToData = new ArrayList<>();
+        Map<String, Double> matchScores = new HashMap<>();
+
         RawScoreModel rawScore = new RawScoreModel();
         if (searchEngine.getIndex() == Advocate.xtandem.getIndex()) {
             for (SpectrumMatch sm : matches) {
@@ -890,9 +914,9 @@ public class SpectraFileUtilities {
                     if (peptideAssumtion.getRank() != 1) {
                         continue;
                     }
-//                    double score = -Math.log(peptideAssumtion.getScore());
                     sm.setBestPeptideAssumption(peptideAssumtion);
-                    data[index++] = peptideAssumtion.getRawScore();
+                    matchScores.put(sm.getSpectrumTitle(), peptideAssumtion.getRawScore());
+//                    data[index++] = peptideAssumtion.getRawScore();
                     break;
                 }
             }
@@ -903,9 +927,10 @@ public class SpectraFileUtilities {
                     if (peptideAssumtion.getRank() != 1) {
                         continue;
                     }
-                    double score = -Math.log(peptideAssumtion.getScore());
+//                    double score = -Math.log(peptideAssumtion.getScore());
                     sm.setBestPeptideAssumption(peptideAssumtion);
-                    data[index++] = score;
+                    matchScores.put(sm.getSpectrumTitle(), peptideAssumtion.getRawScore());
+//                    data[index++] = score;
                     break;
                 }
             }
@@ -915,62 +940,61 @@ public class SpectraFileUtilities {
                     if (peptideAssumtion.getRank() != 1) {
                         continue;
                     }
-                    double score = peptideAssumtion.getRawScore();
+//                    double score = peptideAssumtion.getRawScore();
                     sm.setBestPeptideAssumption(peptideAssumtion);
-                    data[index++] = score;
+                    matchScores.put(sm.getSpectrumTitle(), peptideAssumtion.getRawScore());
+//                    data[index++] = score;
                     break;
                 }
             }
         }
-        double[] fromData;
-        double[] toData;
-//        if (data.length == optProtDataset.getValidatedIdRefrenceData().length) {
-        fromData = optProtDataset.getValidatedIdRefrenceData();
-        toData = data;
-//        } else if (data.length > optProtDataset.getValidatedIdRefrenceData().length) {
-//            double[] updatedData = new double[data.length];
-//            System.arraycopy(optProtDataset.getValidatedIdRefrenceData(), 0, updatedData, 0, optProtDataset.getValidatedIdRefrenceData().length);
-//            fromData = updatedData;
-//            toData = data;
-//            System.out.println("updated from data to " + data.length + "  from become " + fromData.length + " instead of " + optProtDataset.getValidatedIdRefrenceData().length);
-//
-//        } else {
-//            double[] updatedData = new double[optProtDataset.getValidatedIdRefrenceData().length];
-//            System.arraycopy(data, 0, updatedData, 0, data.length);
-//            fromData = optProtDataset.getValidatedIdRefrenceData();
-//            toData = updatedData;
-//
-//        }
 
-        double[] improved = SpectraFileUtilities.compareData(fromData, toData, pairData);
-        rawScore.setTotalNumber(data.length);
-        rawScore.setImprovmentScore(improved[0]);
-        rawScore.settTestStat(improved[1]);
-        rawScore.setpValue(improved[2]);
-        rawScore.setFinalScore(improved[3]);
-        boolean accepted = true;
-        if (improved[0] < 1) {
-            accepted = false;
-        } else if (improved[1] < 0 && improved[2] < optProtDataset.getpValueThresholds()) {
-            accepted = false;
-        } else if (Double.isNaN(improved[3])) {
-            accepted = false;
+        for (String titile : optProtDataset.getFullSpectraScore().keySet()) {
+            double fromScore = optProtDataset.getFullSpectraScore().get(titile);
+            if (matchScores.containsKey(titile)) {
+                double toScore = matchScores.get(titile);
+                if (fromScore > 0) {
+                    sharedToData.add(toScore);
+                    sharedFromData.add(fromScore);
+                } else {
+                    onlyToData.add(toScore);
+                }
+
+            } else if (fromScore > 0) {
+                onlyFromData.add(fromScore);
+            }
         }
-//        else {
-//            System.out.println("pass all check time to compare score " + improved[3]);
-//        }
-//        System.out.println("rawScore.getTotalNumber() > optProtDataset.getValidatedIdRefrenceData().length " + rawScore.getTotalNumber() + " > " + optProtDataset.getValidatedIdRefrenceData().length + "  " + optProtDataset.getpValueThresholds());
-        rawScore.setSensitiveChange(rawScore.getImprovmentScore() > 0 && rawScore.gettTestStat() > 0 && rawScore.getTotalNumber() >= optProtDataset.getValidatedIdRefrenceData().length);
-        rawScore.setSameData(rawScore.getImprovmentScore() == 0 && Double.isNaN(rawScore.gettTestStat()));
-        if (optProtDataset.isFullDataSpectaInput()) {
-            accepted = rawScore.isSensitiveChange();
-        }
+        Collections.sort(sharedFromData);
+        //devide the TODATA data into 3 category         
+
+        double[] fromSharedData = sharedFromData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] toSharedData = sharedToData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] fromOnlyData = onlyFromData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] toOnlyData = onlyToData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData, false);
+        ScoreComparison sc = new ScoreComparison();
+        double compScore = sc.calculateScore(toSharedData, toOnlyData);
+        double ratio = ((double) onlyToData.size() / optProtDataset.getTotalSpectraNumber());
+
+        double extra = sc.calculateScore(fromSharedData, toSharedData);
+        double fs1 = improved1[4];//* (1.0 - ratio);
+        double fs2 = compScore * ratio;
+        double fs = fs1 + fs2;
+        rawScore.setTotalNumber(matches.size());
+        rawScore.setFinalScore(fs);
+        System.out.println("total output from " + (onlyFromData.size() + toSharedData.length) + "  to " + matches.size());
+        System.out.println("at shared data (" + sharedToData.size() + ") score " + improved1[4] + "  " + fs1 + " " + (1.0 - ratio));
+        System.out.println("at toOnly data (" + toOnlyData.length + ") score " + compScore + "  " + fs2 + " " + ratio);
+        System.out.println("comparing unshared un pair rest of data fromOnlyData:" + fromOnlyData.length + "   toOnly:" + toOnlyData.length + "   shared " + sharedFromData.size() + "   score:" + fs);
+        System.out.println(extra + "  ---  scores :  " + fs1 + "  -   " + fs2 + "   -   " + fs + "   " + optProtDataset.getComparisonsThreshold());
+        rawScore.setSameData(fs == 0);
+        boolean accepted = rawScore.getFinalScore() >= optProtDataset.getComparisonsThreshold();
         rawScore.setSignificatChange(accepted);
-
-//        System.out.println("is it accepted score " + accepted + "  " + rawScore);
-        if (rawScore.isSignificatChange() || rawScore.isSensitiveChange() || rawScore.isSameData()) {
-            rawScore.setData(data);
+        rawScore.setSensitiveChange(rawScore.getFinalScore() > 0);
+        if (rawScore.isSignificatChange() || rawScore.isSensitiveChange() || rawScore.isSameData() || addData) {
+            rawScore.setSpectrumMatchResult(matches);
         }
+        System.out.println("Score model " + rawScore);
         return rawScore;
 
     }
@@ -998,7 +1022,7 @@ public class SpectraFileUtilities {
 ////            finalScore = sc.calculateFinalScore(rs2.getData(), updatedData);
 ////        }
 ////        System.out.println("final score 2 " + improvmentScore + "  " + "  " + finalScore);
-//        double[] improved = SpectraFileUtilities.compareData(rs1.getData(), rs2.getData());
+//        double[] improved = SpectraUtilities.compareData(rs1.getData(), rs2.getData());
 //
 //        double r = (rs2.getImprovmentScore() - rs1.getImprovmentScore()) / rs1.getImprovmentScore();
 //
@@ -1006,6 +1030,65 @@ public class SpectraFileUtilities {
 //        return improved;
 //
 //    }
+    public static List<Double> getQuartileRatio(String[] titiles, List<SpectrumMatch> matches) {
+
+        double partCount = 4;
+        Map<String, Double> fullSpectraMap = new LinkedHashMap<>();
+        for (String titel : titiles) {
+            fullSpectraMap.put(titel, 100.0);
+        }
+        for (SpectrumMatch sm : matches) {
+            TagAssumption tag = sm.getAllTagAssumptions().toList().get(0);
+            fullSpectraMap.replace(sm.getSpectrumTitle(), tag.getScore());
+        }
+        double countId = 0;
+        double countUnId = 0;
+        double partI = Math.round((double) titiles.length / 4.0);
+        double partII = 2 * partI;
+        double partIII = 3 * partI;
+        double[][] quartileData = new double[(int) partCount][2];
+        int counter = 0;
+        int quartileIndex = 0;
+        int left = titiles.length;
+        for (String titile : titiles) {
+            double v = fullSpectraMap.get(titile);
+            if (v <= 0.1) {
+                countId++;
+            } else {
+                countUnId++;
+            }
+            counter++;
+            left--;
+            if ((left == partI) || (left == 0) || (left == partII) || (left == partIII)) {
+                //initpart I 
+                quartileData[quartileIndex++] = new double[]{countId, countUnId};
+                counter = 0;
+                countId = 0;
+                countUnId = 0;
+
+            }
+        }
+
+        double totalCount = 0;
+        List<Double> quartileRatios = new ArrayList<>();
+        for (double[] qData : quartileData) {
+            totalCount += qData[0];
+            quartileRatios.add(qData[0]);
+        }
+        double quat_3_sum = 0;
+        for (int j = 0; j < quartileRatios.size() - 1; j++) {
+            double ratio = quartileRatios.get(j) / totalCount;
+            ratio = Math.round(ratio * 100.0) / 100.0;
+            quartileRatios.set(j, ratio);
+            quat_3_sum += ratio;
+        }
+        double ratio = 1.0 - quat_3_sum;
+        ratio = Math.round(ratio * 100.0) / 100.0;
+        quartileRatios.set(quartileRatios.size() - 1, ratio);
+
+        return quartileRatios;
+    }
+
     public static List<SpectrumMatch> getValidatedIdentificationResults(File resultOutput, File msFile, Advocate searchEngine, IdentificationParameters identificationParameters) {
         List<SpectrumMatch> validatedMaches = Collections.synchronizedList(new ArrayList<>());
         if (resultOutput == null) {
@@ -1024,15 +1107,24 @@ public class SpectraFileUtilities {
                 idResultsFile = new File(resultOutput, (IoUtil.removeExtension(msFile.getName()) + ".sage.tsv"));
             }
             if (idResultsFile == null || !idResultsFile.exists()) {
-
                 System.out.println("id result file was null " + resultOutput.getAbsolutePath() + "   ---  " + searchEngine.getName() + "  " + idResultsFile);
-//                System.exit(0);
+                System.exit(0);
                 return validatedMaches;
             }
             IdfileReader idReader = IdfileReaderFactory.getInstance().getFileReader(idResultsFile);
             MsFileHandler subMsFileHandler = new MsFileHandler();
             subMsFileHandler.register(msFile, MainUtilities.OptProt_Waiting_Handler);
             ArrayList<SpectrumMatch> matches = idReader.getAllSpectrumMatches(subMsFileHandler, MainUtilities.OptProt_Waiting_Handler, identificationParameters.getSearchParameters());
+            for (SpectrumMatch sm : matches) {
+                for (PeptideAssumption peptideAssumtion : sm.getAllPeptideAssumptions().toList()) {
+                    if (peptideAssumtion.getRank() != 1) {
+                        continue;
+                    }
+                    sm.setBestPeptideAssumption(peptideAssumtion);
+                    break;
+                }
+            }
+
             validatedMaches.addAll(matches);
 
         } catch (IOException | SQLException | ClassNotFoundException | InterruptedException | JAXBException | XmlPullParserException | XMLStreamException ex) {
@@ -1079,48 +1171,7 @@ public class SpectraFileUtilities {
 
     }
 
-    public static boolean isBetterScore(double[] data1, double[] data2, boolean pairData) {
-        ScoreComparison sc = new ScoreComparison();
-        if (pairData) {
-            if (data2.length > data1.length) {
-                double[] updatedData = new double[data2.length];
-                System.arraycopy(data1, 0, updatedData, 0, data1.length);
-                data1 = updatedData;
-            } else if (data2.length < data1.length) {
-                double[] updatedData = new double[data1.length];
-                System.arraycopy(data2, 0, updatedData, 0, data2.length);
-                data2 = updatedData;
-            }
-        }
-//        double p = sc.(fromData, toData);
-//        double pvalue = sc.performTTest(data1, data2);
-//        double tvalue = sc.performTStatTest(data1, data2);
-        double improvmentScore = sc.percentageImprovement(data1, data2);
-//        double finalScore = sc.calculateFinalScore(data1, data2);
-//        System.out.println("final improvment score " + improvmentScore + "  t " + tvalue + " Pvalue " + pvalue + "  Final:   " + finalScore);
-////        if (improvmentScore <= 0) {
-//            return new double[]{-1, -1, -1, 1};
-//        }
-//         if (tvalue < 0 && pvalue <= 0.1) {
-//            return false;
-//        } 
-//        if (tvalue<0 && pvalue < 0.05) {
-//             System.out.println("----------------------supposed to be false but -------------------------finalScore "+finalScore+", improvmentScore "+improvmentScore+"----");
-//             return new double[]{-1, -1,-1,1};
-//            
-//        }
-//        else if (finalScore < 10) {
-//            return false;
-//        } else {
-//            System.out.println("----------------------return true-----------------------------");
-//
-//        }
-
-        return improvmentScore > 0;
-
-    }
-
-    public static double[] compareData(double[] fromData, double[] toData, boolean pairData) {
+    public static double[] isBetterScore(double[] fromData, double[] toData, boolean pairData) {
         ScoreComparison sc = new ScoreComparison();
         if (pairData) {
             if (toData.length > fromData.length) {
@@ -1133,35 +1184,158 @@ public class SpectraFileUtilities {
                 toData = updatedData;
             }
         }
-//        double p = sc.(fromData, toData);
-        double pvalue = sc.performTTest(fromData, toData);
-        double tvalue = sc.performTStatTest(fromData, toData);
-        double improvmentScore = sc.percentageImprovement(fromData, toData);
-        double finalScore = sc.calculateFinalScore(fromData, toData);
-//        if (improvmentScore == 0) {
-//            System.out.println("final improvment score " + improvmentScore + "  t " + tvalue + " Pvalue " + pvalue + "  Final:   " + finalScore);
-//            return new double[]{-1, -1, 1, -1};
-//        }
-//        if (improvmentScore <= 0) {
-//            return new double[]{-1, -1, -1, 1};
-//        }
-//         if (tvalue < 0 && pvalue <= 0.1) {
-//            return false;
-//        } 
-//        if (tvalue<0 && pvalue < 0.05) {
-//             System.out.println("----------------------supposed to be false but -------------------------finalScore "+finalScore+", improvmentScore "+improvmentScore+"----");
-//             return new double[]{-1, -1,-1,1};
-//            
-//        }
-//        else if (finalScore < 10) {
-//            return false;
-//        } else {
-//            System.out.println("----------------------return true-----------------------------");
-//
-//        }
+        double[] finalScores = sc.calculateFinalScore(fromData, toData);
+        return finalScores;
 
-        return new double[]{improvmentScore, tvalue, pvalue, finalScore};
+    }
 
+    public static String compareScoresSet(Map<String, RawScoreModel> resultsMap, int totalSpecNumber) {
+        int index1 = -1;
+        List<String> topScoreSet = new ArrayList<>(resultsMap.keySet());
+        for (String rs1Key : resultsMap.keySet()) {
+            index1++;
+            if (!topScoreSet.contains(rs1Key)) {
+                continue;
+            }
+            int index2 = -1;
+            for (String rs2Key : resultsMap.keySet()) {
+
+                index2++;
+                if (index2 <= index1 || !topScoreSet.contains(rs2Key)) {
+                    continue;
+                }
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber);
+                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore() + "  ");
+                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
+                if (key1Better > 0 || Double.isNaN(key1Better)) {
+                    topScoreSet.remove(rs2Key);
+                } else {
+                    topScoreSet.remove(rs1Key);
+                    break;
+                }
+            }
+        }
+        if (topScoreSet.size() > 1) {
+            System.out.println("error should be only oine value " + topScoreSet);
+        }
+        String topSelection = topScoreSet.get(0);
+
+        return topSelection;
+    }
+
+    public static double isBetterScore(List<SpectrumMatch> fromData, List<SpectrumMatch> toData, int totalSpeNumber) {
+        List<Double> sharedToData = new ArrayList<>();
+        List<Double> sharedFromData = new ArrayList<>();
+        List<Double> onlyToData = new ArrayList<>();
+        Map<String, Double> fullMatchScores = new HashMap<>();
+        Map<String, Double> toMatchScores = new HashMap<>();
+        for (SpectrumMatch sm : toData) {
+            fullMatchScores.put(sm.getSpectrumTitle(), 0.0);
+            toMatchScores.put(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
+        }
+        for (SpectrumMatch sm : fromData) {
+            fullMatchScores.put(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
+        }
+
+        for (String titile : fullMatchScores.keySet()) {
+            double fromScore = fullMatchScores.get(titile);
+            if (toMatchScores.containsKey(titile)) {
+                double toScore = toMatchScores.get(titile);
+                if (fromScore > 0) {
+                    sharedToData.add(toScore);
+                    sharedFromData.add(fromScore);
+                } else {
+                    onlyToData.add(toScore);
+                }
+            } 
+        }
+
+        Collections.sort(sharedFromData);
+        //devide the TODATA data into 3 category         
+        double[] fromSharedData = sharedFromData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] toSharedData = sharedToData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] toOnlyData = onlyToData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData, false);
+        ScoreComparison sc = new ScoreComparison();
+        double compScore = sc.calculateScore(toSharedData, toOnlyData);
+        double ratio = ((double) onlyToData.size() / totalSpeNumber);
+        double fs1 = improved1[4];//* (1.0 - ratio);
+        double fs2 = compScore * ratio;
+        double fs = fs1 + fs2;
+        return fs;
+
+    }
+
+    public static double[] compareData(Double[] fromData, Double[] toData, boolean pairData) {
+        ScoreComparison sc = new ScoreComparison();
+        if (pairData) {
+            if (toData.length > fromData.length) {
+                Double[] updatedData = new Double[toData.length];
+                System.arraycopy(fromData, 0, updatedData, 0, fromData.length);
+                fromData = updatedData;
+            } else if (toData.length < fromData.length) {
+                Double[] updatedData = new Double[fromData.length];
+                System.arraycopy(toData, 0, updatedData, 0, toData.length);
+                toData = updatedData;
+            }
+        }
+        double[] finalScores = sc.calculateFinalScore(fromData, toData);
+        return finalScores;
+
+    }
+
+    public static double[] compareData(double[] fromData, double[] toData, boolean pairData) {
+        ScoreComparison sc = new ScoreComparison();
+        System.out.println("need to pair " + pairData);
+
+        if (pairData) {
+            if (toData.length > fromData.length) {
+                double[] updatedData = new double[toData.length];
+                System.arraycopy(fromData, 0, updatedData, 0, fromData.length);
+                fromData = updatedData;
+            } else if (toData.length < fromData.length) {
+                double[] updatedData = new double[fromData.length];
+                System.arraycopy(toData, 0, updatedData, 0, toData.length);
+                toData = updatedData;
+            }
+        }
+
+        double[] finalScores = sc.calculateFinalScore(fromData, toData);
+        return finalScores;
+
+    }
+
+    public static double calculateDatasetScoreThreshold(double oreginalDataSize, double subDataSize, double identificationRate, double idNumber) {
+        double comparisonsThreshold = oreginalDataSize / subDataSize;
+        comparisonsThreshold = comparisonsThreshold / 10.0;
+
+        double idToFullFactor = oreginalDataSize / (idNumber * 100.0);
+
+//        System.out.println("at level one " + comparisonsThreshold + "   identificationRate " + identificationRate + "  " + idToFullFactor);
+        comparisonsThreshold = ScoreComparison.logScaleNormalize(comparisonsThreshold, Math.E);
+        idToFullFactor = ScoreComparison.logScaleNormalize(idToFullFactor, Math.E);
+        identificationRate = ScoreComparison.logScaleNormalize(identificationRate, Math.E);
+//        System.out.println("at level one normalised " + comparisonsThreshold + "   identificationRate " + identificationRate + "  " + idToFullFactor);
+        comparisonsThreshold = (comparisonsThreshold + identificationRate + idToFullFactor) / 3.0;
+//        System.out.println("at level two normalised " + comparisonsThreshold);
+        comparisonsThreshold = Math.floor(comparisonsThreshold * 10.0) / 10.0;
+//        System.out.println("at finalnormalised " + comparisonsThreshold);
+        return comparisonsThreshold;
+
+    }
+
+    public static int scaleSubsetSize(int oreginalFileSize) {
+        double minVal = 1000;
+        double maxVal = 100000;
+        oreginalFileSize = (int) Math.min(maxVal, oreginalFileSize);
+        oreginalFileSize = (int) Math.max(minVal, oreginalFileSize);
+
+        double a = 1000;
+        double b = 5000;
+        // Normalize to [0, 1]
+        double normalized = (oreginalFileSize - minVal) / (maxVal - minVal);
+        // Scale to [a, b]
+        return (int) Math.round((a + (b - a) * normalized));
     }
 
     public static void main(String[] args) {

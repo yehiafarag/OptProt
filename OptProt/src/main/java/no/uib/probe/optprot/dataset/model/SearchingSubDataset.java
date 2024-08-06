@@ -4,7 +4,14 @@
  */
 package no.uib.probe.optprot.dataset.model;
 
+import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import no.uib.probe.optprot.model.RawScoreModel;
+import org.jgrapht.util.DoublyLinkedList;
 
 /**
  *
@@ -22,8 +29,16 @@ public class SearchingSubDataset {
     private File subDataFolder;
     private File subMsFile;
     private File subFastaFile;
-     private File oreginalFastaFile;
-     private boolean fullDataSpectaInput;
+    private File oreginalFastaFile;
+    private boolean fullDataSpectaInput;
+    private Set<String> potintialVariableMod;
+    private final Map<String, Double> fullSpectraScore = new HashMap<>();
+
+    public void setSpectraTitiles(String[] titiles) {
+        for (String titile : titiles) {
+            fullSpectraScore.put(titile, 0.0);
+        }
+    }
 
     public boolean isFullDataSpectaInput() {
         return fullDataSpectaInput;
@@ -56,15 +71,21 @@ public class SearchingSubDataset {
     private double processDelay;
     private boolean highResolutionMassSpectrometers = true;
     private double acceptedIDRatioThreshold = -1.0;
+    private RawScoreModel currentScoreModel;
 
-    private double[] validatedIdRefrenceData;
 
-    public double[] getValidatedIdRefrenceData() {
-        return validatedIdRefrenceData;
+
+    public void setActiveScoreModel(RawScoreModel scoreModel) {
+        this.currentScoreModel = scoreModel;
     }
 
-    public void setValidatedIdRefrenceData(double[] validatedIdRefrenceData) {
-        this.validatedIdRefrenceData = validatedIdRefrenceData;
+    public void updateValidatedIdRefrenceData(List<SpectrumMatch> validatedIdRefrenceData) {
+        this.resetSpectraScoreMap();
+        this.identificationNum=validatedIdRefrenceData.size();
+        for (SpectrumMatch sm : validatedIdRefrenceData) {
+            fullSpectraScore.replace(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
+        }
+
     }
 
     private String datasetId;
@@ -105,12 +126,11 @@ public class SearchingSubDataset {
         this.tempIdentificationNum = tempIdentificationNum;
     }
 
-    public synchronized void setActiveIdentificationNum(int activeIdentificationNum) {
-        this.activeIdentificationNum = activeIdentificationNum;
-    }
+    
     private int oreginalDatasize;
-    private int userReferenceIdentificationNum;
-    private int activeIdentificationNum;
+    private int identificationNum;
+
+    private double comparisonsThreshold = 0.0;
 
     public int getOreginalDatasize() {
         return oreginalDatasize;
@@ -120,16 +140,6 @@ public class SearchingSubDataset {
         this.oreginalDatasize = oreginalDatasize;
     }
 
-//    public double getDataEpsilon() {
-//        double d =(double)(defaultSettingIdentificationNum *100.0) / (double)(totalSpectraNumber);
-//        double r= totalSpectraNumber*100.0/oreginalDatasize;
-//        System.out.println("r: "+r+"  "+totalSpectraNumber+"  "+oreginalDatasize+"  --   "+defaultSettingIdentificationNum);
-//        d=d/r;
-////        d= 1.0/d;
-////        d=0.000001;
-////        d=100.0/totalSpectraNumber;
-//       return d;//(double)totalSpectraNumber  / (double) oreginalDatasize;
-//    }
     public int getTotalSpectraNumber() {
         return totalSpectraNumber;
     }
@@ -139,7 +149,7 @@ public class SearchingSubDataset {
     }
 
     public synchronized double getIdentificationRate() {
-        return activeIdentificationNum * 100.0 / totalSpectraNumber;
+        return identificationNum * 100.0 / totalSpectraNumber;
     }
 
     public int getDefaultSettingIdentificationNum() {
@@ -147,7 +157,7 @@ public class SearchingSubDataset {
     }
 
     public synchronized int getActiveIdentificationNum() {
-        return activeIdentificationNum;
+        return identificationNum;
     }
 
     public void setDefaultSettingIdentificationNum(int defaultSettingIdentificationNum) {
@@ -170,13 +180,7 @@ public class SearchingSubDataset {
         this.subFastaFile = subFastaFile;
     }
 
-    public int getUserReferenceIdentificationNum() {
-        return userReferenceIdentificationNum;
-    }
 
-    public void setUserReferenceIdentificationNum(int userReferenceIdentificationNum) {
-        this.userReferenceIdentificationNum = userReferenceIdentificationNum;
-    }
 
     public boolean isHighResolutionMassSpectrometers() {
         return highResolutionMassSpectrometers;
@@ -196,7 +200,7 @@ public class SearchingSubDataset {
 
     public double getpValueThresholds() {
         if (pValueThresholds == -1) {
-            double res = this.getValidatedIdRefrenceData().length*100/ getTotalSpectraNumber();
+            double res = this.identificationNum * 100 / getTotalSpectraNumber();
             if (res <= 5) {
                 pValueThresholds = 0.1;
             } else {
@@ -205,6 +209,41 @@ public class SearchingSubDataset {
         }
 
         return pValueThresholds;
+    }
+
+    public Set<String> getPotintialVariableMod() {
+        return potintialVariableMod;
+    }
+
+    public void setPotintialVariableMod(Set<String> potintialVariableMod) {
+        this.potintialVariableMod = potintialVariableMod;
+    }
+
+    public double getComparisonsThreshold() {
+        return comparisonsThreshold;
+    }
+
+    public void setComparisonsThreshold(double comparisonsThreshold) {
+        this.comparisonsThreshold = comparisonsThreshold;
+    }
+
+    public RawScoreModel getCurrentScoreModel() {
+        return currentScoreModel;
+    }
+
+    public void setCurrentScoreModel(RawScoreModel currentScoreModel) {
+        this.currentScoreModel = currentScoreModel;
+    }
+
+    private void resetSpectraScoreMap() {
+        for (String titile : fullSpectraScore.keySet()) {
+            fullSpectraScore.replace(titile, 0.0);
+        }
+
+    }
+
+    public Map<String, Double> getFullSpectraScore() {
+        return fullSpectraScore;
     }
 
 }

@@ -48,7 +48,7 @@ import no.uib.probe.optprot.search.SearchExecuter;
 import no.uib.probe.optprot.util.MainUtilities;
 import no.uib.probe.optprot.util.OptProtWaitingHandler;
 import no.uib.probe.optprot.util.ReportExporter;
-import no.uib.probe.optprot.util.SpectraFileUtilities;
+import no.uib.probe.optprot.util.SpectraUtilities;
 import org.xmlpull.v1.XmlPullParserException;
 
 /**
@@ -400,7 +400,7 @@ public class SearchOptimizerHandler {
 
         referenceIdRate = spectrumMatches.size();
         if (recalibratSpectra) {
-            return SpectraFileUtilities.recalibrateSpectra(subMsFile, subFastaFile, spectrumMatches, tempIdParam);
+            return SpectraUtilities.recalibrateSpectra(subMsFile, subFastaFile, spectrumMatches, tempIdParam);
         }
 
 //        List<String> mods = new ArrayList<>(tempIdParam.getSearchParameters().getModificationParameters().getVariableModifications());
@@ -457,7 +457,7 @@ public class SearchOptimizerHandler {
         }
         long end1 = System.currentTimeMillis();
         double total = (end1 - start1) / 1000.0;
-        ReportExporter.addElementToReport(Configurations.Dataset_Id, "Cleavage_Parameters", optimisedSearchParameter.getDigestionParameter(), resultsMap.get(optimisedSearchParameter.getDigestionParameter()), total);
+        ReportExporter.addElementToReport(Configurations.getDataset_Id(), "Cleavage_Parameters", optimisedSearchParameter.getDigestionParameter(), resultsMap.get(optimisedSearchParameter.getDigestionParameter()), total);
 
     }
 
@@ -510,7 +510,7 @@ public class SearchOptimizerHandler {
         long end1 = System.currentTimeMillis();
         double total = (end1 - start1) / 1000.0;
 
-        ReportExporter.addElementToReport(Configurations.Dataset_Id, "Enzyme_Parameters", optimisedSearchParameter.getEnzymeName(), resultsMap.get(optimisedSearchParameter.getEnzymeName()), total);
+        ReportExporter.addElementToReport(Configurations.getDataset_Id(), "Enzyme_Parameters", optimisedSearchParameter.getEnzymeName(), resultsMap.get(optimisedSearchParameter.getEnzymeName()), total);
 
     }
 
@@ -1127,7 +1127,7 @@ public class SearchOptimizerHandler {
             searchHandler.startSearch(waitingHandlerCLIImpl);
             File resultsFile = searchHandler.getResultsFolder();
             File NovorFile = new File(resultsFile, spectraFileName + ".novor.csv");
-            Set<String> sequences = SpectraFileUtilities.getSequences(NovorFile);
+            Set<String> sequences = SpectraUtilities.getSequences(NovorFile);
             return sequences;
         } catch (IOException | InterruptedException ex) {
             ex.printStackTrace();

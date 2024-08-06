@@ -36,12 +36,15 @@ public class ReportExporter {
         }
         System.out.println("-------------------------------" + datasetId + "(" + searchEngine.getName() + ")-----------------------------------------");
         if (dataset != null) {
-            System.out.println("Refrence score      :\t" + dataset.getActiveIdentificationNum());
+            System.out.println("Refrence score      :\t" + dataset.getActiveIdentificationNum() );
         }
         System.out.println("Digestion           :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name());
-        System.out.println("Enzyme              :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName());
-        System.out.println("Specificity         :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getSpecificity(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()));
-        System.out.println("Max Missed Cleavages:\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getnMissedCleavages(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()));
+        if (optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equals("enzyme")) {
+
+            System.out.println("Enzyme              :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName());
+            System.out.println("Specificity         :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getSpecificity(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()));
+            System.out.println("Max Missed Cleavages:\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getnMissedCleavages(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()));
+        }
         System.out.println("Fragment Ion Types  :\t" + optimisedSearchParameter.getSearchParameters().getForwardIons().get(0) + "-" + optimisedSearchParameter.getSearchParameters().getRewindIons().get(0));
         System.out.println("Precursor Accuracy  :\t" + optimisedSearchParameter.getSearchParameters().getPrecursorAccuracy() + " " + optimisedSearchParameter.getSearchParameters().getPrecursorAccuracyType().name());
         System.out.println("Fragment Accuracy   :\t" + optimisedSearchParameter.getSearchParameters().getFragmentIonAccuracy() + " " + optimisedSearchParameter.getSearchParameters().getFragmentAccuracyType().name());
@@ -135,7 +138,7 @@ public class ReportExporter {
 
     }
 
-    public static void exportFullReport(File optimisedSearchParameterFile, SearchingSubDataset dataset, Advocate searchEngine, String datasetId, String timeInMin) {
+    public static void exportFullReport(File optimisedSearchParameterFile, SearchingSubDataset dataset, Advocate searchEngine, String datasetId, String timeInMin, String initDsTime) {
         if (dataset == null) {
             System.out.println("can not export un exist dataset " + datasetId);
             return;
@@ -154,129 +157,131 @@ public class ReportExporter {
             return;
         }
         try {
-            FileWriter myWriter = new FileWriter(reportFile);
-
-            myWriter.write(
-                    "-------------------------------" + datasetId + "(" + searchEngine.getName() + ")-----------------------------------------\n");
-            myWriter.write(
-                    "Used Time           :\t" + timeInMin + "  Minutes\n");
-            myWriter.write(
-                    "Refrence score      :\t" + dataset.getActiveIdentificationNum() + "\n");
-            myWriter.write(
-                    "Digestion           :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name() + "\n");
-            myWriter.write(
-                    "Enzyme              :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName() + "\n");
-            myWriter.write(
-                    "Specificity         :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getSpecificity(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()) + "\n");
-            myWriter.write(
-                    "Max Missed Cleavages:\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getnMissedCleavages(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()) + "\n");
-            myWriter.write(
-                    "Fragment Ion Types  :\t" + optimisedSearchParameter.getSearchParameters().getForwardIons().get(0) + "-" + optimisedSearchParameter.getSearchParameters().getRewindIons().get(0) + "\n");
-            myWriter.write(
-                    "Precursor Accuracy  :\t" + optimisedSearchParameter.getSearchParameters().getPrecursorAccuracy() + " " + optimisedSearchParameter.getSearchParameters().getPrecursorAccuracyType().name() + "\n");
-            myWriter.write(
-                    "Fragment Accuracy   :\t" + optimisedSearchParameter.getSearchParameters().getFragmentIonAccuracy() + " " + optimisedSearchParameter.getSearchParameters().getFragmentAccuracyType().name() + "\n");
-            myWriter.write(
-                    "PrecursorCharge     :\t" + optimisedSearchParameter.getSearchParameters().getMinChargeSearched() + " - " + optimisedSearchParameter.getSearchParameters().getMaxChargeSearched() + "\n");
-            myWriter.write(
-                    "Isotops             :\t" + optimisedSearchParameter.getSearchParameters().getMinIsotopicCorrection() + " - " + optimisedSearchParameter.getSearchParameters().getMaxIsotopicCorrection() + "\n");
+            try (FileWriter myWriter = new FileWriter(reportFile)) {
+                myWriter.write(
+                        "-------------------------------" + datasetId + "(" + searchEngine.getName() + ")-----------------------------------------\n");
+                myWriter.write(
+                        "Used Time  to init ds:\t" + initDsTime + "  Minutes\n");
+                myWriter.write(
+                        "Used Time           :\t" + timeInMin + "  Minutes\n");
+                myWriter.write(
+                        "Refrence score      :\t" + dataset.getActiveIdentificationNum()  + "\n");
+                myWriter.write(
+                        "Digestion           :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name() + "\n");
+                if (optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equals("enzyme")) {
+                    myWriter.write(
+                            "Enzyme              :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName() + "\n");
+                    myWriter.write(
+                            "Specificity         :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getSpecificity(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()) + "\n");
+                    myWriter.write(
+                            "Max Missed Cleavages:\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getnMissedCleavages(optimisedSearchParameter.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()) + "\n");
+                }
+                myWriter.write(
+                        "Fragment Ion Types  :\t" + optimisedSearchParameter.getSearchParameters().getForwardIons().get(0) + "-" + optimisedSearchParameter.getSearchParameters().getRewindIons().get(0) + "\n");
+                myWriter.write(
+                        "Precursor Accuracy  :\t" + optimisedSearchParameter.getSearchParameters().getPrecursorAccuracy() + " " + optimisedSearchParameter.getSearchParameters().getPrecursorAccuracyType().name() + "\n");
+                myWriter.write(
+                        "Fragment Accuracy   :\t" + optimisedSearchParameter.getSearchParameters().getFragmentIonAccuracy() + " " + optimisedSearchParameter.getSearchParameters().getFragmentAccuracyType().name() + "\n");
+                myWriter.write(
+                        "PrecursorCharge     :\t" + optimisedSearchParameter.getSearchParameters().getMinChargeSearched() + " - " + optimisedSearchParameter.getSearchParameters().getMaxChargeSearched() + "\n");
+                myWriter.write(
+                        "Isotops             :\t" + optimisedSearchParameter.getSearchParameters().getMinIsotopicCorrection() + " - " + optimisedSearchParameter.getSearchParameters().getMaxIsotopicCorrection() + "\n");
 //            myWriter.write("default Variable mod:\t" + optimisedSearchParameter.getSearchParameters() + "  Factor " + referenceFactor);
-            String fm = "";
+                String fm = "";
 
-            if (optimisedSearchParameter.getSearchParameters()
-                    .getModificationParameters().getFixedModifications() != null) {
-                for (String fixedMod : optimisedSearchParameter.getSearchParameters().getModificationParameters().getFixedModifications()) {
-                    fm += (fixedMod + "\n");
-                }
-            }
-
-            myWriter.write(
-                    "Fixed Mod mod:\n" + fm);
-            fm = "";
-
-            if (optimisedSearchParameter.getSearchParameters()
-                    .getModificationParameters().getVariableModifications() != null) {
-                for (String v : optimisedSearchParameter.getSearchParameters().getModificationParameters().getVariableModifications()) {
-                    fm += (v + "\n");
-                }
-            }
-
-            myWriter.write(
-                    "Variable mod:\n" + fm);
-            if (searchEngine.getIndex()
-                    == Advocate.xtandem.getIndex()) {
-                XtandemParameters xtandemParameters = (XtandemParameters) optimisedSearchParameter.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-                myWriter.write("---------------------------xtandem advanced-----------------------------\n");
-                myWriter.write("Spectrum Dynamic Range:\t" + xtandemParameters.getDynamicRange() + "\n");
-                myWriter.write("Number of Peaks       :\t" + xtandemParameters.getnPeaks() + "\n");
-                myWriter.write("MinimumFragmentMz     :\t" + xtandemParameters.getMinFragmentMz() + "\n");
-                myWriter.write("Minimum Peaks         :\t" + xtandemParameters.getMinPeaksPerSpectrum() + "\n");
-                myWriter.write("Use NoiseSuppression  :\t" + xtandemParameters.isUseNoiseSuppression() + "  (" + xtandemParameters.getMinPrecursorMass() + ")\n");
-                myWriter.write("Use Parent isotop exp :\t" + xtandemParameters.getParentMonoisotopicMassIsotopeError() + "\n");
-                myWriter.write("Use QuickAcetyl       :\t" + xtandemParameters.isProteinQuickAcetyl() + "\n");
-                myWriter.write("Use QuickPyrolidone   :\t" + xtandemParameters.isQuickPyrolidone() + "\n");
-                myWriter.write("Use stP Bias          :\t" + xtandemParameters.isStpBias() + "\n");
-
-                myWriter.write("Use Refinement        :\t" + xtandemParameters.isRefine() + "\n");
-                myWriter.write("UnanticipatedCleavage :\t" + xtandemParameters.isRefineUnanticipatedCleavages() + "\n");
-                myWriter.write("SimiEnzymaticCleavage :\t" + xtandemParameters.isRefineSemi() + "\n");
-                myWriter.write("Potintial Modification:\t" + xtandemParameters.isPotentialModificationsForFullRefinment() + "\n");
-                myWriter.write("Use PointMutations    :\t" + xtandemParameters.isRefinePointMutations() + "\n");
-                myWriter.write("Use SnAPs             :\t" + xtandemParameters.isRefineSnaps() + "\n");
-                myWriter.write("Spectrum Synthesis    :\t" + xtandemParameters.isRefineSpectrumSynthesis() + "\n");
-
-                myWriter.write("------------------------------------------------------------------------\n");
-
-                String rfm = "";
-                if (optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementFixedModifications() != null) {
-                    for (String fixedMod : optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementFixedModifications()) {
-                        rfm += (fixedMod + "\n");
+                if (optimisedSearchParameter.getSearchParameters()
+                        .getModificationParameters().getFixedModifications() != null) {
+                    for (String fixedMod : optimisedSearchParameter.getSearchParameters().getModificationParameters().getFixedModifications()) {
+                        fm += (fixedMod + "\n");
                     }
                 }
-                myWriter.write("Refined Fixed Mod mod:\n" + rfm);
-                rfm = "";
-                if (optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementVariableModifications() != null) {
-                    for (String v : optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementVariableModifications()) {
-                        rfm += (v + "\n");
+
+                myWriter.write(
+                        "Fixed Mod mod:\n" + fm);
+                fm = "";
+
+                if (optimisedSearchParameter.getSearchParameters()
+                        .getModificationParameters().getVariableModifications() != null) {
+                    for (String v : optimisedSearchParameter.getSearchParameters().getModificationParameters().getVariableModifications()) {
+                        fm += (v + "\n");
                     }
                 }
-                myWriter.write("Refined Variable mod:\n" + rfm + "\n");
-            } else if (searchEngine.getIndex()
-                    == Advocate.myriMatch.getIndex()) {
-                MyriMatchParameters myriMatchParameters = (MyriMatchParameters) optimisedSearchParameter.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
-                myWriter.write("---------------------------MyriMatch advanced-----------------------------\n");
-                myWriter.write("Peptide Length (min-max):\t" + myriMatchParameters.getMinPeptideLength() + "-" + myriMatchParameters.getMaxPeptideLength() + "\n");
-                myWriter.write("Precursor Mass (min-max):\t" + myriMatchParameters.getMinPrecursorMass() + "-" + myriMatchParameters.getMaxPrecursorMass() + "\n");
-                myWriter.write("Max Variable PTM        :\t" + myriMatchParameters.getMaxDynamicMods() + "\n");
-                myWriter.write("Fragmentaion Methods    :\t" + myriMatchParameters.getFragmentationRule() + "\n");
-                myWriter.write("Enzymatic Terminals     :\t" + myriMatchParameters.getMinTerminiCleavages() + "\n");
-                myWriter.write("Use smart + 3 model     :\t" + myriMatchParameters.getUseSmartPlusThreeModel() + "\n");
-                myWriter.write("Compute xCorr           :\t" + myriMatchParameters.getComputeXCorr() + "\n");
-                myWriter.write("TIC Cutoff  %           :\t" + myriMatchParameters.getTicCutoffPercentage() + "\n");
-                myWriter.write("Num Of Inten Classes    :\t" + myriMatchParameters.getNumIntensityClasses() + "\n");
 
-                myWriter.write("Class Size Multiplier   :\t" + myriMatchParameters.getClassSizeMultiplier() + "\n");
-                myWriter.write("Number Of Batches       :\t" + myriMatchParameters.getNumberOfBatches() + "\n");
-                myWriter.write("Max Peak Count          :\t" + myriMatchParameters.getMaxPeakCount() + "\n");
-            }else if (searchEngine.getIndex() == Advocate.sage.getIndex()) {
-            SageParameters sageParameters = (SageParameters) optimisedSearchParameter.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
-            myWriter.write("---------------------------Sage advanced-----------------------------");
-            myWriter.write("Peptide Length (min-max):\t" + sageParameters.getMinPeptideLength() + "-" + sageParameters.getMaxPeptideLength()+ "\n");
-            myWriter.write("Fragment mz    (min-max):\t" + sageParameters.getMinFragmentMz() + "-" + sageParameters.getMaxFragmentMz()+ "\n");
-            myWriter.write("Peptide Mass            :\t" + sageParameters.getMinPeptideMass() + "-" + sageParameters.getMaxPeptideMass()+ "\n");
-            myWriter.write("Min Ion Index           :\t" + sageParameters.getMinIonIndex()+ "\n");
-            myWriter.write("Max Variable Mod        :\t" + sageParameters.getMaxVariableMods()+ "\n");
-            myWriter.write("Generate Decoy          :\t" + sageParameters.getGenerateDecoys()+ "\n");
-            myWriter.write("Deisotope               :\t" + sageParameters.getDeisotope()+ "\n");
-            myWriter.write("Chimeric Spectra        :\t" + sageParameters.getChimera()+ "\n");
-            myWriter.write("Predect RT              :\t" + sageParameters.getPredictRt()+ "\n");
+                myWriter.write(
+                        "Variable mod:\n" + fm);
+                if (searchEngine.getIndex()
+                        == Advocate.xtandem.getIndex()) {
+                    XtandemParameters xtandemParameters = (XtandemParameters) optimisedSearchParameter.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
+                    myWriter.write("---------------------------xtandem advanced-----------------------------\n");
+                    myWriter.write("Spectrum Dynamic Range:\t" + xtandemParameters.getDynamicRange() + "\n");
+                    myWriter.write("Number of Peaks       :\t" + xtandemParameters.getnPeaks() + "\n");
+                    myWriter.write("MinimumFragmentMz     :\t" + xtandemParameters.getMinFragmentMz() + "\n");
+                    myWriter.write("Minimum Peaks         :\t" + xtandemParameters.getMinPeaksPerSpectrum() + "\n");
+                    myWriter.write("Use NoiseSuppression  :\t" + xtandemParameters.isUseNoiseSuppression() + "  (" + xtandemParameters.getMinPrecursorMass() + ")\n");
+                    myWriter.write("Use Parent isotop exp :\t" + xtandemParameters.getParentMonoisotopicMassIsotopeError() + "\n");
+                    myWriter.write("Use QuickAcetyl       :\t" + xtandemParameters.isProteinQuickAcetyl() + "\n");
+                    myWriter.write("Use QuickPyrolidone   :\t" + xtandemParameters.isQuickPyrolidone() + "\n");
+                    myWriter.write("Use stP Bias          :\t" + xtandemParameters.isStpBias() + "\n");
 
-            myWriter.write("Number of Peaks         :\t" + sageParameters.getMinPeaks() + "-" + sageParameters.getMaxPeaks()+ "\n");
-            myWriter.write("Min Mached Peaks        :\t" + sageParameters.getMinMatchedPeaks()+ "\n");
-            myWriter.write("Max Fragment Charge     :\t" + sageParameters.getMaxFragmentCharge()+ "\n");
-        }
+                    myWriter.write("Use Refinement        :\t" + xtandemParameters.isRefine() + "\n");
+                    myWriter.write("UnanticipatedCleavage :\t" + xtandemParameters.isRefineUnanticipatedCleavages() + "\n");
+                    myWriter.write("SimiEnzymaticCleavage :\t" + xtandemParameters.isRefineSemi() + "\n");
+                    myWriter.write("Potintial Modification:\t" + xtandemParameters.isPotentialModificationsForFullRefinment() + "\n");
+                    myWriter.write("Use PointMutations    :\t" + xtandemParameters.isRefinePointMutations() + "\n");
+                    myWriter.write("Use SnAPs             :\t" + xtandemParameters.isRefineSnaps() + "\n");
+                    myWriter.write("Spectrum Synthesis    :\t" + xtandemParameters.isRefineSpectrumSynthesis() + "\n");
 
-            myWriter.close();
+                    myWriter.write("------------------------------------------------------------------------\n");
+
+                    String rfm = "";
+                    if (optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementFixedModifications() != null) {
+                        for (String fixedMod : optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementFixedModifications()) {
+                            rfm += (fixedMod + "\n");
+                        }
+                    }
+                    myWriter.write("Refined Fixed Mod mod:\n" + rfm);
+                    rfm = "";
+                    if (optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementVariableModifications() != null) {
+                        for (String v : optimisedSearchParameter.getSearchParameters().getModificationParameters().getRefinementVariableModifications()) {
+                            rfm += (v + "\n");
+                        }
+                    }
+                    myWriter.write("Refined Variable mod:\n" + rfm + "\n");
+                } else if (searchEngine.getIndex()
+                        == Advocate.myriMatch.getIndex()) {
+                    MyriMatchParameters myriMatchParameters = (MyriMatchParameters) optimisedSearchParameter.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
+                    myWriter.write("---------------------------MyriMatch advanced-----------------------------\n");
+                    myWriter.write("Peptide Length (min-max):\t" + myriMatchParameters.getMinPeptideLength() + "-" + myriMatchParameters.getMaxPeptideLength() + "\n");
+                    myWriter.write("Precursor Mass (min-max):\t" + myriMatchParameters.getMinPrecursorMass() + "-" + myriMatchParameters.getMaxPrecursorMass() + "\n");
+                    myWriter.write("Max Variable PTM        :\t" + myriMatchParameters.getMaxDynamicMods() + "\n");
+                    myWriter.write("Fragmentaion Methods    :\t" + myriMatchParameters.getFragmentationRule() + "\n");
+                    myWriter.write("Enzymatic Terminals     :\t" + myriMatchParameters.getMinTerminiCleavages() + "\n");
+                    myWriter.write("Use smart + 3 model     :\t" + myriMatchParameters.getUseSmartPlusThreeModel() + "\n");
+                    myWriter.write("Compute xCorr           :\t" + myriMatchParameters.getComputeXCorr() + "\n");
+                    myWriter.write("TIC Cutoff  %           :\t" + myriMatchParameters.getTicCutoffPercentage() + "\n");
+                    myWriter.write("Num Of Inten Classes    :\t" + myriMatchParameters.getNumIntensityClasses() + "\n");
+
+                    myWriter.write("Class Size Multiplier   :\t" + myriMatchParameters.getClassSizeMultiplier() + "\n");
+                    myWriter.write("Number Of Batches       :\t" + myriMatchParameters.getNumberOfBatches() + "\n");
+                    myWriter.write("Max Peak Count          :\t" + myriMatchParameters.getMaxPeakCount() + "\n");
+                } else if (searchEngine.getIndex() == Advocate.sage.getIndex()) {
+                    SageParameters sageParameters = (SageParameters) optimisedSearchParameter.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
+                    myWriter.write("---------------------------Sage advanced-----------------------------");
+                    myWriter.write("Peptide Length (min-max):\t" + sageParameters.getMinPeptideLength() + "-" + sageParameters.getMaxPeptideLength() + "\n");
+                    myWriter.write("Fragment mz    (min-max):\t" + sageParameters.getMinFragmentMz() + "-" + sageParameters.getMaxFragmentMz() + "\n");
+                    myWriter.write("Peptide Mass            :\t" + sageParameters.getMinPeptideMass() + "-" + sageParameters.getMaxPeptideMass() + "\n");
+                    myWriter.write("Min Ion Index           :\t" + sageParameters.getMinIonIndex() + "\n");
+                    myWriter.write("Max Variable Mod        :\t" + sageParameters.getMaxVariableMods() + "\n");
+                    myWriter.write("Generate Decoy          :\t" + sageParameters.getGenerateDecoys() + "\n");
+                    myWriter.write("Deisotope               :\t" + sageParameters.getDeisotope() + "\n");
+                    myWriter.write("Chimeric Spectra        :\t" + sageParameters.getChimera() + "\n");
+                    myWriter.write("Predect RT              :\t" + sageParameters.getPredictRt() + "\n");
+
+                    myWriter.write("Number of Peaks         :\t" + sageParameters.getMinPeaks() + "-" + sageParameters.getMaxPeaks() + "\n");
+                    myWriter.write("Min Mached Peaks        :\t" + sageParameters.getMinMatchedPeaks() + "\n");
+                    myWriter.write("Max Fragment Charge     :\t" + sageParameters.getMaxFragmentCharge() + "\n");
+                }
+            }
             System.out.println("Successfully wrote to the file.");
         } catch (IOException e) {
             System.out.println("An error occurred.");

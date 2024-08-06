@@ -41,13 +41,23 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     private double[] data;
     private double improvmentScore;
     private double finalScore;
+    private double sizeEffect;
+    private double dataLengthFactor;
+
+    public double getSizeEffect() {
+        return sizeEffect;
+    }
+
+    public void setSizeEffect(double sizeEffect) {
+        this.sizeEffect = Math.round(sizeEffect * 100.0) / 100.0;
+    }
 
     public double getFinalScore() {
         return finalScore;
     }
 
     public void setFinalScore(double finalScore) {
-        this.finalScore = finalScore;
+        this.finalScore = Math.round(finalScore * 100.0) / 100.0;
     }
     private Set<String> specTitles;
 
@@ -69,13 +79,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         this.improvmentScore = improvmentScore;
     }
 
-    public double[] getData() {
-        return data;
-    }
 
-    public void setData(double[] data) {
-        this.data = data;
-    }
 
     public List<SpectrumMatch> getSpectrumMatchResult() {
         return spectrumMatchResult;
@@ -138,7 +142,15 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     @Override
     public String toString() {
-        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore + " tstat" + tTestStat + "  pvalue " + pValue + "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData;
+        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore + " tstat" + tTestStat + "  pvalue " + pValue + "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData+"  size effect "+sizeEffect;
+    }
+
+    public double getDataLengthFactor() {
+        return dataLengthFactor;
+    }
+
+    public void setDataLengthFactor(double dataLengthFactor) {
+        this.dataLengthFactor = dataLengthFactor;
     }
 
 }

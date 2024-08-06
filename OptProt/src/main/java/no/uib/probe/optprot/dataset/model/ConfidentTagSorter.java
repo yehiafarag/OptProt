@@ -4,6 +4,8 @@
  */
 package no.uib.probe.optprot.dataset.model;
 
+import com.compomics.util.experiment.mass_spectrometry.spectra.Spectrum;
+
 /**
  *
  * @author yfa041
@@ -12,10 +14,16 @@ public class ConfidentTagSorter implements Comparable<ConfidentTagSorter> {
 
     private final Double value;
     private final String title;
+    private final Spectrum spectrum;
 
-    public ConfidentTagSorter(double value, String title) {
+    public Spectrum getSpectrum() {
+        return spectrum;
+    }
+
+    public ConfidentTagSorter(double value, String title, Spectrum spectrum) {
         this.value = value;
         this.title = title;
+        this.spectrum = spectrum;
     }
 
     @Override

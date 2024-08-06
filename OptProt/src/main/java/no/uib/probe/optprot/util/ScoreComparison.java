@@ -4,6 +4,10 @@
  */
 package no.uib.probe.optprot.util;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.inference.TTest;
 
 public class ScoreComparison {
@@ -16,10 +20,8 @@ public class ScoreComparison {
         return sum / scores.length;
     }
 
-    public double percentageImprovement(double[] fromData, double[] toData) {
-        double mean1 = calculateMean(fromData);
-        double mean2 = calculateMean(toData);
-        return ((mean2 - mean1) / mean1) * 100;
+    public double percentageImprovement(double mean1, double mean2) {
+        return ((mean2 - mean1) / mean1) * 100.0;
     }
 
     public double calculateStandardDeviation(double[] scores) {
@@ -33,7 +35,11 @@ public class ScoreComparison {
 
     public double performTStatTest(double[] scores1, double[] scores2) {
         if (scores1.length < 2 || scores2.length < 2) {
-            return -100.0;
+            if (scores1.length > scores2.length) {
+                return -1;
+            } else {
+                return 1;
+            }
         }
         TTest tTest = new TTest();
         if (scores1.length == scores2.length) {
@@ -41,6 +47,16 @@ public class ScoreComparison {
         } else {
             return tTest.t(scores2, scores1);
         }
+    }
+
+    public double dataSizeEffect(double dataSizeFrom, double dataSizeTo) {
+        double effect = (dataSizeTo - dataSizeFrom) * 100.0 / Math.min(dataSizeFrom, dataSizeTo);// 10.0 - (Math.min(dataSizeFrom, dataSizeTo) * 10.0 / Math.max(dataSizeFrom, dataSizeTo));
+//        System.out.println("effect is " + dataSizeFrom + "  " + dataSizeTo + "  " + effect);
+//        if (dataSizeFrom > dataSizeTo) {
+//            effect *= -1.0;
+//        }
+        return effect;
+
     }
 
     public double performTTest(double[] scores1, double[] scores2) {
@@ -55,45 +71,126 @@ public class ScoreComparison {
         return (value - min) / (max - min);
     }
 
-    public double calculateFinalScore(double[] scores1, double[] scores2) {
-        double mean1 = calculateMean(scores1);
-        double mean2 = calculateMean(scores2);
+    /**
+     * Applies log scale normalization to an array of data.
+     *
+     * @param data The array of data to be normalized.
+     * @param base The base of the logarithm to use.
+     * @return The log scale normalized array of data.
+     */
+    public static double logScaleNormalize(double data, double base) {
+        double sign = 1;
+        if (data < 0) {
+            sign = -1;
+        }
+        data = Math.abs(data);
+        double normalizedData = (Math.log(data + 1) / Math.log(base)) * sign;
+        if (Double.isNaN(normalizedData)) {
+            normalizedData = 0;
+        }
+        return normalizedData;
+    }
+    
+    
+     public double calculateScore(double[] scores1, double[] scores2) {
 
-        double meanDifference = mean2 - mean1;
+        DescriptiveStatistics ds1 = new DescriptiveStatistics(scores1);
+        DescriptiveStatistics ds2 = new DescriptiveStatistics(scores2);
 
-        double percentageImprovement = percentageImprovement(scores1, scores2);
+        double median1 = ds1.getPercentile(50);
+        double median2 = ds2.getPercentile(50);
 
-        double stdDev1 = calculateStandardDeviation(scores1);
-        double stdDev2 = calculateStandardDeviation(scores2);
-        double stdDevDifference = Math.abs(stdDev2 - stdDev1);
+        double meanDifference = median2 - median1;
+        double percentageImprovement = percentageImprovement(median1, median2);
+        double tStat = performTStatTest(scores1, scores2);
+
+        double stdDev1 = ds1.getStandardDeviation();//calculateStandardDeviation(scores1);
+        double stdDev2 = ds2.getStandardDeviation();//calculateStandardDeviation(scores2);
+
+        double stdDevDifference = stdDev1 - stdDev2;
         double pValue = performTTest(scores1, scores2);
+        if (tStat < 0) {
+            pValue *= -1.0;
+        }
 
         // Assuming the possible range for these metrics is between -200 and 200 for normalization purposes.
         // Adjust these ranges based on your specific use case.
-        double normMeanDiff = normalize(meanDifference, 0, 100);
+        double normMeanDiff = logScaleNormalize(meanDifference, Math.E);
+        double normPercentageImprovement = logScaleNormalize(percentageImprovement, Math.E);
+        double normStdDevDiff = logScaleNormalize(stdDevDifference, Math.E);
+        double normTStat = logScaleNormalize(tStat, Math.E);
+        double normPValue = logScaleNormalize((1.0 - pValue), Math.E); // Inverting p-value for interpretation
 
-        double normPercentageImprovement = normalize(percentageImprovement, 0, 100);
-        double normStdDevDiff = normalize(stdDevDifference, 0, 100);
-        double normPValue = (1 - pValue) * 100; // Inverting p-value for interpretation
-//
-//        if (meanDifference == 0) {
-//            System.out.println("-----------------------No change param was here---------------------- ");
-//        }
-//        System.out.println("mean  " + meanDifference + "  " + percentageImprovement + "  sdv " + stdDevDifference + "   meanDifference  " + meanDifference);
-        // Combining normalized results into a final score
-        double finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue) / 4;
+        double finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat) / 5.0;
 
-        return finalScore;
+        if (percentageImprovement < 0 && finalScore > 0) {
+            finalScore *= -1.0;
+        }
+        return  finalScore;
+    }
+
+    
+    
+
+    public double[] calculateFinalScore(double[] scores1, double[] scores2) {
+
+        DescriptiveStatistics ds1 = new DescriptiveStatistics(scores1);
+        DescriptiveStatistics ds2 = new DescriptiveStatistics(scores2);
+
+        double mean1 = ds1.getMean();
+        double mean2 = ds2.getMean();
+
+        double meanDifference = mean2 - mean1;
+        double percentageImprovement = percentageImprovement(mean1, mean2);
+        double tStat = performTStatTest(scores1, scores2);
+
+        double stdDev1 = ds1.getStandardDeviation();//calculateStandardDeviation(scores1);
+        double stdDev2 = ds2.getStandardDeviation();//calculateStandardDeviation(scores2);
+
+        double stdDevDifference = stdDev1 - stdDev2;
+        double pValue = performTTest(scores1, scores2);
+        if (tStat < 0) {
+            pValue *= -1.0;
+        }
+
+        // Assuming the possible range for these metrics is between -200 and 200 for normalization purposes.
+        // Adjust these ranges based on your specific use case.
+        double normMeanDiff = logScaleNormalize(meanDifference, Math.E);
+        double normPercentageImprovement = logScaleNormalize(percentageImprovement, Math.E);
+        double normStdDevDiff = logScaleNormalize(stdDevDifference, Math.E);
+        double normTStat = logScaleNormalize(tStat, Math.E);
+        double normPValue = logScaleNormalize((1.0 - pValue), Math.E); // Inverting p-value for interpretation
+
+        double dataSizeEffect = calculateCohensD(scores1, scores2);//
+
+        double finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat + dataSizeEffect) / 6.0;
+
+        if (percentageImprovement < 0 && finalScore > 0) {
+            finalScore *= -1.0;
+        }
+        return new double[]{percentageImprovement, tStat, pValue, dataSizeEffect, finalScore, 0};
+    }
+
+    public double[] calculateFinalScore(Double[] scores1, Double[] scores2) {
+        double[] s1 = new double[scores1.length];
+        for (int i = 0; i < s1.length; i++) {
+            s1[i] = scores1[i];
+        }
+        double[] s2 = new double[scores2.length];
+        for (int i = 0; i < s2.length; i++) {
+            s2[i] = scores2[i];
+        }
+        return this.calculateFinalScore(s1, s2);
     }
 
     public static void main(String[] args) {
-        double[] scores1 = {91.0, 89.0, 95.0, 87.0, 93.5, 90.0};
-        double[] scores2 = {91.5, 91.0, 95.5, 88.0, 94.5, 91.0};
+        double[] scores2 = {91.0, 89.0, 95.0, 87.0, 93.5, 90.0};
+        double[] scores1 = {91.5, 91.0, 95.5, 88.0, 94.5, 91.0};
 
         ScoreComparison sc = new ScoreComparison();
-        double finalScore = sc.calculateFinalScore(scores1, scores2);
+        double finalScore = sc.calculateFinalScore(scores1, scores2)[4];
 
-        System.out.println("Final Score: " + finalScore);
+        System.out.println("Final Score: " + finalScore + "  " + sc.dataSizeEffect(scores1.length, scores2.length));
 
 //         Interpretation
         if (finalScore > 0.75) {
@@ -107,4 +204,60 @@ public class ScoreComparison {
         }
 
     }
+
+    public double calculateCohensD(double[] from, double[] to) {
+        double mean1 = Arrays.stream(from).average().orElse(0.0);
+        double mean2 = Arrays.stream(to).average().orElse(0.0);
+        double variance1 = Arrays.stream(from).map(x -> Math.pow(x - mean1, 2)).sum() / (from.length - 1);
+        double variance2 = Arrays.stream(to).map(x -> Math.pow(x - mean2, 2)).sum() / (to.length - 1);
+        double pooledStdDev = Math.sqrt(((from.length - 1) * variance1 + (to.length - 1) * variance2) / (from.length + to.length - 2));
+
+        return (mean2 - mean1) / pooledStdDev;
+    }
+
+    public List<Double> getElementsLargerThanParallel(double[] array, double specificValue) {
+        // Use parallel streams to filter and collect the elements
+        return Arrays.stream(array)
+                .parallel()
+                .filter(value -> value > specificValue)
+                .boxed()
+                .collect(Collectors.toList());
+    }
+
+    public double calculateRankBiserialCorrelation(double[] from, double[] to) {
+        int n1 = from.length;
+        int n2 = to.length;
+        double[] combined = new double[n1 + n2];
+        System.arraycopy(from, 0, combined, 0, n1);
+        System.arraycopy(to, 0, combined, n1, n2);
+        Arrays.sort(combined);
+
+        double rankSum1 = 0;
+        for (double value : from) {
+            rankSum1 += Arrays.binarySearch(combined, value) + 1;  // Adding 1 for rank (1-based index)
+        }
+
+        double u1 = rankSum1 - n1 * (n1 + 1) / 2.0;
+        double u2 = n1 * n2 - u1;
+        double u = Math.min(u1, u2);
+        double value = 1 - (2 * u) / (n1 * n2);
+        if (from.length > to.length) {
+            value *= -1.0;
+        }
+        return value;
+    }
+
+    public List<Double> removeOutliers(DescriptiveStatistics stats, double zScoreThreshold) {
+        // Compute mean and standard deviation
+
+        double mean = stats.getMean();
+        double standardDeviation = stats.getStandardDeviation();
+
+        // Filter out outliers
+        return Arrays.stream(stats.getSortedValues())
+                .filter(value -> Math.abs((value - mean) / standardDeviation) <= zScoreThreshold)
+                .boxed()
+                .collect(Collectors.toList());
+    }
+
 }

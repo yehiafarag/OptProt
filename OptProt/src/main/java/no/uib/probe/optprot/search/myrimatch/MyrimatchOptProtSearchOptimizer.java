@@ -30,7 +30,7 @@ import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.search.DefaultOptProtSearchOptimizer;
 import no.uib.probe.optprot.search.SearchExecuter;
 import no.uib.probe.optprot.util.MainUtilities;
-import no.uib.probe.optprot.util.SpectraFileUtilities;
+import no.uib.probe.optprot.util.SpectraUtilities;
 
 /**
  *
@@ -110,23 +110,23 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
             if (param.equalsIgnoreCase("DigestionParameter_1") && searchInputSetting.isOptimizeDigestionParameter()) {
                 optimisedSearchResults.setDigestionParameter("enzyme");
-                String value = this.optimizeEnzymeParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
-                optimisedSearchResults.setEnzymeName(value);
-                if (!value.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
-                    int nMissesCleavages = identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(value);
+                String[] values = this.optimizeEnzymeParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
+                optimisedSearchResults.setEnzymeName(values[0]);
+                if (!values[0].equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName())) {
+                    int nMissesCleavages = identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(values[0]);
                     identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
-                    identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(value));
-                    identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(value, nMissesCleavages);
+                    identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(values[0]));
+                    identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], nMissesCleavages);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
                 }
                 if (optProtDataset.getIdentificationRate() < 10) {
-                    value = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
-                    if (!value.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()).name())) {
-                        identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(value));
+                    values[0] = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
+                    if (!values[0].equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()).name())) {
+                        identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(values[0]));
                         IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
                     }
 
-                    digestionParameterOpt = this.optimizeDigestionParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
+                    digestionParameterOpt = this.optimizeDigestionCleavageParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
                 }
                 continue;
 
@@ -164,7 +164,7 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
                 }
                 if (optProtDataset.getIdentificationRate() < 10) {
-                    digestionParameterOpt = this.optimizeDigestionParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
+                    digestionParameterOpt = this.optimizeDigestionCleavageParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
                 }
                 continue;
 
@@ -242,7 +242,7 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
 //                    System.out.println("optimizeMaxMissCleavagesParameter " + value + "------------------------------------------------------------------------->>> 6 id rate " + optProtDataset.getActiveIdentificationNum());
 //                }
 //                
-//                digestionParameterOpt = this.optimizeDigestionParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
+//                digestionParameterOpt = this.optimizeDigestionCleavageParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
 //                
 //            }
 //              if (param.equalsIgnoreCase("DigestionParameter_3") && searchInputSetting.isOptimizeDigestionParameter()) {
@@ -467,8 +467,8 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
             return new RawScoreModel();
         }
         File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchSettings, optProtDataset.getSubMsFile(), optProtDataset.getSubFastaFile(), tempIdParam, identificationParametersFile);
-        List<SpectrumMatch> validatedMaches = SpectraFileUtilities.getValidatedIdentificationResults(resultOutput, optProtDataset.getSubMsFile(), Advocate.myriMatch, tempIdParam);
-        RawScoreModel rawScore = SpectraFileUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.myriMatch, pairData);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
+        List<SpectrumMatch> validatedMaches = SpectraUtilities.getValidatedIdentificationResults(resultOutput, optProtDataset.getSubMsFile(), Advocate.myriMatch, tempIdParam);
+        RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.myriMatch, pairData, addSpectraList);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
         MainUtilities.deleteFolder(resultOutput);
         if (addSpectraList && rawScore.isSignificatChange()) {
             rawScore.setSpectrumMatchResult(validatedMaches);
