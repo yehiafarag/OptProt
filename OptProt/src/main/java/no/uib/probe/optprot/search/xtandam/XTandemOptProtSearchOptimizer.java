@@ -24,8 +24,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.dataset.model.SearchingSubDataset;
 import no.uib.probe.optprot.model.OptimisedSearchResults;
@@ -97,8 +95,8 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
     }
 
     private String digestionParameterOpt;
-    private RawScoreModel digestionParameterScore;
     private boolean simiEnzymaticCleavage = false;
+    private String enzymeSpecificityOpt = "specific";
 
     public void startProcess(List<String> paramOrder) throws IOException {
         digestionParameterOpt = identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name();
@@ -106,18 +104,20 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         for (String param : paramOrder) {
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
             if (param.equalsIgnoreCase("DigestionParameter_1") && searchInputSetting.isOptimizeDigestionParameter()) {
-
-//               if (digestionParameterOpt.equalsIgnoreCase("enzyme")) {
                 String[] values = this.optimizeEnzymeParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
                 identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
                 if (!values[0].equalsIgnoreCase("")) {
                     optimisedSearchResults.setEnzymeName(values[0]);
                     int nMissesCleavages = Integer.parseInt(values[2]);// identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(value);                   
                     identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(values[0]));
-                    identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(values[0], DigestionParameters.Specificity.valueOf(values[1]));
+                    enzymeSpecificityOpt = values[1];
+//                    identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(values[0], DigestionParameters.Specificity.valueOf(values[1]));
                     identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], nMissesCleavages);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
+                continue;
+            }
+            if (param.equalsIgnoreCase("DigestionTypeParameter") && searchInputSetting.isOptimizeDigestionParameter()) {
                 digestionParameterOpt = this.optimizeDigestionCleavageParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
                 searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
                 continue;
@@ -169,7 +169,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             }
 
             if (param.equalsIgnoreCase("XtandemAdvancedParameter") && searchInputSetting.isOptimizeXtandemAdvancedParameter()) {
-//                advancedParam = true;
                 XtandemParameters xtandemParameters = (XtandemParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
                 useRefinment = optimizeUseRefine(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemUseRefine"));
                 if (useRefinment != xtandemParameters.isRefine()) {
@@ -178,6 +177,14 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 if (!useRefinment) {
                     System.out.println("disable second stage");
 
+                }
+                boolean bvalue = optimizeQuickAcetyl(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemQuickAcetyl"));
+                if (bvalue) {
+                    xtandemParameters.setProteinQuickAcetyl(bvalue);
+                }
+                bvalue = optimizeQuickPyrolidone(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemQuickPyrolidone"));
+                if (bvalue) {
+                    xtandemParameters.setQuickPyrolidone(bvalue);
                 }
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 
@@ -203,14 +210,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 boolean bvalue = optimizeParentIsotopExpansion(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemParentIsotopExpansion"));
                 if (bvalue != xtandemParameters.getParentMonoisotopicMassIsotopeError()) {
                     xtandemParameters.setParentMonoisotopicMassIsotopeError(bvalue);//                  
-                }
-                bvalue = optimizeQuickAcetyl(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemQuickAcetyl"));
-                if (bvalue) {
-                    xtandemParameters.setProteinQuickAcetyl(bvalue);
-                }
-                bvalue = optimizeQuickPyrolidone(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemQuickPyrolidone"));
-                if (bvalue) {
-                    xtandemParameters.setQuickPyrolidone(bvalue);
                 }
 
                 bvalue = optimizeRefineUnanticipatedCleavage(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemUnanticipatedCleavage"));
@@ -249,7 +248,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
-//                
                 for (String fixedMod : modificationsResults.get("fixedModifications")) {
                     if (ptmFactory.getModification(fixedMod) != null) {
                         identificationParameters.getSearchParameters().getModificationParameters().addFixedModification(ptmFactory.getModification(fixedMod));
@@ -266,46 +264,44 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 continue;
             }
             if (param.equalsIgnoreCase("XtandemAdvancedParameter_B") && searchInputSetting.isOptimizeXtandemAdvancedParameter()) {
-//                advancedParam = true;
+
                 XtandemParameters xtandemParameters = (XtandemParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
 
                 double dvalue = optimizeSpectrumDynamicRange(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemSpectrumDynamicRange"));
                 if (dvalue != xtandemParameters.getDynamicRange()) {
                     xtandemParameters.setDynamicRange(dvalue);
-                }//                
-//                
+                }
                 boolean bvalue = optimizePotintialModification(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemPotintialModification"));
                 if (bvalue) {
                     xtandemParameters.setPotentialModificationsForFullRefinment(bvalue);
+                    Set<String> refVM = this.optimizeRefinVariableMod(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemRefVarPTM"));
+                    identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
+                    for (String mod : refVM) {
+                        identificationParameters.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(mod));
+                    }
                 }
                 bvalue = optimizeRefinePointMutations(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemPointMutations"));
                 if (bvalue) {
                     xtandemParameters.setRefinePointMutations(bvalue);
                 }
 
-                Set<String> refVM = this.optimizeRefinVariableMod(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemRefVarPTM"));
-                identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
-                for (String mod : refVM) {
-                    identificationParameters.getSearchParameters().getModificationParameters().addRefinementVariableModification(ptmFactory.getModification(mod));
-                }
-
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 //              
-                continue;
+//                continue;
             }
-            if (param.equalsIgnoreCase("PrecursorToleranceParameter") && searchInputSetting.isOptimizePrecursorToleranceParameter()) {
-
-                double value = this.optimizePrecursorToleranceParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("PrecursorToleranceParameter"));
-                if (value != identificationParameters.getSearchParameters().getPrecursorAccuracy()) {
-                    identificationParameters.getSearchParameters().setPrecursorAccuracy(value);
-                    if (value > 1) {
-                        identificationParameters.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.PPM);
-                    } else {
-                        identificationParameters.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.DA);
-                    }
-                    IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
-                }
-            }
+//            if (param.equalsIgnoreCase("PrecursorToleranceParameter") && searchInputSetting.isOptimizePrecursorToleranceParameter()) {
+//
+//                double value = this.optimizePrecursorToleranceParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("PrecursorToleranceParameter"));
+//                if (value != identificationParameters.getSearchParameters().getPrecursorAccuracy()) {
+//                    identificationParameters.getSearchParameters().setPrecursorAccuracy(value);
+//                    if (value > 1) {
+//                        identificationParameters.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.PPM);
+//                    } else {
+//                        identificationParameters.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.DA);
+//                    }
+//                    IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
+//                }
+//            }
         }
 
         if (!digestionParameterOpt.equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name())) {
@@ -320,6 +316,12 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 
         }
+        if (!enzymeSpecificityOpt.equalsIgnoreCase("specific")) {
+
+            identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(enzymeSpecificityOpt));
+            IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
+
+        }
 
         for (String key
                 : parameterScoreMap.keySet()) {
@@ -327,7 +329,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         }
 
     }
-    //    private boolean advancedParam = true;
     private boolean useRefinment = false;
 
     @Override
@@ -339,6 +340,20 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         if (defaultOutputFileName.contains("_resultsf_Carbamilation of protein N-term") || defaultOutputFileName.contains("resultsf_Acetylation of protein N-term")) {
             return new RawScoreModel();
         }
+
+        if (paramOption.contains("Pyrolidone from")) {
+            XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
+            if (xtandemParameters.isQuickPyrolidone()) {
+                return new RawScoreModel();
+            }
+        }
+        if (paramOption.contains("Acetylation of protein N-term")) {
+            XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
+            if (xtandemParameters.isProteinQuickAcetyl()) {
+                return new RawScoreModel();
+            }
+        }
+
         Future<File> f = MainUtilities.getLongExecutorService().submit(() -> {
             File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchSettings, optProtDataset.getSubMsFile(), optProtDataset.getSubFastaFile(), tempIdParam, identificationParametersFile);
             return resultOutput;
@@ -362,17 +377,13 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         return (rawScore);
 
     }
-//
 
     public double optimizeSpectrumDynamicRange(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("spectrumDR");
         Map<Double, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-//         xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         int spectraCounter = (int) Math.round(optProtDataset.getActiveIdentificationNum() * 1.01);
-//        IdentificationParameters tempIdParam = oreginaltempIdParam;//IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         double selectedOption = xtandemParameters.getDynamicRange();
         for (double i = 60.0; i < 220;) {
@@ -401,9 +412,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     resultsMap.put(j, scoreModel);
 
                 }
-//                else if (!scoreModel.isSensitiveChange() && !scoreModel.isSameData() && scoreModel.getImprovmentScore() != -100) {
-////                    break;
-//                }
+
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
             }
@@ -418,7 +427,10 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = sortedResultsMap.firstEntry().getValue();
+            double impact = Math.round((double) (resultsMap.get(selectedOption).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+            paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey());
+
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
@@ -431,7 +443,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         paramScore.setParamId("peaksNum");
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
-//        IdentificationParameters tempIdParam = oreginaltempIdParam;//IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         Integer selectedOption = xtandemParameters.getnPeaks();
         double topScore = 0;
@@ -460,8 +471,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     topScore = scoreModel.getFinalScore();
                     resultsMap.put(j + "", scoreModel);
 
-                }
-                else if (!scoreModel.isSensitiveChange() && !scoreModel.isSameData() && scoreModel.getImprovmentScore() != -100 && topScore > 0) {
+                } else if (!scoreModel.isSensitiveChange() && !scoreModel.isSameData() && scoreModel.getImprovmentScore() != -100 && topScore > 0) {
                     break;
                 }
 
@@ -472,8 +482,9 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         }
         xtandemParameters.setnPeaks(selectedOption);
         if (!resultsMap.isEmpty()) {
-
             selectedOption = Integer.valueOf(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber()));
+            double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+            paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
@@ -510,16 +521,9 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 RawScoreModel scoreModel = f.get();
                 System.out.println("minimumFragmentMz_ " + scoreModel + "   " + spectraCounter + "  ");
                 if (scoreModel.isSensitiveChange()) {
-//                    if (scoreModel.getSpectrumMatchResult().size() < spectraCounter) {
-//                        break;
-//                    }
-//                    spectraCounter = Math.max(spectraCounter, scoreModel.getSpectrumMatchResult().size());
                     resultsMap.put(j + "", scoreModel);
 
                 }
-//                else if (!scoreModel.isSensitiveChange() && !scoreModel.isSameData() && scoreModel.getImprovmentScore() != -100 && spectraCounter > 0) {
-//                    break;
-//                }
 
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
@@ -528,22 +532,12 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         }
 
         if (!resultsMap.isEmpty()) {
-//            TreeSet<Double> sorter = new TreeSet<>(resultsMap.keySet());
-//            selectedOption = sorter.last();
-            System.out.println("compare score set?? ");
             selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber()));
-            System.out.println("compare score set?? " + selectedOption);
+            double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+            paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
         }
-//        TreeMap<RawScoreModel, Double> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        xtandemParameters.setMinFragmentMz(selectedOption);
-//        if (!resultsMap.isEmpty()) {
-//            for (double option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue();
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey().getData());
-//        }
+
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
         parameterScoreSet.add(paramScore);
@@ -593,6 +587,8 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         if (!resultsMap.isEmpty()) {
             TreeSet<Integer> sorter = new TreeSet<>(resultsMap.keySet());
             selectedOption = sorter.last();
+            double impact = Math.round((double) (resultsMap.get(selectedOption).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+            paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption));
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
@@ -662,6 +658,8 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 sortedResultsMap.put(resultsMap.get(option2), option2);
             }
             selectedOption2 = sortedResultsMap.firstEntry().getValue();
+            double impact = Math.round((double) (resultsMap.get(selectedOption2).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+            paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey());
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
@@ -711,6 +709,8 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
+            double impact = Math.round((double) (resultsMap.get(1).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+            paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey());
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
@@ -718,15 +718,13 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         parameterScoreSet.add(paramScore);
         return selectedOption;
     }
-    ////
-    //
 
     public boolean optimizeQuickAcetyl(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("QuickAcetyl");
         Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
+        System.out.println("is refine " + xtandemParameters.isRefine());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         boolean selectedOption = xtandemParameters.isProteinQuickAcetyl();
 
@@ -741,13 +739,12 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             final int j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, false);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
-
+                System.out.println("QuickAccetyle " + scoreModel);
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }
@@ -757,13 +754,13 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
 
         }
         xtandemParameters.setProteinQuickAcetyl(selectedOption);
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
         if (!resultsMap.isEmpty()) {
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 
@@ -774,17 +771,15 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         parameterScoreSet.add(paramScore);
         return selectedOption;
     }
-//
 
     public boolean optimizeQuickPyrolidone(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("QuickPyrolidone");
         Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         boolean selectedOption = xtandemParameters.isQuickPyrolidone();
-
+        System.out.println("use quick pyro " + xtandemParameters.isProteinQuickAcetyl() + "   " + xtandemParameters.isRefine());
         for (int i = 0; i < 2; i++) {
             boolean useQuickPyrolidone = (i == 1);
             if (useQuickPyrolidone == selectedOption) {
@@ -816,35 +811,24 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 
         }
 
-//        
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (int option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey().getData());
-//        }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
         parameterScoreSet.add(paramScore);
         return selectedOption;
     }
-////
-//
 
     public boolean optimizeStPBias(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("StpBias");
         Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         boolean selectedOption = xtandemParameters.isStpBias();
@@ -878,21 +862,14 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 
         }
 
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (int option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
-////            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey().getData());
-//        }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
         parameterScoreSet.add(paramScore);
@@ -916,6 +893,8 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         });
         try {
             RawScoreModel scoreModel = f.get();
+            double impact = Math.round((double) (scoreModel.getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+            paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(scoreModel);
             selectedOption = true;
             paramScore.setScore(scoreModel.getSpectrumMatchResult().size());
@@ -935,7 +914,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         TreeMap<RawScoreModel, String> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
 
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         Map<String, RawScoreModel> twoDResultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         Map<String, RawScoreModel> threeDResultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -946,8 +924,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
 
         MainUtilities.cleanOutputFolder();
         paramScore.setParamId("refineVariableModifications");//    
-//        Set<String> potintialVariableMod = optProtDataset.getPotintialVariableMod();
-//        if (potintialVariableMod == null) {
+
         Set<String> potintialVariableMod = new LinkedHashSet<>(oreginaltempIdParam.getSearchParameters().getModificationParameters().getVariableModifications());
 //        }
         for (String vMod : potintialVariableMod) {
@@ -1114,9 +1091,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("UnanticipatedCleavages");
         Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         boolean selectedOption = xtandemParameters.isRefineUnanticipatedCleavages();
         MainUtilities.resetExecutorService();
@@ -1138,6 +1113,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             try {
 
                 RawScoreModel scoreModel = f.get();
+                System.out.println("XtandemUnanticipatedCleavage " + scoreModel);
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }
@@ -1149,29 +1125,19 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 
         }
 
-//        xtandemParameters.setRefineUnanticipatedCleavages(selectedOption);
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (int option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey());
-//        }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
         parameterScoreSet.add(paramScore);
         return selectedOption;
     }
-////
-//
 
     public boolean optimizeRefineSimiEnzymaticCleavage(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
@@ -1207,39 +1173,29 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             }
         }
         xtandemParameters.setRefineSemi(selectedOption);
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (int option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey().getData());
-//        }
-//        paramScore.setScore(optProtDataset.getActiveIdentificationNum());
-//        paramScore.setParamValue(selectedOption + "");
-//        parameterScoreSet.add(paramScore);
+
         if (!resultsMap.isEmpty()) {
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 
         }
-
+        paramScore.setScore(optProtDataset.getActiveIdentificationNum());
+        paramScore.setParamValue(selectedOption + "");
+        parameterScoreSet.add(paramScore);
         return selectedOption;
 
     }
-////
-//
 
     public boolean optimizePotintialModification(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("PotintialModification");
         Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         xtandemParameters.setRefine(true);
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
@@ -1270,40 +1226,32 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             }
             MainUtilities.resetExecutorService();
         }
+
         xtandemParameters.setPotentialModificationsForFullRefinment(selectedOption);
         if (!resultsMap.isEmpty()) {
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 
         }
 
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (int option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey().getData());
-//        }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
+
         parameterScoreSet.add(paramScore);
         return selectedOption;
 
     }
-////
-//
 
     public boolean optimizeRefinePointMutations(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("PointMutations");
         Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         xtandemParameters.setRefine(true);
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
@@ -1326,7 +1274,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             try {
                 RawScoreModel scoreModel = f.get();
                 System.out.println(optProtDataset.getActiveIdentificationNum() + " - use point mutation " + scoreModel);
-                if (scoreModel.isSignificatChange()) {
+                if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -1338,21 +1286,15 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 
         }
 
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (int option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey().getData());
-//        }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
         parameterScoreSet.add(paramScore);
@@ -1396,21 +1338,14 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 
         }
 
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (int option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey().getData());
-//        }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
         parameterScoreSet.add(paramScore);
@@ -1451,20 +1386,15 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             }
         }
         xtandemParameters.setRefineSpectrumSynthesis(selectedOption);
-//        TreeMap<RawScoreModel, Integer> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (int option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue() == 1;
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey());
-//        }
+
         if (!resultsMap.isEmpty()) {
             boolean use = selectedOption;
             for (int option : resultsMap.keySet()) {
                 use = (option == 1);
+
+                double impact = Math.round((double) (resultsMap.get(option).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMap.get(option));
-//                sortedResultsMap.put(resultsMap.get(option), option);
             }
             selectedOption = use;
 

@@ -77,6 +77,7 @@ public class SearchingSubDataset {
 
     public void setActiveScoreModel(RawScoreModel scoreModel) {
         this.currentScoreModel = scoreModel;
+        this.updateValidatedIdRefrenceData(currentScoreModel.getSpectrumMatchResult());
     }
 
     public void updateValidatedIdRefrenceData(List<SpectrumMatch> validatedIdRefrenceData) {

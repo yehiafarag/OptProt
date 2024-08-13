@@ -138,12 +138,12 @@ public class OptProtDatasetHandler {
                 } else {
                     left = Configurations.EXTRACT_MAX_MS_SIZE;
                     subSize = SpectraUtilities.scaleSubsetSize(spectrumTitles.length);
-                    System.out.println("at subsetSize " + subSize);
+                  
                     step = (int) Math.round((double) spectrumTitles.length / (double) subSize);
                     quartileRatios = this.getQuartileRatios(msFile, msFileHandler, 0, step, spectrumTitles.length, fastaFile, identificationParameters);
                 }
                 startIndex = 0;
-
+  System.out.println("at subsetSize " + subSize);
                 int Q_1_4_coverageSize = (int) Math.round((double) spectrumTitles.length / 4.0);
                 lastIndex = startIndex + Q_1_4_coverageSize;
                 if (wholeDataTest) {

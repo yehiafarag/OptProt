@@ -120,7 +120,7 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);
                 }
                 if (optProtDataset.getIdentificationRate() < 10) {
-                    values[0] = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
+//                    values[0] = this.optimizeSpecificityParameter(optProtDataset, identificationParametersFile, searchInputSetting, parameterScoreMap.get("SpecificityParameter"));
                     if (!values[0].equalsIgnoreCase(identificationParameters.getSearchParameters().getDigestionParameters().getSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName()).name())) {
                         identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(values[0]));
                         IdentificationParameters.saveIdentificationParameters(identificationParameters, identificationParametersFile);

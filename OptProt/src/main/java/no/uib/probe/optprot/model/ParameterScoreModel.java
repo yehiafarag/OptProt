@@ -15,6 +15,7 @@ public class ParameterScoreModel implements Comparable<ParameterScoreModel> {
     private int paramIdentAdditive;
     private double delayTime;
     private Double score;
+    private double impact;
     private String comments;
     private long start;
     private long end;
@@ -81,7 +82,7 @@ public class ParameterScoreModel implements Comparable<ParameterScoreModel> {
 
     @Override
     public String toString() {
-        return "Parameter: " + paramId + "  value: " + paramValue + "  delay:" + delayTime + " sec  score: " + score;
+        return "Parameter: " + paramId + "  value: " + paramValue + "  delay:" + delayTime + " sec  score: " + score + "  impact: " + impact+" %";
     }
 
     public RawScoreModel getRawScoreModel() {
@@ -90,6 +91,14 @@ public class ParameterScoreModel implements Comparable<ParameterScoreModel> {
 
     public void setRawScoreModel(RawScoreModel rawScoreModel) {
         this.rawScoreModel = rawScoreModel;
+    }
+
+    public double getImpact() {
+        return impact;
+    }
+
+    public void setImpact(double impact) {
+        this.impact = impact*100.0;
     }
 
 }

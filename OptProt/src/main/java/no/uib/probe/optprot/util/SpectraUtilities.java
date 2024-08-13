@@ -28,6 +28,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -898,16 +899,14 @@ public class SpectraUtilities {
 
     public static RawScoreModel getComparableRawScore(SearchingSubDataset optProtDataset, List<SpectrumMatch> matches, Advocate searchEngine, boolean pairData, boolean addData) {
 
-//        double[] data = new double[matches.size()];
-//        int index = 0;
         List<Double> sharedToData = new ArrayList<>();
         List<Double> sharedFromData = new ArrayList<>();
         List<Double> onlyFromData = new ArrayList<>();
-        Set<Double> sortedSharedFromData = new TreeSet<>();
         List<Double> onlyToData = new ArrayList<>();
         Map<String, Double> matchScores = new HashMap<>();
 
         RawScoreModel rawScore = new RawScoreModel();
+        rawScore.setFullSpectraSize(optProtDataset.getTotalSpectraNumber());
         if (searchEngine.getIndex() == Advocate.xtandem.getIndex()) {
             for (SpectrumMatch sm : matches) {
                 for (PeptideAssumption peptideAssumtion : sm.getAllPeptideAssumptions().toList()) {
@@ -916,7 +915,6 @@ public class SpectraUtilities {
                     }
                     sm.setBestPeptideAssumption(peptideAssumtion);
                     matchScores.put(sm.getSpectrumTitle(), peptideAssumtion.getRawScore());
-//                    data[index++] = peptideAssumtion.getRawScore();
                     break;
                 }
             }
@@ -927,10 +925,8 @@ public class SpectraUtilities {
                     if (peptideAssumtion.getRank() != 1) {
                         continue;
                     }
-//                    double score = -Math.log(peptideAssumtion.getScore());
                     sm.setBestPeptideAssumption(peptideAssumtion);
                     matchScores.put(sm.getSpectrumTitle(), peptideAssumtion.getRawScore());
-//                    data[index++] = score;
                     break;
                 }
             }
@@ -940,10 +936,8 @@ public class SpectraUtilities {
                     if (peptideAssumtion.getRank() != 1) {
                         continue;
                     }
-//                    double score = peptideAssumtion.getRawScore();
                     sm.setBestPeptideAssumption(peptideAssumtion);
                     matchScores.put(sm.getSpectrumTitle(), peptideAssumtion.getRawScore());
-//                    data[index++] = score;
                     break;
                 }
             }
@@ -964,6 +958,12 @@ public class SpectraUtilities {
                 onlyFromData.add(fromScore);
             }
         }
+        if (sharedFromData.isEmpty() && matches.size() < ((double) onlyFromData.size() * 0.2)) {
+            rawScore.setTotalNumber(matches.size());
+            rawScore.setFinalScore(-10);
+            return rawScore;
+        }
+
         Collections.sort(sharedFromData);
         //devide the TODATA data into 3 category         
 
@@ -971,29 +971,38 @@ public class SpectraUtilities {
         double[] toSharedData = sharedToData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] fromOnlyData = onlyFromData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] toOnlyData = onlyToData.stream().mapToDouble(Double::doubleValue).toArray();
-        double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData, false);
-        ScoreComparison sc = new ScoreComparison();
-        double compScore = sc.calculateScore(toSharedData, toOnlyData);
-        double ratio = ((double) onlyToData.size() / optProtDataset.getTotalSpectraNumber());
 
-        double extra = sc.calculateScore(fromSharedData, toSharedData);
+        double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData);
+//        ScoreComparison sc = new ScoreComparison();
+        double ratio = Math.max(onlyToData.size(), onlyToData.size()) / optProtDataset.getTotalSpectraNumber();
+//        double compScore = sc.calculateScore(toSharedData, toOnlyData);
+//        if (((double) onlyToData.size() / matches.size()) <= 0.05 && compScore < 0) {
+////            compScore = 0;
+//        }
+
+        double score2;
+        if (onlyFromData.size() == onlyToData.size()) {
+            score2 = SpectraUtilities.compareData(fromOnlyData, toOnlyData)[4];
+        } else {
+            score2 = SpectraUtilities.compareUnPairedData(fromOnlyData, toOnlyData, sharedToData);
+        }
+
         double fs1 = improved1[4];//* (1.0 - ratio);
-        double fs2 = compScore * ratio;
+        double fs2 = score2 * ratio;
         double fs = fs1 + fs2;
         rawScore.setTotalNumber(matches.size());
         rawScore.setFinalScore(fs);
-        System.out.println("total output from " + (onlyFromData.size() + toSharedData.length) + "  to " + matches.size());
-        System.out.println("at shared data (" + sharedToData.size() + ") score " + improved1[4] + "  " + fs1 + " " + (1.0 - ratio));
-        System.out.println("at toOnly data (" + toOnlyData.length + ") score " + compScore + "  " + fs2 + " " + ratio);
-        System.out.println("comparing unshared un pair rest of data fromOnlyData:" + fromOnlyData.length + "   toOnly:" + toOnlyData.length + "   shared " + sharedFromData.size() + "   score:" + fs);
-        System.out.println(extra + "  ---  scores :  " + fs1 + "  -   " + fs2 + "   -   " + fs + "   " + optProtDataset.getComparisonsThreshold());
-        rawScore.setSameData(fs == 0);
+        rawScore.setSameData(rawScore.getFinalScore() == 0.0 && matches.size() == ((onlyFromData.size() + toSharedData.length)));
         boolean accepted = rawScore.getFinalScore() >= optProtDataset.getComparisonsThreshold();
         rawScore.setSignificatChange(accepted);
-        rawScore.setSensitiveChange(rawScore.getFinalScore() > 0);
+        rawScore.setSensitiveChange(rawScore.getFinalScore() > 0 || (rawScore.getFinalScore() >= -0.05 && matches.size() > ((onlyFromData.size() + toSharedData.length))));
         if (rawScore.isSignificatChange() || rawScore.isSensitiveChange() || rawScore.isSameData() || addData) {
             rawScore.setSpectrumMatchResult(matches);
         }
+        System.out.println("comp score is " + score2 + "  ratio " + ratio + "  vs score 2  " + score2);
+        System.out.println("total output from " + (onlyFromData.size() + toSharedData.length) + "  to " + matches.size());
+        System.out.println("comparing unshared un pair rest of data fromOnlyData:" + "   toOnly:" + toOnlyData.length + "   shared " + sharedFromData.size() + "   score:" + fs);
+        System.out.println("  ---  scores :  " + fs1 + "  -   " + fs2 + "   -   " + fs + "   " + optProtDataset.getComparisonsThreshold());
         System.out.println("Score model " + rawScore);
         return rawScore;
 
@@ -1205,11 +1214,18 @@ public class SpectraUtilities {
                     continue;
                 }
                 double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber);
-                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore() + "  ");
-                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
-                if (key1Better > 0 || Double.isNaN(key1Better)) {
+                double roundScore=  Math.round(key1Better * 100.0) / 100.0 ;
+//                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore() + " Math.round(key1Better * 100.0) / 100.0  "+roundScore);
+//                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
+                if ((key1Better > 0 && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())) || Double.isNaN(key1Better)) {
+
                     topScoreSet.remove(rs2Key);
-                } else {
+                }
+                else if (Math.round(key1Better * 100.0) / 100.0 >= -0.05 && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())) {
+
+                    topScoreSet.remove(rs2Key);
+                } 
+                else {
                     topScoreSet.remove(rs1Key);
                     break;
                 }
@@ -1217,6 +1233,9 @@ public class SpectraUtilities {
         }
         if (topScoreSet.size() > 1) {
             System.out.println("error should be only oine value " + topScoreSet);
+        } else if (topScoreSet.isEmpty()) {
+            System.out.println("error should be only oine value " + topScoreSet);
+            return "";
         }
         String topSelection = topScoreSet.get(0);
 
@@ -1227,15 +1246,27 @@ public class SpectraUtilities {
         List<Double> sharedToData = new ArrayList<>();
         List<Double> sharedFromData = new ArrayList<>();
         List<Double> onlyToData = new ArrayList<>();
+        List<Double> onlyFromData = new ArrayList<>();
         Map<String, Double> fullMatchScores = new HashMap<>();
         Map<String, Double> toMatchScores = new HashMap<>();
-        for (SpectrumMatch sm : toData) {
+        if (fromData == null && toData != null) {
+            return 1;
+        }
+        if (fromData != null && toData == null) {
+            return -1;
+        }
+        if (fromData == null && toData == null) {
+            return -1;
+        }
+        toData.stream().map(sm -> {
             fullMatchScores.put(sm.getSpectrumTitle(), 0.0);
+            return sm;
+        }).forEachOrdered(sm -> {
             toMatchScores.put(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
-        }
-        for (SpectrumMatch sm : fromData) {
+        });
+        fromData.forEach(sm -> {
             fullMatchScores.put(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
-        }
+        });
 
         for (String titile : fullMatchScores.keySet()) {
             double fromScore = fullMatchScores.get(titile);
@@ -1247,59 +1278,52 @@ public class SpectraUtilities {
                 } else {
                     onlyToData.add(toScore);
                 }
-            } 
+            } else if (fromScore > 0) {
+                onlyFromData.add(fromScore);
+            }
         }
 
         Collections.sort(sharedFromData);
+        System.out.println("at total score is better is " + "  " + onlyFromData.size() + " - " + sharedToData.size() + " - " + onlyToData.size());
         //devide the TODATA data into 3 category         
         double[] fromSharedData = sharedFromData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] toSharedData = sharedToData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] toOnlyData = onlyToData.stream().mapToDouble(Double::doubleValue).toArray();
-        double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData, false);
+        double[] fromOnlyData = onlyFromData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData);
+        double score2;
+        if (onlyFromData.size() == onlyToData.size()) {
+            score2 = SpectraUtilities.compareData(fromOnlyData, toOnlyData)[4];
+        } else {
+            score2 = SpectraUtilities.compareUnPairedData(fromOnlyData, toOnlyData, sharedToData);
+        }
+
         ScoreComparison sc = new ScoreComparison();
         double compScore = sc.calculateScore(toSharedData, toOnlyData);
+
+        System.out.println("score 2 " + score2 + "  vs " + compScore);
         double ratio = ((double) onlyToData.size() / totalSpeNumber);
         double fs1 = improved1[4];//* (1.0 - ratio);
-        double fs2 = compScore * ratio;
+        double fs2 = score2 * ratio;
         double fs = fs1 + fs2;
         return fs;
 
     }
 
-    public static double[] compareData(Double[] fromData, Double[] toData, boolean pairData) {
+    public static double[] compareData(double[] fromData, double[] toData) {
         ScoreComparison sc = new ScoreComparison();
-        if (pairData) {
-            if (toData.length > fromData.length) {
-                Double[] updatedData = new Double[toData.length];
-                System.arraycopy(fromData, 0, updatedData, 0, fromData.length);
-                fromData = updatedData;
-            } else if (toData.length < fromData.length) {
-                Double[] updatedData = new Double[fromData.length];
-                System.arraycopy(toData, 0, updatedData, 0, toData.length);
-                toData = updatedData;
-            }
-        }
-        double[] finalScores = sc.calculateFinalScore(fromData, toData);
-        return finalScores;
 
-    }
-
-    public static double[] compareData(double[] fromData, double[] toData, boolean pairData) {
-        ScoreComparison sc = new ScoreComparison();
-        System.out.println("need to pair " + pairData);
-
-        if (pairData) {
-            if (toData.length > fromData.length) {
-                double[] updatedData = new double[toData.length];
-                System.arraycopy(fromData, 0, updatedData, 0, fromData.length);
-                fromData = updatedData;
-            } else if (toData.length < fromData.length) {
-                double[] updatedData = new double[fromData.length];
-                System.arraycopy(toData, 0, updatedData, 0, toData.length);
-                toData = updatedData;
-            }
-        }
-
+//        if (pairData) {
+//            if (toData.length > fromData.length) {
+//                double[] updatedData = new double[toData.length];
+//                System.arraycopy(fromData, 0, updatedData, 0, fromData.length);
+//                fromData = updatedData;
+//            } else if (toData.length < fromData.length) {
+//                double[] updatedData = new double[fromData.length];
+//                System.arraycopy(toData, 0, updatedData, 0, toData.length);
+//                toData = updatedData;
+//            }
+//        }
         double[] finalScores = sc.calculateFinalScore(fromData, toData);
         return finalScores;
 
@@ -1318,9 +1342,99 @@ public class SpectraUtilities {
 //        System.out.println("at level one normalised " + comparisonsThreshold + "   identificationRate " + identificationRate + "  " + idToFullFactor);
         comparisonsThreshold = (comparisonsThreshold + identificationRate + idToFullFactor) / 3.0;
 //        System.out.println("at level two normalised " + comparisonsThreshold);
-        comparisonsThreshold = Math.floor(comparisonsThreshold * 10.0) / 10.0;
+        comparisonsThreshold = Math.floor(comparisonsThreshold * 100.0) / 100.0;
 //        System.out.println("at finalnormalised " + comparisonsThreshold);
         return comparisonsThreshold;
+
+    }
+
+    public static double compareUnPairedData(double[] fromData, double[] toData, List<Double> sharedToData) {
+        int medianIndex = SpectraUtilities.getMedianIndex(sharedToData);
+        double[] updatedFrom;
+        double[] updatedTo;
+        double[] updatedleftFrom;
+        double[] updatedleftTo;
+        double finalScore;
+
+        if (fromData.length == toData.length) {
+            System.out.println("case I same length ");
+            finalScore = SpectraUtilities.compareData(fromData, toData)[4];
+        } else if (fromData.length < toData.length) {
+            System.out.println("case II fromData.length < toData.length");
+            updatedFrom = fromData;
+            updatedTo = new double[fromData.length];
+
+            updatedleftTo = new double[toData.length - fromData.length];
+            updatedleftFrom = new double[updatedleftTo.length];
+            // new double[fromData.length + toData.length];
+            Arrays.sort(toData);
+            Arrays.sort(updatedFrom);
+            for (int i = 0; i < updatedTo.length; i++) {
+                updatedTo[i] = toData[updatedTo.length - i];
+            }
+
+            System.out.println("at median index " + medianIndex + "  " + sharedToData.size() + "  " + updatedleftTo.length);
+            for (int i = 0; i < updatedleftTo.length; i++) {
+                updatedleftTo[i] = toData[updatedTo.length + i];
+                if (medianIndex + i < sharedToData.size()) {
+                    updatedleftFrom[i] = sharedToData.get(medianIndex + i);
+                }
+            }
+
+            double score1 = SpectraUtilities.compareData(updatedFrom, updatedTo)[4];
+            double score2 = SpectraUtilities.compareData(updatedleftFrom, updatedleftTo)[4];
+            double ratio1 = (double) updatedFrom.length / (double) (toData.length);
+            double ratio2 = 1.0 - ratio1;
+            finalScore = (score1 * ratio1) + (score2 * ratio2);
+            System.out.println("--------------------------------->>>  " + score1 + " * " + ratio1 + " + " + score2 + " * " + ratio2 + "  " + (updatedFrom.length) + "   " + (toData.length));
+
+//             
+//            updatedFrom = new double[toData.length];
+//            updatedTo = toData;
+//            int add = 0;
+//            System.arraycopy(fromData, 0, updatedFrom, 0, fromData.length);
+//            if (!sharedToData.isEmpty()) {
+//                for (int i = fromData.length; i < updatedFrom.length && (add + medianIndex) < sharedToData.size(); i++) {
+//                    updatedFrom[i] = sharedToData.get(medianIndex + add);
+//                    add++;
+//                }
+//            }
+//            System.out.println("fromData as list "+Arrays.asList(updatedFrom).toString());
+//            System.out.println("toData as list "+Arrays.asList(toData).toString());
+//            finalScore = SpectraUtilities.compareData(updatedFrom, updatedTo)[4];
+        } else {
+            if (fromData.length * 0.9 > toData.length + sharedToData.size()) {
+                return -1.0;
+            }
+            System.out.println("case III fromData.length > toData.length");
+            updatedFrom = new double[toData.length];
+            updatedleftFrom = new double[fromData.length - toData.length];
+            updatedleftTo = new double[updatedleftFrom.length];
+            updatedTo = toData;// new double[fromData.length + toData.length];
+            Arrays.sort(fromData);
+            Arrays.sort(updatedTo);
+            for (int i = 0; i < updatedFrom.length; i++) {
+                updatedFrom[i] = fromData[updatedFrom.length - i];
+            }
+
+            System.out.println("at median index " + medianIndex + "  " + sharedToData.size() + "  " + updatedleftFrom.length);
+            for (int i = 0; i < updatedleftFrom.length; i++) {
+                updatedleftFrom[i] = fromData[updatedFrom.length + i];
+                if (medianIndex + i < sharedToData.size()) {
+                    updatedleftTo[i] = sharedToData.get(medianIndex + i);
+                }
+            }
+
+            double score1 = SpectraUtilities.compareData(updatedFrom, updatedTo)[4];
+            double score2 = SpectraUtilities.compareData(updatedleftFrom, updatedleftTo)[4];
+            double ratio1 = (double) updatedFrom.length / (double) (fromData.length);
+            double ratio2 = 1.0 - ratio1;
+            finalScore = (score1 * ratio1) + (score2 * ratio2);
+            System.out.println("--------------------------------->>> other case from data is larger " + updatedFrom.length + "  " + updatedTo.length + " --- >> " + updatedleftFrom.length + "  " + updatedleftTo.length + "  " + score1 + "  " + score2);
+
+        }
+        System.out.println("--------------------------------->>> final score: " + finalScore);
+        return finalScore;
 
     }
 
@@ -1338,10 +1452,48 @@ public class SpectraUtilities {
         return (int) Math.round((a + (b - a) * normalized));
     }
 
+    public static double isPotintialVariableModification(String targtedAA, List<SpectrumMatch> matches) {
+//        int frequency=0;
+        if (targtedAA == null || matches == null) {
+            System.out.println("targetedAA " + (targtedAA == null) + "   matches " + (matches == null));
+            return -1;
+        }
+        int lose = 0;
+        int add = 0;
+        for (SpectrumMatch sm : matches) {
+            String seq = sm.getBestPeptideAssumption().getPeptide().getSequence();
+            boolean exist = seq.contains(targtedAA);
+            if (exist && sm.getBestPeptideAssumption().getPeptide().getNVariableModifications() > 0) {
+                lose--;
+            } else if (exist) {
+                add++;
+            }
+        }
+//        System.out.println("----------------------------------------->>> " + targtedAA + "  " + matches.size() + "  " + lose + "  " + add + "   " + (add + lose));
+        return ((double) add + lose);
+    }
+
+    public static int getMedianIndex(List<Double> list) {
+        // Sort the list to find the median
+        Collections.sort(list);
+        int size = list.size();
+        int medianIndex;
+        if (size % 2 == 1) {
+            // Odd number of elements, median is the middle one
+            medianIndex = size / 2;
+        } else {
+            // Even number of elements, median is the average of the two middle ones
+            // Here, we'll return the lower median index (size / 2 - 1)
+            medianIndex = size / 2 - 1;
+        }
+
+        return medianIndex;
+    }
+
     public static void main(String[] args) {
         double[] from = new double[]{5, 10, 15, 20, 25, 30, 40, 50};
         double[] to = new double[]{10, 15, 20, 25, 30, 40, 50, 60};
-        compareData(to, to, true);
+        compareData(to, to);
     }
 
 }

@@ -8,6 +8,8 @@ import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import no.uib.probe.optprot.util.ScoreComparison;
+import no.uib.probe.optprot.util.SpectraUtilities;
 
 /**
  *
@@ -19,6 +21,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     private double tTestStat;
     private double pValue;
     private boolean sameData;
+    private int fullSpectraSize;
 
     public boolean isSameData() {
         return sameData;
@@ -38,7 +41,6 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         return sensitiveChange;
     }
     private List<SpectrumMatch> spectrumMatchResult;
-    private double[] data;
     private double improvmentScore;
     private double finalScore;
     private double sizeEffect;
@@ -57,7 +59,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     }
 
     public void setFinalScore(double finalScore) {
-        this.finalScore = Math.round(finalScore * 100.0) / 100.0;
+        this.finalScore = Math.round(finalScore * 1000.0) / 1000.0;
     }
     private Set<String> specTitles;
 
@@ -79,14 +81,13 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         this.improvmentScore = improvmentScore;
     }
 
-
-
     public List<SpectrumMatch> getSpectrumMatchResult() {
         return spectrumMatchResult;
     }
 
     public void setSpectrumMatchResult(List<SpectrumMatch> spectrumMatchResult) {
         this.spectrumMatchResult = spectrumMatchResult;
+        this.totalNumber = spectrumMatchResult.size();
     }
 
     public int getTotalNumber() {
@@ -125,24 +126,28 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     }
 
+    public RawScoreModel() {
+        this.sc = new ScoreComparison();
+    }
+    private final ScoreComparison sc;
+
     @Override
     public int compareTo(RawScoreModel rs) {
+//        double compscore = SpectraUtilities.isBetterScore(spectrumMatchResult, rs.spectrumMatchResult, fullSpectraSize);
+//        if (compscore == 0) {
+//            return 0;
+//        } else if (compscore > 0) {
+//            return 1;
+//        } else {
+//            return -1;
+//        }
         return Double.compare(finalScore, rs.getFinalScore());
-//        int sigComparison = Boolean.compare(this.isSignificatChange(), rs.isSignificatChange());
-//        if (sigComparison != 0) {
-//            return sigComparison;
-//        }
-//        int tstatComparison = Double.compare(this.tTestStat, rs.tTestStat);
-//        if (tstatComparison != 0) {
-//            return tstatComparison;
-//        }
-//        System.out.println("up to total number "+tTestStat+"  "+rs.tTestStat);
-//        return Integer.compare(this.totalNumber, rs.getTotalNumber());
+
     }
 
     @Override
     public String toString() {
-        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore + " tstat" + tTestStat + "  pvalue " + pValue + "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData+"  size effect "+sizeEffect;
+        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore + " tstat" + tTestStat + "  pvalue " + pValue + "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "  size effect " + sizeEffect;
     }
 
     public double getDataLengthFactor() {
@@ -151,6 +156,10 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     public void setDataLengthFactor(double dataLengthFactor) {
         this.dataLengthFactor = dataLengthFactor;
+    }
+
+    public void setFullSpectraSize(int fullSpectraSize) {
+        this.fullSpectraSize = fullSpectraSize;
     }
 
 }

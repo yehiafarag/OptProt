@@ -90,9 +90,8 @@ public class ScoreComparison {
         }
         return normalizedData;
     }
-    
-    
-     public double calculateScore(double[] scores1, double[] scores2) {
+
+    public double calculateScore(double[] scores1, double[] scores2) {
 
         DescriptiveStatistics ds1 = new DescriptiveStatistics(scores1);
         DescriptiveStatistics ds2 = new DescriptiveStatistics(scores2);
@@ -109,9 +108,6 @@ public class ScoreComparison {
 
         double stdDevDifference = stdDev1 - stdDev2;
         double pValue = performTTest(scores1, scores2);
-        if (tStat < 0) {
-            pValue *= -1.0;
-        }
 
         // Assuming the possible range for these metrics is between -200 and 200 for normalization purposes.
         // Adjust these ranges based on your specific use case.
@@ -119,18 +115,19 @@ public class ScoreComparison {
         double normPercentageImprovement = logScaleNormalize(percentageImprovement, Math.E);
         double normStdDevDiff = logScaleNormalize(stdDevDifference, Math.E);
         double normTStat = logScaleNormalize(tStat, Math.E);
-        double normPValue = logScaleNormalize((1.0 - pValue), Math.E); // Inverting p-value for interpretation
 
+        double normPValue = logScaleNormalize((1.0 - pValue), Math.E); // Inverting p-value for interpretation
+        if (tStat < 0 && normPValue > 0) {
+            normPValue *= -1.0;
+        }
         double finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat) / 5.0;
 
         if (percentageImprovement < 0 && finalScore > 0) {
-            finalScore *= -1.0;
+//            finalScore *= -1.0;
+            System.out.println("-----------------------------------2------------------------------>>> flip score case");
         }
-        return  finalScore;
+        return finalScore;
     }
-
-    
-    
 
     public double[] calculateFinalScore(double[] scores1, double[] scores2) {
 
@@ -149,9 +146,6 @@ public class ScoreComparison {
 
         double stdDevDifference = stdDev1 - stdDev2;
         double pValue = performTTest(scores1, scores2);
-        if (tStat < 0) {
-            pValue *= -1.0;
-        }
 
         // Assuming the possible range for these metrics is between -200 and 200 for normalization purposes.
         // Adjust these ranges based on your specific use case.
@@ -160,14 +154,25 @@ public class ScoreComparison {
         double normStdDevDiff = logScaleNormalize(stdDevDifference, Math.E);
         double normTStat = logScaleNormalize(tStat, Math.E);
         double normPValue = logScaleNormalize((1.0 - pValue), Math.E); // Inverting p-value for interpretation
-
-        double dataSizeEffect = calculateCohensD(scores1, scores2);//
-
-        double finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat + dataSizeEffect) / 6.0;
+        if (tStat < 0) {
+            normPValue *= -1.0;
+        }
+        double dataSizeEffect = 0;
+        double finalScore;
+        if (scores1.length == scores2.length) {
+            finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat) / 5.0;
+        } else {
+            dataSizeEffect = calculateCohensD(scores1, scores2);//
+            finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat + dataSizeEffect) / 6.0;
+        }
+//        System.out.println("final score parts (meanDifference: " + meanDifference + " , percentageImprovement: " + percentageImprovement + " , tStat: " + tStat + " , stdDevDifference: " + stdDevDifference + " , pValue: " + pValue + " , dataSizeEffect: " + dataSizeEffect + ") " + finalScore);
 
         if (percentageImprovement < 0 && finalScore > 0) {
-            finalScore *= -1.0;
+//            finalScore *= -1.0;
+            System.out.println("----------------------------------------------------------------->>> flip score case");
         }
+//        System.out.println("Norma score parts (meanDifference: " + normMeanDiff + " , percentageImprovement: " + normPercentageImprovement + " , tStat: " + normTStat + " , stdDevDifference: " + normStdDevDiff + " , pValue: " + normPValue + " , dataSizeEffect: " + dataSizeEffect + ") " + finalScore);
+
         return new double[]{percentageImprovement, tStat, pValue, dataSizeEffect, finalScore, 0};
     }
 

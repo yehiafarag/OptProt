@@ -3,12 +3,16 @@ package no.uib.probe.optprot;
 import com.compomics.util.experiment.identification.Advocate;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.swing.SwingUtilities;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.model.SearchInputSetting;
+import no.uib.probe.optprot.search.sage.OptProtSageParameterSettings;
+import no.uib.probe.optprot.search.xtandam.OptProtXtandemParameterSettings;
 import no.uib.probe.optprot.util.MainUtilities;
 
 /**
@@ -22,35 +26,25 @@ public class OptProt {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                List<String> paramOrder = new ArrayList<>();
+                Map<Advocate, List<String>> paramOrderMap = new HashMap<>();
+
+//                List<String> paramOrder = new ArrayList<>();
                 Set<Advocate> supportedSearchEngine = new LinkedHashSet<>();
-                supportedSearchEngine.add(Advocate.xtandem);
+//                supportedSearchEngine.add(Advocate.xtandem);
+                paramOrderMap.put(Advocate.xtandem, OptProtXtandemParameterSettings.Get_Xtandem_Parameters_List());
 //                supportedSearchEngine.add(Advocate.myriMatch);
-//                supportedSearchEngine.add(Advocate.sage);
+                supportedSearchEngine.add(Advocate.sage);
+                paramOrderMap.put(Advocate.sage, OptProtSageParameterSettings.Get_Sage_Parameters_List());
 
-//////    xtandem stage 1
-                paramOrder.add("XtandemAdvancedParameter");
-////
-                paramOrder.add("FragmentIonTypesParameter");
-                paramOrder.add("FragmentToleranceParameter");
-                paramOrder.add("IsotopParameter");
-                paramOrder.add("DigestionParameter_2");
-                paramOrder.add("DigestionParameter_3");
-                paramOrder.add("PrecursorToleranceParameter");
-                paramOrder.add("PrecursorChargeParameter");
-
-//// xtandem stage 2
-                paramOrder.add("XtandemAdvancedParameter_A");//                
-//                paramOrder.add("ModificationParameter");
-//                paramOrder.add("XtandemAdvancedParameter_B");
+//////   
 //                paramOrder.add("MyriMatchAdvancedParameter");
-//                paramOrder.add("SageAdvancedParameter");// 
-//                paramOrder.add("DigestionParameter_1");
+//               
+//                
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
-//                datasettoTestSet.add("PXD028427");
+                datasettoTestSet.add("PXD028427");
 //                datasettoTestSet.add("PXD000561");
 //                datasettoTestSet.add("PXD001468");
-                datasettoTestSet.add("PXD047036");
+//                datasettoTestSet.add("PXD047036");
 //                datasettoTestSet.add("PXD009340");
 //                datasettoTestSet.add("PXD001250");
 
@@ -67,16 +61,18 @@ public class OptProt {
                 searchOpParameter.setOptimizeIsotopsParameter(false || all);
                 searchOpParameter.setOptimizeModificationParameter(false || all);
 //            searchOpParameter.setRecalibrateSpectraParameter(false);
-     for (Advocate se : supportedSearchEngine) { 
-         searchOpParameter.setSelectedSearchEngine(se);
-                for (String datasetId : datasettoTestSet) {                        
+                for (Advocate se : supportedSearchEngine) {
+                    searchOpParameter.setSelectedSearchEngine(se);
+                    for (String datasetId : datasettoTestSet) {
                         System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
-////                        cleanAll = true;
-                        runDataset(datasetId, cleanAll, paramOrder, searchOpParameter, false);
+//                        cleanAll = true;
+                        MainUtilities.cleanOutputFolder();
+                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false);
 //                        cleanAll = false;                        
 //                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
 //                        System.gc();
-                        runDataset(datasetId, cleanAll, paramOrder, searchOpParameter, true);
+//                        MainUtilities.cleanOutputFolder();
+//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
 
                     }
                 }

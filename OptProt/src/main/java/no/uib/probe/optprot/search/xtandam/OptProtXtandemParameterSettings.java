@@ -1,14 +1,36 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package no.uib.probe.optprot.search.xtandam;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
  * @author yfa041
  */
-public class OptProtXtandemAdvancedSearchParameter {
+public class OptProtXtandemParameterSettings {
+
+    public static List<String> Get_Xtandem_Parameters_List() {
+        List<String> paramOrder = new ArrayList<>();
+        // xtandem stage 1
+        paramOrder.add("XtandemAdvancedParameter");
+        paramOrder.add("FragmentIonTypesParameter");
+        paramOrder.add("PrecursorChargeParameter");
+        paramOrder.add("IsotopParameter");
+        paramOrder.add("DigestionParameter_1");
+        paramOrder.add("DigestionParameter_2");
+        paramOrder.add("DigestionParameter_3");
+//////                paramOrder.add("DigestionTypeParameter");
+
+        paramOrder.add("PrecursorToleranceParameter");
+        paramOrder.add("FragmentToleranceParameter");
+
+////// xtandem stage 2
+        paramOrder.add("XtandemAdvancedParameter_A");//                
+        paramOrder.add("ModificationParameter");
+        paramOrder.add("XtandemAdvancedParameter_B");
+        return paramOrder;
+    }
 
     private boolean optAll = false;
     private boolean optSpectrumDynamicRange = false;
@@ -26,7 +48,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     private boolean optNoiseSuppressionValue;
     private double optMinimumPrecursorMassValue;
     private boolean optParentIsotopeExpansionValue;
-    
+
     private boolean optQuickAcetyl;
     private boolean optQuickPyrolidone;
     private boolean optstPBias;
@@ -35,18 +57,16 @@ public class OptProtXtandemAdvancedSearchParameter {
     private boolean optstPBiasValue;
     private boolean optstPTMComplexity;
     private double optstPTMComplexityValue;
-    
-    
-    
-      private boolean optUseRefine;
+
+    private boolean optUseRefine;
     private boolean optRefineUnanticipatedCleavage;
     private boolean optRefineSimiEnzymaticCleavage;
     private boolean optRefinePotintialModification;
     private boolean optRefinePointMutations;
     private boolean optRefineSnAPs;
     private boolean optRefineSpectrumSynthesis;
-    
-          private boolean optUseRefineValue;
+
+    private boolean optUseRefineValue;
     private boolean optRefineUnanticipatedCleavageValue;
     private boolean optRefineSimiEnzymaticCleavageValue;
     private boolean optRefinePotintialModificationValue;
@@ -63,7 +83,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     }
 
     public boolean isOptRefineUnanticipatedCleavage() {
-        return optRefineUnanticipatedCleavage|| optAll;
+        return optRefineUnanticipatedCleavage || optAll;
     }
 
     public void setOptRefineUnanticipatedCleavage(boolean optRefineUnanticipatedCleavage) {
@@ -71,7 +91,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     }
 
     public boolean isOptRefineSimiEnzymaticCleavage() {
-        return optRefineSimiEnzymaticCleavage|| optAll;
+        return optRefineSimiEnzymaticCleavage || optAll;
     }
 
     public void setOptRefineSimiEnzymaticCleavage(boolean optRefineSimiEnzymaticCleavage) {
@@ -79,7 +99,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     }
 
     public boolean isOptRefinePotintialModification() {
-        return optRefinePotintialModification|| optAll;
+        return optRefinePotintialModification || optAll;
     }
 
     public void setOptRefinePotintialModification(boolean optRefinePotintialModification) {
@@ -87,7 +107,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     }
 
     public boolean isOptRefinePointMutations() {
-        return optRefinePointMutations|| optAll;
+        return optRefinePointMutations || optAll;
     }
 
     public void setOptRefinePointMutations(boolean optRefinePointMutations) {
@@ -95,7 +115,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     }
 
     public boolean isOptRefineSnAPs() {
-        return optRefineSnAPs|| optAll;
+        return optRefineSnAPs || optAll;
     }
 
     public void setOptRefineSnAPs(boolean optRefineSnAPs) {
@@ -103,7 +123,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     }
 
     public boolean isOptRefineSpectrumSynthesis() {
-        return optRefineSpectrumSynthesis|| optAll;
+        return optRefineSpectrumSynthesis || optAll;
     }
 
     public void setOptRefineSpectrumSynthesis(boolean optRefineSpectrumSynthesis) {
@@ -159,7 +179,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     }
 
     public boolean isOptRefineSpectrumSynthesisValue() {
-        return optRefineSpectrumSynthesisValue|| optAll;
+        return optRefineSpectrumSynthesisValue || optAll;
     }
 
     public void setOptRefineSpectrumSynthesisValue(boolean optRefineSpectrumSynthesisValue) {
@@ -303,7 +323,7 @@ public class OptProtXtandemAdvancedSearchParameter {
     }
 
     public boolean isOptstPBias() {
-        return optstPBias  || optAll;
+        return optstPBias || optAll;
     }
 
     public void setOptstPBias(boolean optstPBias) {

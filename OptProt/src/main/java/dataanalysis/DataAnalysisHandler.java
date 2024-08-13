@@ -262,9 +262,10 @@ public class DataAnalysisHandler {
     public static void main(String[] args) {
 //        String dataFolderURL = "D:\\Apps\\OptProt\\pepshaker\\data_ps\\PXD028427";
 //        new DataAnalysisHandler(dataFolderURL, "PXD028427");
-        String dataFolderURL2 = "D:\\Apps\\OptProt\\pepshaker\\data_ps\\PXD000561";
-        new DataAnalysisHandler(dataFolderURL2, "PXD000561");
+//        String dataFolderURL2 = "D:\\Apps\\OptProt\\pepshaker\\data_ps\\PXD000561";
+//        new DataAnalysisHandler(dataFolderURL2, "PXD000561");
 //        String dataFolderURL3 = "D:\\Apps\\OptProt\\pepshaker\\data_ps\\PXD001468";
 //        new DataAnalysisHandler(dataFolderURL3, "PXD001468");
+ System.out.println(2 + 2 + "Hello" + 2 + 2);
     }
 }

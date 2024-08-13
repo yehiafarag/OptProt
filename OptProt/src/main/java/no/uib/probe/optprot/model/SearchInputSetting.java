@@ -8,9 +8,9 @@ import com.compomics.util.experiment.identification.Advocate;
 import java.io.File;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.search.myrimatch.MyriMatchEnabledParameters;
-import no.uib.probe.optprot.search.sage.OptProtSageAdvancedSearchParameter;
+import no.uib.probe.optprot.search.sage.OptProtSageParameterSettings;
 import no.uib.probe.optprot.search.sage.SageEnabledParameters;
-import no.uib.probe.optprot.search.xtandam.OptProtXtandemAdvancedSearchParameter;
+import no.uib.probe.optprot.search.xtandam.OptProtXtandemParameterSettings;
 import no.uib.probe.optprot.search.xtandam.XTandemEnabledParameters;
 
 /**
@@ -80,7 +80,7 @@ String digestionParameterOpt;
         return optimizeSageAdvancedParameter|| optimizeAllParameters;
     }
 
-    public OptProtSageAdvancedSearchParameter getSageOptProtAdvancedSearchParameters() {
+    public OptProtSageParameterSettings getSageOptProtAdvancedSearchParameters() {
         return sageOptProtAdvancedSearchParameters;
     }
 
@@ -114,8 +114,8 @@ String digestionParameterOpt;
             this.setRunSage(true);
         }
     }
- private final OptProtSageAdvancedSearchParameter sageOptProtAdvancedSearchParameters = new OptProtSageAdvancedSearchParameter();
-    private final OptProtXtandemAdvancedSearchParameter xtandemOptProtAdvancedSearchParameters = new OptProtXtandemAdvancedSearchParameter();
+ private final OptProtSageParameterSettings sageOptProtAdvancedSearchParameters = new OptProtSageParameterSettings();
+    private final OptProtXtandemParameterSettings xtandemOptProtAdvancedSearchParameters = new OptProtXtandemParameterSettings();
 
     public boolean isOptimizeXtandemAdvancedParameter() {
         return optimizeXtandemAdvancedParameter || optimizeAllParameters;
@@ -441,7 +441,7 @@ String digestionParameterOpt;
         this.optimizeIsotopsParameter = optimizeIsotopsParameter;
     }
 
-    public OptProtXtandemAdvancedSearchParameter getXtandemOptProtAdvancedSearchParameters() {
+    public OptProtXtandemParameterSettings getXtandemOptProtAdvancedSearchParameters() {
         return xtandemOptProtAdvancedSearchParameters;
     }
 
