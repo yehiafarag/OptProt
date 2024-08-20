@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+import no.uib.probe.optprot.model.ParameterScoreModel;
 import no.uib.probe.optprot.model.RawScoreModel;
 import org.jgrapht.util.DoublyLinkedList;
 
@@ -18,6 +20,24 @@ import org.jgrapht.util.DoublyLinkedList;
  * @author yfa041
  */
 public class SearchingSubDataset {
+
+    private Map<String, TreeSet<ParameterScoreModel>> parameterScoreMap;
+
+    public Map<String, TreeSet<ParameterScoreModel>> getParameterScoreMap() {
+        return parameterScoreMap;
+    }
+
+    public void setParameterScoreMap(Map<String, TreeSet<ParameterScoreModel>> parameterScoreMap) {
+        this.parameterScoreMap = parameterScoreMap;
+    }
+
+    public int getIdentificationNum() {
+        return identificationNum;
+    }
+
+    public void setIdentificationNum(int identificationNum) {
+        this.identificationNum = identificationNum;
+    }
 
     public File getSubDataFolder() {
         return subDataFolder;
@@ -73,8 +93,6 @@ public class SearchingSubDataset {
     private double acceptedIDRatioThreshold = -1.0;
     private RawScoreModel currentScoreModel;
 
-
-
     public void setActiveScoreModel(RawScoreModel scoreModel) {
         this.currentScoreModel = scoreModel;
         this.updateValidatedIdRefrenceData(currentScoreModel.getSpectrumMatchResult());
@@ -82,7 +100,7 @@ public class SearchingSubDataset {
 
     public void updateValidatedIdRefrenceData(List<SpectrumMatch> validatedIdRefrenceData) {
         this.resetSpectraScoreMap();
-        this.identificationNum=validatedIdRefrenceData.size();
+        this.identificationNum = validatedIdRefrenceData.size();
         for (SpectrumMatch sm : validatedIdRefrenceData) {
             fullSpectraScore.replace(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
         }
@@ -127,7 +145,6 @@ public class SearchingSubDataset {
         this.tempIdentificationNum = tempIdentificationNum;
     }
 
-    
     private int oreginalDatasize;
     private int identificationNum;
 
@@ -180,8 +197,6 @@ public class SearchingSubDataset {
     public void setSubFastaFile(File subFastaFile) {
         this.subFastaFile = subFastaFile;
     }
-
-
 
     public boolean isHighResolutionMassSpectrometers() {
         return highResolutionMassSpectrometers;

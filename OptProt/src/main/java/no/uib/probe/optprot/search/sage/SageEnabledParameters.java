@@ -26,7 +26,7 @@ public class SageEnabledParameters {
         this.paramsToOptimize.disableParam("specificNTermOnly");
         this.paramsToOptimize.disableParam("unSpecific");
         this.paramsToOptimize.disableParam("wholeProtein");
-          this.paramsToOptimize.disableParam("charge");
+        this.paramsToOptimize.disableParam("charge");
     }
 
     public SearchEngineParameterConfigurations getParamsToOptimize() {

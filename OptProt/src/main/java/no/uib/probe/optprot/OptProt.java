@@ -42,11 +42,11 @@ public class OptProt {
 //                
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
                 datasettoTestSet.add("PXD028427");
-//                datasettoTestSet.add("PXD000561");
-//                datasettoTestSet.add("PXD001468");
-//                datasettoTestSet.add("PXD047036");
-//                datasettoTestSet.add("PXD009340");
-//                datasettoTestSet.add("PXD001250");
+                datasettoTestSet.add("PXD000561");
+                datasettoTestSet.add("PXD001468");
+                datasettoTestSet.add("PXD047036");
+                datasettoTestSet.add("PXD009340");
+                datasettoTestSet.add("PXD001250");
 
 //////////                datasettoTestSet.add("PXD000815");
                 boolean cleanAll = false;
@@ -64,15 +64,15 @@ public class OptProt {
                 for (Advocate se : supportedSearchEngine) {
                     searchOpParameter.setSelectedSearchEngine(se);
                     for (String datasetId : datasettoTestSet) {
-                        System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
+//                        System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
 //                        cleanAll = true;
                         MainUtilities.cleanOutputFolder();
-                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false);
+//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false);
 //                        cleanAll = false;                        
-//                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
-//                        System.gc();
-//                        MainUtilities.cleanOutputFolder();
-//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
+                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
+                        System.gc();
+                        MainUtilities.cleanOutputFolder();
+                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
 
                     }
                 }

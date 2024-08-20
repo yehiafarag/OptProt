@@ -61,12 +61,13 @@ public class OptProtSearchHandler {
                 myrimatchOptProtSearchOptimizer.startProcess(paramOrder);
             } else if (searchInputSetting.getSelectedSearchEngine().getIndex() == Advocate.sage.getIndex()) {
                 SageParameters myriMatchParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
-                myriMatchParameters.setMaxVariableMods(4);
+                myriMatchParameters.setMaxVariableMods(2);
 //                myriMatchParameters.setNumberOfSpectrumMatches(1);
                 searchingSubDataset.setAcceptedIDRatioThreshold(0);
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 SageOptProtSearchOptimizer sageOptProtSearchOptimizer = new SageOptProtSearchOptimizer(searchingSubDataset, searchInputSetting, generatedIdentificationParametersFile);
                 sageOptProtSearchOptimizer.startProcess(paramOrder);
+                
             }
             return generatedIdentificationParametersFile;
         } catch (IOException ex) {

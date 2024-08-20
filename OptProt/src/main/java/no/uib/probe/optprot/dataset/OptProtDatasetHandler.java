@@ -7,6 +7,8 @@ package no.uib.probe.optprot.dataset;
 import com.compomics.util.experiment.identification.Advocate;
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import com.compomics.util.experiment.identification.spectrum_assumptions.TagAssumption;
+import com.compomics.util.experiment.io.biology.protein.FastaParameters;
+import com.compomics.util.experiment.io.biology.protein.converters.DecoyConverter;
 import com.compomics.util.experiment.io.identification.IdfileReader;
 import com.compomics.util.experiment.io.identification.IdfileReaderFactory;
 import com.compomics.util.experiment.io.mass_spectrometry.MsFileHandler;
@@ -137,13 +139,13 @@ public class OptProtDatasetHandler {
 //                    System.exit(0);
                 } else {
                     left = Configurations.EXTRACT_MAX_MS_SIZE;
-                    subSize = SpectraUtilities.scaleSubsetSize(spectrumTitles.length);
-                  
+                    subSize = SpectraUtilities.scaleSubsetSize(spectrumTitles.length,searchEngineToOptimise);
+
                     step = (int) Math.round((double) spectrumTitles.length / (double) subSize);
                     quartileRatios = this.getQuartileRatios(msFile, msFileHandler, 0, step, spectrumTitles.length, fastaFile, identificationParameters);
                 }
                 startIndex = 0;
-  System.out.println("at subsetSize " + subSize);
+                System.out.println("at subsetSize " + subSize);
                 int Q_1_4_coverageSize = (int) Math.round((double) spectrumTitles.length / 4.0);
                 lastIndex = startIndex + Q_1_4_coverageSize;
                 if (wholeDataTest) {
@@ -209,10 +211,19 @@ public class OptProtDatasetHandler {
                 double total = (end3rd - start3) / 1000.0;
                 System.out.println("process III ( Novor ) in seconds: " + total);
                 long start4 = System.currentTimeMillis();
-                subFastaFile = initSubFastaFile(subFastaFile, fastaFile, sequences);
+                if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
+                    File newSubFasta = new File(subFastaFile.getParent(), subFastaFile.getName().replace(".fasta", "_subFastaFile.fasta"));
+                    newSubFasta = initSubFastaFile(newSubFasta, fastaFile, sequences);
+                    FastaParameters fastaParameters = FastaParameters.inferParameters(subFastaFile.getAbsolutePath(), MainUtilities.OptProt_Waiting_Handler);
+                    DecoyConverter.appendDecoySequences(newSubFasta, subFastaFile, fastaParameters, MainUtilities.OptProt_Waiting_Handler);
+                    newSubFasta.delete();
+                } else {
+                    subFastaFile = initSubFastaFile(subFastaFile, fastaFile, sequences);
+                }
                 long end4th = System.currentTimeMillis();
                 total = (end4th - start4) / 1000.0;
                 System.out.println("process IV ( Generated Fasta) in seconds: " + total);
+
                 long end = System.currentTimeMillis();
                 total = (end - start1) / 1000.0;
                 System.out.println("Total Elapsed Time for initInputSubSetFiles in seconds: " + total);
@@ -263,12 +274,12 @@ public class OptProtDatasetHandler {
             subDataset.setSpectraTitiles(subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension));
 
             File resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, subFastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));
-          System.out.println("system excuted "+resultsFolder.getName()+"  and done "+MainUtilities.OptProt_Waiting_Handler.isRunFinished()+"  "+Arrays.asList(resultsFolder.list())); 
+            System.out.println("system excuted " + resultsFolder.getName() + "  and done " + MainUtilities.OptProt_Waiting_Handler.isRunFinished() + "  " + Arrays.asList(resultsFolder.list()));
 //          if(MainUtilities.OptProt_Waiting_Handler.isRunFinished())
-          
-          List<SpectrumMatch> validatedMaches = SpectraUtilities.getValidatedIdentificationResults(resultsFolder, subMsFile, searchEngineToOptimise, identificationParameters);
-            
-            if (validatedMaches==null || validatedMaches.isEmpty()) {
+
+            List<SpectrumMatch> validatedMaches = SpectraUtilities.getValidatedIdentificationResults(resultsFolder, subMsFile, searchEngineToOptimise, identificationParameters);
+
+            if (validatedMaches == null || validatedMaches.isEmpty()) {
                 System.out.println("Error in the system please restart!");
                 System.exit(0);
             }

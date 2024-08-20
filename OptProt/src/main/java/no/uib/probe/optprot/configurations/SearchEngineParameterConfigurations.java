@@ -29,6 +29,7 @@ public class SearchEngineParameterConfigurations {
         for (Enzyme enzyme : EnzymeFactory.getInstance().getEnzymes()) {
             paramMap.put(enzyme.getName(), true);
         }
+        paramMap.put("PredictRt", true);
         paramMap.put("specific", true);
         paramMap.put("semiSpecific", true);
         paramMap.put("specificNTermOnly", true);
@@ -102,7 +103,7 @@ public class SearchEngineParameterConfigurations {
         paramMap.put("minMatchedPeaks", true);
         paramMap.put("Chimera", true);
         paramMap.put("WideWindow", true);
-        for (int i = 1;i < 5; i++) {
+        for (int i = 1; i < 5; i++) {
             for (int j = 2; j <= 5; j++) {
                 if (j <= i) {
                     continue;
@@ -125,7 +126,7 @@ public class SearchEngineParameterConfigurations {
     }
 
     public void disableMinCharge() {
-   for (int i = 2;i < 5; i++) {
+        for (int i = 2; i < 5; i++) {
             for (int j = 2; j <= 5; j++) {
                 if (j <= i) {
                     continue;
@@ -133,7 +134,7 @@ public class SearchEngineParameterConfigurations {
                 paramMap.replace("charge-" + i + "," + j, false);
             }
         }
-       
+
     }
 
     public void disableMissedCleavages() {

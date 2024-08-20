@@ -12,7 +12,10 @@ import com.compomics.util.parameters.identification.tool_specific.XtandemParamet
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
+import java.util.TreeSet;
 import no.uib.probe.optprot.dataset.model.SearchingSubDataset;
+import no.uib.probe.optprot.model.ParameterScoreModel;
 
 /**
  *
@@ -36,7 +39,7 @@ public class ReportExporter {
         }
         System.out.println("-------------------------------" + datasetId + "(" + searchEngine.getName() + ")-----------------------------------------");
         if (dataset != null) {
-            System.out.println("Refrence score      :\t" + dataset.getActiveIdentificationNum() );
+            System.out.println("Refrence score      :\t" + dataset.getActiveIdentificationNum());
         }
         System.out.println("Digestion           :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name());
         if (optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equals("enzyme")) {
@@ -129,6 +132,7 @@ public class ReportExporter {
             System.out.println("Generate Decoy          :\t" + sageParameters.getGenerateDecoys());
             System.out.println("Deisotope               :\t" + sageParameters.getDeisotope());
             System.out.println("Chimeric Spectra        :\t" + sageParameters.getChimera());
+            System.out.println("Wide window             :\t" + sageParameters.getWideWindow());
             System.out.println("Predect RT              :\t" + sageParameters.getPredictRt());
 
             System.out.println("Number of Peaks         :\t" + sageParameters.getMinPeaks() + "-" + sageParameters.getMaxPeaks());
@@ -138,7 +142,7 @@ public class ReportExporter {
 
     }
 
-    public static void exportFullReport(File optimisedSearchParameterFile, SearchingSubDataset dataset, Advocate searchEngine, String datasetId, String timeInMin, String initDsTime) {
+    public static void exportFullReport(File optimisedSearchParameterFile, SearchingSubDataset dataset, Advocate searchEngine, String datasetId, String timeInMin, String initDsTime, Map<String, TreeSet<ParameterScoreModel>> parameterScoreMap) {
         if (dataset == null) {
             System.out.println("can not export un exist dataset " + datasetId);
             return;
@@ -165,7 +169,7 @@ public class ReportExporter {
                 myWriter.write(
                         "Used Time           :\t" + timeInMin + "  Minutes\n");
                 myWriter.write(
-                        "Refrence score      :\t" + dataset.getActiveIdentificationNum()  + "\n");
+                        "Refrence score      :\t" + dataset.getActiveIdentificationNum() + "\n");
                 myWriter.write(
                         "Digestion           :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name() + "\n");
                 if (optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equals("enzyme")) {
@@ -275,11 +279,17 @@ public class ReportExporter {
                     myWriter.write("Generate Decoy          :\t" + sageParameters.getGenerateDecoys() + "\n");
                     myWriter.write("Deisotope               :\t" + sageParameters.getDeisotope() + "\n");
                     myWriter.write("Chimeric Spectra        :\t" + sageParameters.getChimera() + "\n");
+                    myWriter.write("Wide window             :\t" + sageParameters.getWideWindow() + "\n");
+
                     myWriter.write("Predect RT              :\t" + sageParameters.getPredictRt() + "\n");
 
                     myWriter.write("Number of Peaks         :\t" + sageParameters.getMinPeaks() + "-" + sageParameters.getMaxPeaks() + "\n");
                     myWriter.write("Min Mached Peaks        :\t" + sageParameters.getMinMatchedPeaks() + "\n");
                     myWriter.write("Max Fragment Charge     :\t" + sageParameters.getMaxFragmentCharge() + "\n");
+                }
+                myWriter.write("---------------------------advanced Parameter Objects-----------------------------");
+                for (String param : parameterScoreMap.keySet()) {
+                    myWriter.write(param + ":\t" + parameterScoreMap.get(param).toString() + "\n");
                 }
             }
             System.out.println("Successfully wrote to the file.");
