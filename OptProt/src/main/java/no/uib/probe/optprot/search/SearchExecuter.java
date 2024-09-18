@@ -5,14 +5,28 @@
 package no.uib.probe.optprot.search;
 
 import com.compomics.util.experiment.biology.modifications.ModificationFactory;
+import com.compomics.util.experiment.identification.matches.SpectrumMatch;
+import com.compomics.util.experiment.identification.spectrum_assumptions.TagAssumption;
+import com.compomics.util.experiment.io.identification.IdfileReader;
+import com.compomics.util.experiment.io.identification.IdfileReaderFactory;
+import com.compomics.util.experiment.io.mass_spectrometry.MsFileHandler;
+import com.compomics.util.io.IoUtil;
 import com.compomics.util.parameters.identification.IdentificationParameters;
 import eu.isas.searchgui.SearchHandler;
 import java.io.File;
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.bind.JAXBException;
+import javax.xml.stream.XMLStreamException;
 import no.uib.probe.optprot.configurations.Configurations;
+import no.uib.probe.optprot.dataset.OptProtDatasetHandler;
 import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.util.MainUtilities;
+import org.xmlpull.v1.XmlPullParserException;
 
 /**
  *
@@ -97,10 +111,54 @@ public class SearchExecuter {
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
-        
+
         File resultsFile = searchHandler.getResultsFolder();
 
         return resultsFile;
 
     }
+
+    public static ArrayList<SpectrumMatch> getTagMaches(File destinationFile, File fastaFile, IdentificationParameters identificationParameters, File identificationParametersFile, String msFileNameWithoutExtension, SearchInputSetting searchInputSetting, boolean validOnly) {
+        try {
+            searchInputSetting.setRunDirecTag(true);
+            String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + msFileNameWithoutExtension + Configurations.get_current_file_fingerprent();
+            File tempResultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, destinationFile, fastaFile, identificationParameters, identificationParametersFile);
+            File direcTagFile = new File(tempResultsFolder, IoUtil.removeExtension(destinationFile.getName()) + ".tags");
+            if (!direcTagFile.exists()) {
+                System.out.println("there is no tags in the file ...very poor data " + msFileNameWithoutExtension);
+//                //delete previos sub mgf and cms files
+//                destinationFile.delete();
+//                File cms = new File(destinationFile.getParent(), destinationFile.getName().replace(".mgf", ".cms"));
+//                cms.delete();
+//                //not enough confident tag , increase the number 
+//                substractSpectraWithConfidentTag(msFile, fastaFile, startIndex, maxSpectraNumber + 500, msFileHandler, identificationParameters, identificationParametersFile);
+                return new ArrayList<>();
+            }
+
+            IdfileReader idReader = IdfileReaderFactory.getInstance().getFileReader(direcTagFile);
+            System.out.println("file name " + msFileNameWithoutExtension + "   " + IoUtil.removeExtension(destinationFile.getName()));
+            MsFileHandler subMsFileHandler = new MsFileHandler();
+            subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
+            ArrayList<SpectrumMatch> matches = idReader.getAllSpectrumMatches(subMsFileHandler, MainUtilities.OptProt_Waiting_Handler, identificationParameters.getSearchParameters());
+            if (validOnly) {
+                ArrayList<SpectrumMatch> vmatches = new ArrayList<>();
+                for (SpectrumMatch sm : matches) {
+                    for (TagAssumption ta : sm.getAllTagAssumptions().toList()) {
+                        if (ta.getScore() <= 0.01) {
+                            sm.setBestTagAssumption(ta);                          
+                            vmatches.add(sm);
+                        }
+                    }
+                }
+               return vmatches;
+               
+            }
+            return matches;
+        } catch (IOException | SQLException | ClassNotFoundException | InterruptedException | JAXBException | XmlPullParserException | XMLStreamException ex) {
+            Logger.getLogger(OptProtDatasetHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return new ArrayList<>();
+
+    }
+
 }

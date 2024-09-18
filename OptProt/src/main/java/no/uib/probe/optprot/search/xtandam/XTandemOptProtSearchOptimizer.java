@@ -93,6 +93,13 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         parameterScoreMap.put("XtandemSnAPs", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("XtandemSpectrumSynthesis", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("XtandemRefVarPTM", new TreeSet<>(Collections.reverseOrder()));
+
+        XtandemParameters xtandemParameters = (XtandemParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
+        xtandemParameters.setRefinePointMutations(false);
+
+        System.out.println("xtan point isPotentialModificationsForFullRefinment " + xtandemParameters.isPotentialModificationsForFullRefinment());
+        System.out.println("xtan point isRefineUnanticipatedCleavages " + xtandemParameters.isRefineUnanticipatedCleavages());
+
     }
 
     private String digestionParameterOpt;
@@ -116,11 +123,13 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], nMissesCleavages);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
+                MainUtilities.cleanOutputFolder();
                 continue;
             }
             if (param.equalsIgnoreCase("DigestionTypeParameter") && searchInputSetting.isOptimizeDigestionParameter()) {
                 digestionParameterOpt = this.optimizeDigestionCleavageParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("DigestionParameter"));
                 searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
+                MainUtilities.cleanOutputFolder();
                 continue;
             }
 
@@ -144,6 +153,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 if (update) {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
+                MainUtilities.cleanOutputFolder();
                 continue;
 
             }
@@ -155,6 +165,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     identificationParameters.getSearchParameters().setFragmentIonAccuracy(value);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
+                MainUtilities.cleanOutputFolder();
                 continue;
             }
 
@@ -166,6 +177,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     identificationParameters.getSearchParameters().setMaxChargeSearched(values[1]);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
+                MainUtilities.cleanOutputFolder();
                 continue;
             }
 
@@ -189,6 +201,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 }
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 
+                MainUtilities.cleanOutputFolder();
                 continue;
             }
 
@@ -227,6 +240,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
 
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 
+                MainUtilities.cleanOutputFolder();
                 continue;
             }
             if (param.equalsIgnoreCase("PrecursorToleranceParameter") && searchInputSetting.isOptimizePrecursorToleranceParameter()) {
@@ -262,6 +276,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 }
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 MainUtilities.resetExecutorService();
+                MainUtilities.cleanOutputFolder();
                 continue;
             }
             if (param.equalsIgnoreCase("XtandemAdvancedParameter_B") && searchInputSetting.isOptimizeXtandemAdvancedParameter()) {
@@ -288,7 +303,8 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
 
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 //              
-//                continue;
+                MainUtilities.cleanOutputFolder();
+                continue;
             }
 //            if (param.equalsIgnoreCase("PrecursorToleranceParameter") && searchInputSetting.isOptimizePrecursorToleranceParameter()) {
 //
@@ -336,23 +352,30 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
     public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile, boolean pairData) {
 
         if (!optProtSearchSettings.getXTandemEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
-            return new RawScoreModel();
+            System.out.println(" param: " + paramOption + "  not supporten by xtandem");
+            return new RawScoreModel(paramOption);
         }
         if (defaultOutputFileName.contains("_resultsf_Carbamilation of protein N-term") || defaultOutputFileName.contains("resultsf_Acetylation of protein N-term")) {
-            return new RawScoreModel();
+            System.out.println(" param: " + paramOption + "  not supporten by xtandem");
+            return new RawScoreModel(paramOption);
         }
 
         if (paramOption.contains("Pyrolidone from")) {
             XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
             if (xtandemParameters.isQuickPyrolidone()) {
-                return new RawScoreModel();
+                System.out.println(" quick pyro applied : " + paramOption + " ");
+                return new RawScoreModel(paramOption);
             }
         }
         if (paramOption.contains("Acetylation of protein N-term")) {
             XtandemParameters xtandemParameters = (XtandemParameters) tempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
             if (xtandemParameters.isProteinQuickAcetyl()) {
-                return new RawScoreModel();
+                System.out.println(" quick acetylationapplied : " + paramOption + " ");
+                return new RawScoreModel(paramOption);
             }
+        }
+        if (paramOption.contains("_")) {
+            paramOption = paramOption.split("_")[1];
         }
 
         Future<File> f = MainUtilities.getLongExecutorService().submit(() -> {
@@ -370,7 +393,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         }
 
         final List<SpectrumMatch> validatedMaches = SpectraUtilities.getValidatedIdentificationResults(resultOutput, optProtDataset.getSubMsFile(), Advocate.xtandem, tempIdParam);
-        RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.xtandem, addSpectraList);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
+        RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.xtandem, addSpectraList, paramOption);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
 
         if (addSpectraList && rawScore.isSensitiveChange()) {
             rawScore.setSpectrumMatchResult(validatedMaches);
@@ -404,7 +427,8 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange() && scoreModel.getpValue() < 0.05) {
+                System.out.println("DR : " + j + "  " + scoreModel);
+                if (scoreModel.isSignificatChange()) {
                     if (scoreModel.getSpectrumMatchResult().size() <= spectraCounter) {
                         break;
                     }
@@ -466,11 +490,11 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 RawScoreModel scoreModel = f.get();
                 System.out.println("peaksNum " + j + "  " + scoreModel + " -> DS " + optProtDataset.getActiveIdentificationNum());
                 if (scoreModel.isSensitiveChange()) {
+                    resultsMap.put(j + "", scoreModel);
                     if (scoreModel.getFinalScore() <= topScore) {
                         break;
                     }
                     topScore = scoreModel.getFinalScore();
-                    resultsMap.put(j + "", scoreModel);
 
                 } else if (!scoreModel.isSensitiveChange() && !scoreModel.isSameData() && scoreModel.getImprovmentScore() != -100 && topScore > 0) {
                     break;
@@ -578,7 +602,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     }
                     lastScore = scoreModel.getFinalScore();
                     resultsMap.put(j, scoreModel);
-                } else if (!scoreModel.isSensitiveChange() && !scoreModel.isSameData() && scoreModel.getImprovmentScore() != -100) {
+                } else if (!scoreModel.isSensitiveChange() && scoreModel.getImprovmentScore() != -100) {
                     break;
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -746,7 +770,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             try {
                 RawScoreModel scoreModel = f.get();
                 System.out.println("QuickAccetyle " + scoreModel);
-                if (scoreModel.isSensitiveChange()) {
+                if (scoreModel.getFinalScore()>0|| scoreModel.isSameData()||scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -889,7 +913,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
         xtandemParameters.setRefine(useRefine);
         Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, false);
+            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
             return scoreModel;
         });
         try {

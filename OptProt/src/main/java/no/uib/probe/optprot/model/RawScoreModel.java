@@ -5,6 +5,7 @@
 package no.uib.probe.optprot.model;
 
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,11 +18,20 @@ import no.uib.probe.optprot.util.SpectraUtilities;
  */
 public class RawScoreModel implements Comparable<RawScoreModel> {
 
+    private final ScoreComparison sc;
     private int totalNumber = 0;
     private double tTestStat;
     private double pValue;
     private boolean sameData;
     private int fullSpectraSize;
+    private double s1;
+    private double s2;
+    private final String comparisonId;
+
+    public RawScoreModel(String comparisonId) {
+        this.comparisonId = comparisonId;
+        this.sc = new ScoreComparison();
+    }
 
     public boolean isSameData() {
         return sameData;
@@ -40,7 +50,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     public boolean isSensitiveChange() {
         return sensitiveChange;
     }
-    private List<SpectrumMatch> spectrumMatchResult;
+    private List<SpectrumMatch> spectrumMatchResult = new ArrayList<>();
     private double improvmentScore;
     private double finalScore;
     private double sizeEffect;
@@ -126,13 +136,11 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     }
 
-    public RawScoreModel() {
-        this.sc = new ScoreComparison();
-    }
-    private final ScoreComparison sc;
-
     @Override
     public int compareTo(RawScoreModel rs) {
+        if (finalScore == rs.finalScore) {
+            return Double.compare(totalNumber, rs.totalNumber);
+        }
 //        double compscore = SpectraUtilities.isBetterScore(spectrumMatchResult, rs.spectrumMatchResult, fullSpectraSize);
 //        if (compscore == 0) {
 //            return 0;
@@ -154,12 +162,32 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         return dataLengthFactor;
     }
 
+    public String getComparisonId() {
+        return comparisonId;
+    }
+
     public void setDataLengthFactor(double dataLengthFactor) {
         this.dataLengthFactor = dataLengthFactor;
     }
 
     public void setFullSpectraSize(int fullSpectraSize) {
         this.fullSpectraSize = fullSpectraSize;
+    }
+
+    public double getS1() {
+        return s1;
+    }
+
+    public void setS1(double s1) {
+        this.s1 = s1;
+    }
+
+    public double getS2() {
+        return s2;
+    }
+
+    public void setS2(double s2) {
+        this.s2 = s2;
     }
 
 }

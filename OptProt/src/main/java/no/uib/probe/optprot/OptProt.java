@@ -3,6 +3,7 @@ package no.uib.probe.optprot;
 import com.compomics.util.experiment.identification.Advocate;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,10 +31,10 @@ public class OptProt {
 
 //                List<String> paramOrder = new ArrayList<>();
                 Set<Advocate> supportedSearchEngine = new LinkedHashSet<>();
-//                supportedSearchEngine.add(Advocate.xtandem);
+                supportedSearchEngine.add(Advocate.xtandem);
                 paramOrderMap.put(Advocate.xtandem, OptProtXtandemParameterSettings.Get_Xtandem_Parameters_List());
 //                supportedSearchEngine.add(Advocate.myriMatch);
-                supportedSearchEngine.add(Advocate.sage);
+//                supportedSearchEngine.add(Advocate.sage);
                 paramOrderMap.put(Advocate.sage, OptProtSageParameterSettings.Get_Sage_Parameters_List());
 
 //////   
@@ -41,14 +42,20 @@ public class OptProt {
 //               
 //                
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
-                datasettoTestSet.add("PXD028427");
-                datasettoTestSet.add("PXD000561");
-                datasettoTestSet.add("PXD001468");
-                datasettoTestSet.add("PXD047036");
-                datasettoTestSet.add("PXD009340");
-                datasettoTestSet.add("PXD001250");
-
-//////////                datasettoTestSet.add("PXD000815");
+                if (args == null|| args.length==0) {
+                    datasettoTestSet.add("PXD028427");
+                    datasettoTestSet.add("PXD000561");
+//                datasettoTestSet.add("PXD001468");
+//                datasettoTestSet.add("PXD047036");
+//                datasettoTestSet.add("PXD009340");
+//                datasettoTestSet.add("PXD001250");
+//////                datasettoTestSet.add("PXD000815");
+                } else {
+                    datasettoTestSet.addAll(Arrays.asList(args));
+                    System.exit(0);
+                }
+                
+//             
                 boolean cleanAll = false;
                 SearchInputSetting searchOpParameter = new SearchInputSetting();
                 boolean all = true;
@@ -65,15 +72,14 @@ public class OptProt {
                     searchOpParameter.setSelectedSearchEngine(se);
                     for (String datasetId : datasettoTestSet) {
 //                        System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
-//                        cleanAll = true;
-                        MainUtilities.cleanOutputFolder();
+                        cleanAll = true;
+//                        MainUtilities.cleanOutputFolder();
 //                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false);
-//                        cleanAll = false;                        
+//                        cleanAll = false;
                         System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
                         System.gc();
                         MainUtilities.cleanOutputFolder();
                         runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
-
                     }
                 }
                 MainUtilities.cleanOutputFolder();

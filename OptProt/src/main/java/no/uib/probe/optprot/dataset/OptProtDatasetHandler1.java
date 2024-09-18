@@ -43,7 +43,6 @@ import no.uib.probe.optprot.model.SearchInputSetting;
 import no.uib.probe.optprot.search.SearchExecuter;
 import no.uib.probe.optprot.util.MainUtilities;
 import no.uib.probe.optprot.util.OptProtWaitingHandler;
-import no.uib.probe.optprot.util.ScoreComparison;
 import no.uib.probe.optprot.util.SpectraUtilities;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -51,7 +50,7 @@ import org.xmlpull.v1.XmlPullParserException;
  *
  * @author yfa041
  */
-public class OptProtDatasetHandler {
+public class OptProtDatasetHandler1 {
 
     private final SearchInputSetting searchInputSetting = new SearchInputSetting();
     private int startIndex = 0;
@@ -130,106 +129,89 @@ public class OptProtDatasetHandler {
                 int subSize;
                 int left;
                 List<Double> quartileRatios;
-                List<Double> quartileSizeRatios = new ArrayList<>();
-                double directTagFactor = 1;
-                System.out.println("no.uib.probe.optprot.dataset.OptProtDatasetHandler.generateOptProtDataset() " + wholeDataTest);
-                quartileRatios = this.getQuartileRatios(msFile, msFileHandler, 0, 1, spectrumTitles.length, fastaFile, identificationParameters);
-                subSize = (int) (spectrumTitles.length * quartileRatios.get(4));
-                for (double d : quartileRatios) {
-                    double quartSize = (int) (spectrumTitles.length * d * 0.25);//* resizeFactor
-                    quartileSizeRatios.add(quartSize / subSize);
-                    if (d == quartileRatios.get(3)) {
-                        break;
+                if (wholeDataTest) {
+
+                    quartileRatios = this.getQuartileRatios(msFile, msFileHandler, 0, 1, spectrumTitles.length, fastaFile, identificationParameters);
+                    subSize = (int) Math.round(quartileRatios.get(4) * spectrumTitles.length);
+
+//                    spectraMap.putAll(initSubDatasetPart(msFile, msFileHandler, 0, 1, spectrumTitles.length, spectrumTitles.length, fastaFile, identificationParameters, 0.8));
+//                    MainUtilities.cleanOutputFolder();
+//                    System.exit(0);
+                } else {
+
+                    subSize = SpectraUtilities.scaleSubsetSize(spectrumTitles.length, searchEngineToOptimise);
+//                    left = subSize;//Configurations.EXTRACT_MAX_MS_SIZE;
+                    step = (int) Math.round((double) spectrumTitles.length / (double) subSize);
+                    quartileRatios = this.getQuartileRatios(msFile, msFileHandler, 0, step, spectrumTitles.length, fastaFile, identificationParameters);
+                    int q = 1;
+                    int finalSubSize = 0;
+                    int toUpdateSubSize = 0;
+                    for (double d : quartileRatios) {
+                        int quartSize = (int) (spectrumTitles.length * d * 0.1);
+                        int tuquartSize = (int) (spectrumTitles.length * d);
+                        finalSubSize += quartSize;
+                        toUpdateSubSize += tuquartSize;
                     }
-                }
-                if (!wholeDataTest) {
-                    if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
-                        subSize = (int) Math.min(2500.0, (double) subSize);
-                        for (int i = 0; i < quartileRatios.size(); i++) {
-                            quartileRatios.set(i, 1.0-quartileRatios.get(i));
+                    if (finalSubSize > 2000) {
+                        finalSubSize = 0;
+                        double xValue = 2000.0 / (toUpdateSubSize);
+                        for (double d : quartileRatios) {
+                            int quartSize = (int) (spectrumTitles.length * d * xValue);
+                            finalSubSize += quartSize;
                         }
-                    } else {
-                        subSize = (int) Math.min(1500.0, (double) subSize);
-                        for (int i = 0; i < quartileRatios.size(); i++) {
-                            quartileRatios.set(i, 1.0);
-                        }
+                        System.out.println("final subsize " + finalSubSize + "  vs  " + subSize + "   " + (toUpdateSubSize * 0.10) + "   updated with x " + (toUpdateSubSize * xValue));
                     }
-                }else{
-                     if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
-//                        subSize = (int) Math.min(2500.0, (double) subSize);
-//                        for (int i = 0; i < quartileRatios.size(); i++) {
-//                            quartileRatios.set(i, 1.0-quartileRatios.get(0));
-//                        }
-                    } else {
-                        subSize = (int) Math.min(50000, (double) subSize);
-                        for (int i = 0; i < quartileRatios.size(); i++) {
-                            quartileRatios.set(i,1.0- quartileRatios.get(i));
-                        }
-                    }
-                
+                    
+                    subSize = finalSubSize;
                 }
                 left = subSize;
+                System.out.println("at subsetSize " + subSize);
                 startIndex = 0;
+
                 int Q_1_4_coverageSize = (int) Math.round((double) spectrumTitles.length / 4.0);
                 lastIndex = startIndex + Q_1_4_coverageSize;
-                int qSize = (int) Math.round(subSize * quartileSizeRatios.get(0));
-//                if (wholeDataTest) {
-//                    step = 1;
-//                } else {
-                step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
-//                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
-//                    
-//                     step = Math.max(Q_1_4_coverageSize / subSize, 1);
+                if (wholeDataTest) {
+                    step = 1;
+                } else {
+                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
+                }
 
-                System.out.println("step :" + step + "  potintial step " + ((double) Q_1_4_coverageSize / ((double) qSize * directTagFactor)) + "   " + ((double) qSize * directTagFactor) + " vs 3000  " + directTagFactor + "  " + Q_1_4_coverageSize);
-//                }
-
-                Map<String, Spectrum> Q1_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, quartileRatios.get(0));
+                int qSize = (int) Math.round(subSize * quartileRatios.get(0));
+                Map<String, Spectrum> Q1_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, 1.0 - quartileRatios.get(0));
                 spectraMap.putAll(Q1_spectraMap);
-                System.out.println("Quartile ratios are " + "  required qsize1 " + qSize + "  we got " + Q1_spectraMap.size());
-
                 left = left - Q1_spectraMap.size();
 
                 startIndex = lastIndex + 1;
-                lastIndex = startIndex + Q_1_4_coverageSize;
-                qSize = (int) Math.round(subSize * quartileSizeRatios.get(1));
-//                if (wholeDataTest) {
-//                    step = 1;
-//                } else {
-                    step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
-//                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
-//                    step = Math.max(Q_1_4_coverageSize / subSize, 1);
-//                }
-
-                Map<String, Spectrum> Q2_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, quartileRatios.get(1));
+                lastIndex = startIndex + +Q_1_4_coverageSize;
+                if (wholeDataTest) {
+                    step = 1;
+                } else {
+                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
+                }
+                qSize = (int) Math.round(subSize * quartileRatios.get(1));
+                Map<String, Spectrum> Q2_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, 1.0 - quartileRatios.get(1));
                 spectraMap.putAll(Q2_spectraMap);
                 left = left - Q2_spectraMap.size();
                 startIndex = lastIndex + 1;
-                lastIndex = startIndex + Q_1_4_coverageSize;
-                qSize = (int) Math.round(subSize * quartileSizeRatios.get(2));
-//                if (wholeDataTest) {
-//                    step = 1;
-//                } else {
-                    step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
-//                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
-//                    step = Math.max(Q_1_4_coverageSize / subSize, 1);
-//                }
-
-                Map<String, Spectrum> Q3_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, quartileRatios.get(2));
+                lastIndex = startIndex + +Q_1_4_coverageSize;
+                if (wholeDataTest) {
+                    step = 1;
+                } else {
+                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
+                }
+                qSize = (int) Math.round(subSize * quartileRatios.get(2));
+                Map<String, Spectrum> Q3_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, 1.0 - quartileRatios.get(2));
                 spectraMap.putAll(Q3_spectraMap);
                 left = left - Q3_spectraMap.size();
                 startIndex = lastIndex + 1;
-                lastIndex = startIndex + Q_1_4_coverageSize;
+                lastIndex = startIndex + +Q_1_4_coverageSize;
+                if (wholeDataTest) {
+                    step = 1;
+                } else {
+                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
+                }
                 qSize = left;
-//                if (wholeDataTest) {
-//                    step = 1;
-//                } else {
-                    step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
-//                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
-//                    step = Math.max(Q_1_4_coverageSize / subSize, 1);
-//                }
-
-                Map<String, Spectrum> Q4_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, quartileRatios.get(3));
+                Map<String, Spectrum> Q4_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, 1.0 - quartileRatios.get(3));
                 spectraMap.putAll(Q4_spectraMap);
 //                }
                 MainUtilities.cleanOutputFolder();
@@ -392,7 +374,7 @@ public class OptProtDatasetHandler {
             arrayList.add(1.0);
 
             Map<String, Spectrum> spectraMap = substractSpectraFirstLevelDataFiltering(msFile, msFileHandler, startIndex, step, lastIndex);
-
+            System.out.println("sub file size 1 -->> " + spectraMap.size());
             final String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
             File destinationFile = new File(Configurations.GET_OUTPUT_FOLDER_PATH(), Configurations.DEFAULT_RESULT_NAME + "_temp_" + startIndex + "_" + lastIndex + "_" + spectraMap.size() + "_-_" + fileNameWithoutExtension + ".mgf");
             if (destinationFile.exists()) {
@@ -410,62 +392,20 @@ public class OptProtDatasetHandler {
             }
             MsFileHandler subMsFileHandler = new MsFileHandler();
             subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
-            System.out.println("total maches ");
 
 //            DataAnalysisHandler.showTagDistribution(subfileNameWithoutExtension.split("_-_")[1], subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(destinationFile.getName())), matches);
             arrayList.clear();
             arrayList.addAll(SpectraUtilities.getQuartileRatio(subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(destinationFile.getName())), matches));
-//            arrayList.add((double) matches.size() / (double) spectraMap.size());
+            arrayList.add((double) matches.size() / (double) spectraMap.size());
         } catch (IOException ex) {
-            Logger.getLogger(OptProtDatasetHandler.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return arrayList;
-    }
-
-    private List<Double> getQuartileRatiosT(File msFile, MsFileHandler msFileHandler, int startIndex, int step, int lastIndex, File fastaFile, IdentificationParameters identificationParameters) {
-        ArrayList<Double> arrayList = new ArrayList<>();
-        try {
-            arrayList.add(0.25);
-            arrayList.add(0.25);
-            arrayList.add(0.25);
-            arrayList.add(0.25);
-            arrayList.add(1.0);
-
-            Map<String, Spectrum> spectraMap = substractSpectraFirstLevelDataFiltering(msFile, msFileHandler, startIndex, step, lastIndex);
-
-            final String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
-            File destinationFile = new File(Configurations.GET_OUTPUT_FOLDER_PATH(), Configurations.DEFAULT_RESULT_NAME + "_temp_" + startIndex + "_" + lastIndex + "_" + spectraMap.size() + "_-_" + fileNameWithoutExtension + ".mgf");
-            if (destinationFile.exists()) {
-                destinationFile.delete();
-            }
-            destinationFile.createNewFile();
-            destinationFile = generateMsSubFile(spectraMap, destinationFile);
-            final String subfileNameWithoutExtension = IoUtil.removeExtension(destinationFile.getName());
-
-            ArrayList<SpectrumMatch> matches = getTagMaches(destinationFile, fastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE), subfileNameWithoutExtension);
-            if (matches.isEmpty()) {
-                System.out.println("there is no tags in the file ...very poor data " + subfileNameWithoutExtension);
-                return arrayList;
-
-            }
-            MsFileHandler subMsFileHandler = new MsFileHandler();
-            subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
-            System.out.println("total maches ");
-
-//            DataAnalysisHandler.showTagDistribution(subfileNameWithoutExtension.split("_-_")[1], subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(destinationFile.getName())), matches);
-            arrayList.clear();
-            arrayList.addAll(SpectraUtilities.getQuartileRatio(subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(destinationFile.getName())), matches));
-//            arrayList.add((double) matches.size() / (double) spectraMap.size());
-        } catch (IOException ex) {
-            Logger.getLogger(OptProtDatasetHandler.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(OptProtDatasetHandler1.class.getName()).log(Level.SEVERE, null, ex);
         }
         return arrayList;
     }
 
     private Map<String, Spectrum> initSubDatasetPart(File msFile, MsFileHandler msFileHandler, int startIndex, int step, int lastIndex, int refinSize, File fastaFile, IdentificationParameters identificationParameters, double highQualityRatio) {
         Map<String, Spectrum> spectraMap = substractSpectraFirstLevelDataFiltering(msFile, msFileHandler, startIndex, step, lastIndex);
-//        highQualityRatio=1;
-
+        System.out.println("sub file size 2 -->>" + spectraMap.size());
         try {
 
             //generate submsFile
@@ -512,7 +452,7 @@ public class OptProtDatasetHandler {
             ArrayList<SpectrumMatch> matches = idReader.getAllSpectrumMatches(subMsFileHandler, MainUtilities.OptProt_Waiting_Handler, identificationParameters.getSearchParameters());
             return matches;
         } catch (IOException | SQLException | ClassNotFoundException | InterruptedException | JAXBException | XmlPullParserException | XMLStreamException ex) {
-            Logger.getLogger(OptProtDatasetHandler.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(OptProtDatasetHandler1.class.getName()).log(Level.SEVERE, null, ex);
         }
         return new ArrayList<>();
 

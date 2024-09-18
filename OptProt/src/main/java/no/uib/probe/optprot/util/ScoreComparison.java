@@ -33,7 +33,16 @@ public class ScoreComparison {
         return Math.sqrt(sum / scores.length);
     }
 
-    public double performTStatTest(double[] scores1, double[] scores2) {
+    public double performTStatTest(double[] s1, double[] s2, boolean switchData) {
+        double[] scores1, scores2;
+        if (switchData) {
+            scores1 = s2;
+            scores2 = s1;
+        } else {
+            scores1 = s1;
+            scores2 = s2;
+        }
+
         if (scores1.length < 2 || scores2.length < 2) {
             if (scores1.length > scores2.length) {
                 return -1;
@@ -50,16 +59,29 @@ public class ScoreComparison {
     }
 
     public double dataSizeEffect(double dataSizeFrom, double dataSizeTo) {
-        double effect = (dataSizeTo - dataSizeFrom) * 100.0 / Math.min(dataSizeFrom, dataSizeTo);// 10.0 - (Math.min(dataSizeFrom, dataSizeTo) * 10.0 / Math.max(dataSizeFrom, dataSizeTo));
+        dataSizeFrom++;
+        dataSizeTo++;
+        double effect = (dataSizeTo - dataSizeFrom) * 100.0 / Math.min(dataSizeFrom, dataSizeTo);
+
+// 10.0 - (Math.min(dataSizeFrom, dataSizeTo) * 10.0 / Math.max(dataSizeFrom, dataSizeTo));
 //        System.out.println("effect is " + dataSizeFrom + "  " + dataSizeTo + "  " + effect);
 //        if (dataSizeFrom > dataSizeTo) {
 //            effect *= -1.0;
 //        }
-        return effect;
+        return logScaleNormalize(effect, Math.E);
 
     }
 
-    public double performTTest(double[] scores1, double[] scores2) {
+    public double performTTest(double[] s1, double[] s2, boolean switchData) {
+
+        double[] scores1, scores2;
+        if (switchData) {
+            scores1 = s2;
+            scores2 = s1;
+        } else {
+            scores1 = s1;
+            scores2 = s2;
+        }
         if (scores1.length < 2 || scores2.length < 2) {
             return 1;
         }
@@ -93,21 +115,31 @@ public class ScoreComparison {
 
     public double calculateScore(double[] scores1, double[] scores2) {
 
-        DescriptiveStatistics ds1 = new DescriptiveStatistics(scores1);
-        DescriptiveStatistics ds2 = new DescriptiveStatistics(scores2);
+        DescriptiveStatistics ds1;
+        DescriptiveStatistics ds2 ;
+        
+         boolean switchData = false;
+        if (scores2.length >= scores1.length) {
+            ds1 = new DescriptiveStatistics(scores1);
+            ds2 = new DescriptiveStatistics(scores2);
+        } else {
+            switchData = true;
+            ds1 = new DescriptiveStatistics(scores2);
+            ds2 = new DescriptiveStatistics(scores1);
+        }
 
         double median1 = ds1.getPercentile(50);
         double median2 = ds2.getPercentile(50);
 
         double meanDifference = median2 - median1;
         double percentageImprovement = percentageImprovement(median1, median2);
-        double tStat = performTStatTest(scores1, scores2);
+        double tStat = performTStatTest(scores1, scores2,switchData);
 
         double stdDev1 = ds1.getStandardDeviation();//calculateStandardDeviation(scores1);
         double stdDev2 = ds2.getStandardDeviation();//calculateStandardDeviation(scores2);
 
         double stdDevDifference = stdDev1 - stdDev2;
-        double pValue = performTTest(scores1, scores2);
+        double pValue = performTTest(scores1, scores2,switchData);
 
         // Assuming the possible range for these metrics is between -200 and 200 for normalization purposes.
         // Adjust these ranges based on your specific use case.
@@ -131,21 +163,35 @@ public class ScoreComparison {
 
     public double[] calculateFinalScore(double[] scores1, double[] scores2) {
 
-        DescriptiveStatistics ds1 = new DescriptiveStatistics(scores1);
-        DescriptiveStatistics ds2 = new DescriptiveStatistics(scores2);
+        DescriptiveStatistics ds1;
+        DescriptiveStatistics ds2;
+        boolean switchData = false;
+        if (scores2.length >= scores1.length) {
+            ds1 = new DescriptiveStatistics(scores1);
+            ds2 = new DescriptiveStatistics(scores2);
+        } else {
+            switchData = true;
+            ds1 = new DescriptiveStatistics(scores2);
+            ds2 = new DescriptiveStatistics(scores1);
+        }
 
         double mean1 = ds1.getMean();
         double mean2 = ds2.getMean();
 
         double meanDifference = mean2 - mean1;
         double percentageImprovement = percentageImprovement(mean1, mean2);
-        double tStat = performTStatTest(scores1, scores2);
+
+        if (scores1.length == scores2.length && mean1 == mean2 && percentageImprovement == 0) {
+            return new double[]{0, 0, 0, 0, 0, 0};
+        }
+
+        double tStat = performTStatTest(scores1, scores2, switchData);
 
         double stdDev1 = ds1.getStandardDeviation();//calculateStandardDeviation(scores1);
         double stdDev2 = ds2.getStandardDeviation();//calculateStandardDeviation(scores2);
 
         double stdDevDifference = stdDev1 - stdDev2;
-        double pValue = performTTest(scores1, scores2);
+        double pValue = performTTest(scores1, scores2,switchData);
 
         // Assuming the possible range for these metrics is between -200 and 200 for normalization purposes.
         // Adjust these ranges based on your specific use case.
@@ -159,19 +205,31 @@ public class ScoreComparison {
         }
         double dataSizeEffect = 0;
         double finalScore;
+        if (Double.isInfinite(Math.abs(normTStat))) {
+            normTStat = normPercentageImprovement;
+        }
         if (scores1.length == scores2.length) {
             finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat) / 5.0;
         } else {
-            dataSizeEffect = calculateCohensD(scores1, scores2);//
+            dataSizeEffect = calculateCohensD(scores1, scores2,switchData);//
+            if (Double.isNaN(dataSizeEffect) || Double.isInfinite(dataSizeEffect)) {
+                dataSizeEffect = dataSizeEffect(scores1.length, scores2.length);
+            }
+            if (ds1.getN()> ds2.getN() && dataSizeEffect > 0) {
+                dataSizeEffect *= -1.0;
+            }
             finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat + dataSizeEffect) / 6.0;
         }
-//        System.out.println("final score parts (meanDifference: " + meanDifference + " , percentageImprovement: " + percentageImprovement + " , tStat: " + tStat + " , stdDevDifference: " + stdDevDifference + " , pValue: " + pValue + " , dataSizeEffect: " + dataSizeEffect + ") " + finalScore);
+        System.out.println("final score parts (meanDifference: " + scores1.length + " to " + scores2.length + " MD " + normMeanDiff + " , percentageImprovement: " + normPercentageImprovement + " , tStat: " + normTStat + " , stdDevDifference: " + normStdDevDiff + " , pValue: " + normPValue + " , dataSizeEffect: " + dataSizeEffect + ") " + finalScore + "  " + Double.isInfinite(Math.abs(normTStat)));
 
         if (percentageImprovement < 0 && finalScore > 0) {
 //            finalScore *= -1.0;
             System.out.println("----------------------------------------------------------------->>> flip score case");
         }
-//        System.out.println("Norma score parts (meanDifference: " + normMeanDiff + " , percentageImprovement: " + normPercentageImprovement + " , tStat: " + normTStat + " , stdDevDifference: " + normStdDevDiff + " , pValue: " + normPValue + " , dataSizeEffect: " + dataSizeEffect + ") " + finalScore);
+        if (switchData) {
+            System.out.println("data switch happened");
+            finalScore *= -1.0;
+        }
 
         return new double[]{percentageImprovement, tStat, pValue, dataSizeEffect, finalScore, 0};
     }
@@ -189,8 +247,8 @@ public class ScoreComparison {
     }
 
     public static void main(String[] args) {
-        double[] scores2 = {91.0, 89.0, 95.0, 87.0, 93.5, 90.0};
-        double[] scores1 = {91.5, 91.0, 95.5, 88.0, 94.5, 91.0};
+        double[] scores2 = {91.5, 70, 25, 12};
+        double[] scores1 = {91.0, 89.0, 95.0, 87.0, 93.5, 90.0};
 
         ScoreComparison sc = new ScoreComparison();
         double finalScore = sc.calculateFinalScore(scores1, scores2)[4];
@@ -210,14 +268,22 @@ public class ScoreComparison {
 
     }
 
-    public double calculateCohensD(double[] from, double[] to) {
+    public double calculateCohensD(double[] s1, double[] s2,boolean switchData) {
+        double[] from,  to;
+        if (switchData) {
+            from = s2;
+            to = s1;
+        } else {
+            from = s1;
+            to = s2;
+        }
         double mean1 = Arrays.stream(from).average().orElse(0.0);
         double mean2 = Arrays.stream(to).average().orElse(0.0);
         double variance1 = Arrays.stream(from).map(x -> Math.pow(x - mean1, 2)).sum() / (from.length - 1);
         double variance2 = Arrays.stream(to).map(x -> Math.pow(x - mean2, 2)).sum() / (to.length - 1);
         double pooledStdDev = Math.sqrt(((from.length - 1) * variance1 + (to.length - 1) * variance2) / (from.length + to.length - 2));
-
-        return (mean2 - mean1) / pooledStdDev;
+        double normCohenD = ((mean2 - mean1) / pooledStdDev);
+        return logScaleNormalize(normCohenD, Math.E);
     }
 
     public List<Double> getElementsLargerThanParallel(double[] array, double specificValue) {

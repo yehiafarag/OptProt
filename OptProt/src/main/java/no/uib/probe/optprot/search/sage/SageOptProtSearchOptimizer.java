@@ -4,7 +4,6 @@ import com.compomics.util.experiment.biology.enzymes.EnzymeFactory;
 import com.compomics.util.experiment.biology.modifications.ModificationFactory;
 import com.compomics.util.experiment.identification.Advocate;
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
-import com.compomics.util.experiment.io.identification.IdfileReaderFactory;
 import com.compomics.util.io.IoUtil;
 import com.compomics.util.parameters.identification.IdentificationParameters;
 import com.compomics.util.parameters.identification.search.DigestionParameters;
@@ -17,11 +16,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -74,7 +71,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         sageParameters.setGenerateDecoys(false);
         sageParameters.setWideWindow(false);
         sageParameters.setPredictRt(true);
-        System.out.println(" identificationParameters.getFastaParameters().getDecoyFlag() "+ identificationParameters.getFastaParameters().getDecoyFlag());
+        System.out.println(" identificationParameters.getFastaParameters().getDecoyFlag() " + identificationParameters.getFastaParameters().getDecoyFlag() + "  oreginal size  " + optProtDataset.getOreginalDatasize() + "  total subsize " + optProtDataset.getTotalSpectraNumber());
 //        sageParameters.setMinFragmentMz(150.0);
 //        sageParameters.setMaxFragmentMz(1500.0);
         MainUtilities.cleanOutputFolder();
@@ -117,6 +114,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
         for (String param : paramOrder) {
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
+            MainUtilities.cleanOutputFolder();
             if (param.equalsIgnoreCase("DigestionParameter_1") && searchInputSetting.isOptimizeDigestionParameter()) {
                 String[] values = this.optimizeEnzymeParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
                 identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
@@ -129,6 +127,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                     identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], nMissesCleavages);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
+
                 continue;
             }
             if (param.equalsIgnoreCase("DigestionTypeParameter") && searchInputSetting.isOptimizeDigestionParameter()) {
@@ -200,8 +199,6 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                 Map<String, Set<String>> modificationsResults = this.optimizeModificationsParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("ModificationsParameter"));
                 identificationParameters.getSearchParameters().getModificationParameters().clearFixedModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
-                identificationParameters.getSearchParameters().getModificationParameters().clearRefinementModifications();
-                identificationParameters.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
                 for (String fixedMod : modificationsResults.get("fixedModifications")) {
                     if (ptmFactory.getModification(fixedMod) != null) {
                         identificationParameters.getSearchParameters().getModificationParameters().addFixedModification(ptmFactory.getModification(fixedMod));
@@ -277,9 +274,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                 System.out.println("SagePredectRetentionTimeParameter " + valueBoolean + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
 //               
 
-             
 //                System.out.println("optimizeMaxFragmentChargeParameter " + value + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
-
                 int value = optimizeMaxVariableModificationParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageMaxVariableModificationParameter"));
                 if (value != sageParameters.getMaxVariableMods()) {
                     sageParameters.setMaxVariableMods(value);
@@ -300,7 +295,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                 if (valueBoolean != sageParameters.getGenerateDecoys()) {
                     sageParameters.setGenerateDecoys(valueBoolean);
                 }
-                valueBoolean =  optimizeWideWindowParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageWideWindowParameter"));
+                valueBoolean = optimizeWideWindowParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageWideWindowParameter"));
                 if (valueBoolean != sageParameters.getWideWindow()) {
                     sageParameters.setWideWindow(valueBoolean);
                 }
@@ -342,7 +337,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
     public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile, boolean pairData) {
         if (!optProtSearchSettings.getSageEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);
-            return new RawScoreModel();
+            return new RawScoreModel(paramOption);
         }
 //        if (defaultOutputFileName.contains("_resultsf_Carbamilation of protein N-term") || defaultOutputFileName.contains("_resultsf_Acetylation of protein N-term") || defaultOutputFileName.contains("_resultsf_Pyrolidone from carbamidomethylated C")) {
 //            System.out.println("param " + paramOption + " is not supported " + paramOption);
@@ -365,7 +360,10 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 
         List<SpectrumMatch> validatedMaches = SpectraUtilities.getValidatedIdentificationResults(resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam);
         System.out.println("at param name is " + paramOption + "  " + validatedMaches.size());
-        RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.sage, addSpectraList);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
+        if (paramOption.contains("_")) {
+            paramOption = paramOption.split("_")[1];
+        }
+        RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.sage, addSpectraList, paramOption);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
         if (addSpectraList && rawScore.isSensitiveChange()) {
             rawScore.setSpectrumMatchResult(validatedMaches);
         }
@@ -382,8 +380,8 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         int selectedMinPeptideLengthOption = sageParameter.getMinPeptideLength();
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
 
-        sageParameter.setMaxPeptideLength(selectedMaxPeptideLengthOption);
-
+        sageParameter.setMaxPeptideLength(35);
+        int selectedV = selectedMinPeptideLengthOption;
         for (int i = 5; i <= 10; i++) {
             if (i == selectedMinPeptideLengthOption) {
                 continue;
@@ -394,13 +392,15 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             int j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSensitiveChange() || scoreModel.isSameData()) {
+                if (scoreModel.isSensitiveChange() && scoreModel.getSpectrumMatchResult().size() >= optProtDataset.getCurrentScoreModel().getSpectrumMatchResult().size()) {
+                    System.out.println("add as selected score " + j);
                     resultsMap.put(j + "", scoreModel);
+                    selectedV = j;
                 } else {
                     break;
                 }
@@ -411,9 +411,20 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//            
-            selectedMinPeptideLengthOption = Integer.parseInt(bestOption);
+            String bestOption = selectedV + "";// SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//    
+//            int[] scoreLengthValues = new int[resultsMap.size()];
+//            String[] keys = new String[resultsMap.size()];
+//            int i = 0;
+//            for (String key : resultsMap.keySet()) {
+//                scoreLengthValues[i] = resultsMap.get(key).getSpectrumMatchResult().size();
+//                keys[i] = key;
+//                System.out.println("at indix " + i + "  " + key + "  " + resultsMap.get(key).getFinalScore());
+//                i++;
+//            }
+//            selectedV = Integer.parseInt(keys[SpectraUtilities.findMainDrop(scoreLengthValues)]);
+            selectedMinPeptideLengthOption = selectedV;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
+
         }
 
         resultsMap.clear();
@@ -432,9 +443,9 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if ((scoreModel.getFinalScore() > 0)) {
+                if (scoreModel.getFinalScore() > 0) {
                     resultsMap.put(j + "", scoreModel);
-                } else if (j > selectedMaxPeptideLengthOption && !scoreModel.isSensitiveChange()) {
+                } else if (!scoreModel.isSameData()) {
                     break;
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -461,6 +472,8 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         double selectedMinPeptideMassOption = sageParameter.getMinPeptideMass();
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         sageParameter.setMaxPeptideMass(selectedMaxPeptideMassOption);
+        double lastScore = -100000.0;
+
         for (double i = 400; i <= 600;) {
             if (i == selectedMinPeptideMassOption) {
                 i += 50.0;
@@ -476,7 +489,8 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSensitiveChange()) {
+                if (scoreModel.isSensitiveChange() && lastScore < scoreModel.getFinalScore()) {
+                    lastScore = scoreModel.getFinalScore();
                     resultsMap.put(j + "", scoreModel);
                 } else {
                     break;
@@ -554,7 +568,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange() || (scoreModel.isSensitiveChange()&& j < selectedOption)) {
+                if (scoreModel.isSignificatChange() || (scoreModel.isSensitiveChange() && j < selectedOption)) {
                     resultsMap.put(j + "", scoreModel);
                 }
 
@@ -682,6 +696,8 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                 RawScoreModel scoreModel = f.get();
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j + "", scoreModel);
+                } else {
+                    break;
                 }
 
             } catch (ExecutionException | InterruptedException ex) {
@@ -830,7 +846,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
     }
 
     public boolean optimizeWideWindowParameter(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
-       
+
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("WideWindow");
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -839,8 +855,9 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         boolean selectedOption = sageParameters.getWideWindow();
 
         for (int i = 0; i < 2; i++) {
-            if(selectedOption==(i==1))
+            if (selectedOption == (i == 1)) {
                 continue;
+            }
             final String option = "WideWindow_" + (i == 1);
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
             sageParameters.setWideWindow(i == 1);
@@ -853,10 +870,10 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             try {
                 RawScoreModel scoreModel = f.get();
                 System.out.println("score model " + (option) + "  " + scoreModel);
-//                if (scoreModel.isSensitiveChange()) {
-                resultsMap.put(j + "", scoreModel);
+                if (scoreModel.getFinalScore() > 1) {
+                    resultsMap.put(j + "", scoreModel);
 
-//                }
+                }
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
             }
@@ -866,7 +883,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
-            paramScore.setComments("Extremely slow processing");
+            paramScore.setComments("Slow processing");
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
@@ -928,7 +945,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         int selectedMinPeaksNumberOption = sageParameter.getMinPeaks();
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         sageParameter.setMaxPeaks(selectedMaxPeaksNumberOption);
-
+        RawScoreModel prescoreModel = null;
         for (int i = 10; i <= 20; i++) {
             if (i == selectedMinPeaksNumberOption) {
                 continue;
@@ -939,14 +956,21 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             int j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSensitiveChange() || scoreModel.isSameData()) {
+                if (scoreModel.isSensitiveChange() && scoreModel.getTotalNumber() >= optProtDataset.getCurrentScoreModel().getTotalNumber()) { //|| scoreModel.isSameData()
+                    if (prescoreModel == null) {
+                        prescoreModel = scoreModel;
+                    } else if (prescoreModel.getFinalScore() < scoreModel.getFinalScore()) {
+                        prescoreModel = scoreModel;
+                    } else {
+                        continue;
+                    }
                     resultsMap.put(j + "", scoreModel);
-                } else {
+                } else if (j > selectedMinPeaksNumberOption || scoreModel.getTotalNumber() < optProtDataset.getCurrentScoreModel().getTotalNumber()) {
                     break;
                 }
 
@@ -1009,11 +1033,10 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         int selectedOption = sageParameters.getMinMatchedPeaks();
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
-        sageParameters = (SageParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
         for (int i = 3; i <= 6; i++) {
-//            if (i == selectedOption) {
-//                continue;
-//            }
+            if (i == selectedOption) {
+                continue;
+            }
             final String option = "minMatchedPeaks_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
             sageParameters.setMinMatchedPeaks(i);
@@ -1024,8 +1047,10 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSensitiveChange()) {
+                if (scoreModel.isSensitiveChange() && scoreModel.getTotalNumber() >= optProtDataset.getActiveIdentificationNum()) {
                     resultsMap.put(j + "", scoreModel);
+                } else if (j > selectedOption) {
+                    break;
                 }
 
             } catch (ExecutionException | InterruptedException ex) {

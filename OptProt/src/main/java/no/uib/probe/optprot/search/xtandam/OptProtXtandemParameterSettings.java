@@ -1,4 +1,3 @@
-
 package no.uib.probe.optprot.search.xtandam;
 
 import java.util.ArrayList;
@@ -20,15 +19,16 @@ public class OptProtXtandemParameterSettings {
         paramOrder.add("DigestionParameter_1");
         paramOrder.add("DigestionParameter_2");
         paramOrder.add("DigestionParameter_3");
-//////                paramOrder.add("DigestionTypeParameter");
-
-        paramOrder.add("PrecursorToleranceParameter");
-        paramOrder.add("FragmentToleranceParameter");
+////////////////////////////////////////////////////                paramOrder.add("DigestionTypeParameter");
 
 ////// xtandem stage 2
         paramOrder.add("XtandemAdvancedParameter_A");//                
         paramOrder.add("ModificationParameter");
         paramOrder.add("XtandemAdvancedParameter_B");
+
+        paramOrder.add("PrecursorToleranceParameter");
+        paramOrder.add("FragmentToleranceParameter");
+
         return paramOrder;
     }
 

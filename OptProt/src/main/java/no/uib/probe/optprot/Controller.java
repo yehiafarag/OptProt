@@ -9,7 +9,6 @@ import no.uib.probe.optprot.search.OptProtSearchHandler;
 import no.uib.probe.optprot.util.MainUtilities;
 import no.uib.probe.optprot.dataset.OptProtDatasetHandler;
 import no.uib.probe.optprot.util.ReportExporter;
-import no.uib.probe.optprot.util.ScoreComparison;
 import no.uib.probe.optprot.util.SpectraUtilities;
 
 /**
@@ -53,7 +52,6 @@ public class Controller {
         optProtDataset.setSubDataFolder(subDataFolder);
         optProtDataset.setFullDataSpectaInput(wholeDataTest);
         File selectedSearchSettingsFile;
-        System.out.println("sub fasta file "+optProtDataset.getSubFastaFile().getAbsolutePath());
         
         if (optProtSearchSettings.isOptimizeAllParameters()) {
             selectedSearchSettingsFile = new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE);

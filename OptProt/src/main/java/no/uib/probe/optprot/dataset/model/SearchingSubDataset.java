@@ -31,12 +31,12 @@ public class SearchingSubDataset {
         this.parameterScoreMap = parameterScoreMap;
     }
 
-    public int getIdentificationNum() {
-        return identificationNum;
+    public int getCurrentIdentifiedSpectra() {
+        return currentIdentifiedSpectra;
     }
 
-    public void setIdentificationNum(int identificationNum) {
-        this.identificationNum = identificationNum;
+    public void setCurrentIdentifiedSpectra(int currentIdentifiedSpectra) {
+        this.currentIdentifiedSpectra = currentIdentifiedSpectra;
     }
 
     public File getSubDataFolder() {
@@ -100,7 +100,7 @@ public class SearchingSubDataset {
 
     public void updateValidatedIdRefrenceData(List<SpectrumMatch> validatedIdRefrenceData) {
         this.resetSpectraScoreMap();
-        this.identificationNum = validatedIdRefrenceData.size();
+        this.currentIdentifiedSpectra = validatedIdRefrenceData.size();
         for (SpectrumMatch sm : validatedIdRefrenceData) {
             fullSpectraScore.replace(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
         }
@@ -146,7 +146,7 @@ public class SearchingSubDataset {
     }
 
     private int oreginalDatasize;
-    private int identificationNum;
+    private int currentIdentifiedSpectra;
 
     private double comparisonsThreshold = 0.0;
 
@@ -167,7 +167,7 @@ public class SearchingSubDataset {
     }
 
     public synchronized double getIdentificationRate() {
-        return identificationNum * 100.0 / totalSpectraNumber;
+        return currentIdentifiedSpectra * 100.0 / totalSpectraNumber;
     }
 
     public int getDefaultSettingIdentificationNum() {
@@ -175,7 +175,7 @@ public class SearchingSubDataset {
     }
 
     public synchronized int getActiveIdentificationNum() {
-        return identificationNum;
+        return currentIdentifiedSpectra;
     }
 
     public void setDefaultSettingIdentificationNum(int defaultSettingIdentificationNum) {
@@ -216,7 +216,7 @@ public class SearchingSubDataset {
 
     public double getpValueThresholds() {
         if (pValueThresholds == -1) {
-            double res = this.identificationNum * 100 / getTotalSpectraNumber();
+            double res = this.currentIdentifiedSpectra * 100 / getTotalSpectraNumber();
             if (res <= 5) {
                 pValueThresholds = 0.1;
             } else {

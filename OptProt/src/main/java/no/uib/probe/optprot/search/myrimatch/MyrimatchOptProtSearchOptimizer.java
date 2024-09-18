@@ -63,7 +63,7 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
         MyriMatchParameters myriMatchParameters = (MyriMatchParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
         myriMatchParameters.setMaxDynamicMods(identificationParameters.getSearchParameters().getModificationParameters().getVariableModifications().size());
         this.optimisedSearchResults = new OptimisedSearchResults();
-        this.parameterScoreMap = new LinkedHashMap<>();        
+        this.parameterScoreMap = new LinkedHashMap<>();
         optProtDataset.setParameterScoreMap(parameterScoreMap);
         MainUtilities.cleanOutputFolder();
         parameterScoreMap.put("DigestionParameter", new TreeSet<>(Collections.reverseOrder()));
@@ -461,15 +461,18 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
 
         if (!optProtSearchSettings.getMyriMatchEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);
-            return new RawScoreModel();
+            return new RawScoreModel(paramOption);
         }
         if (defaultOutputFileName.contains("_resultsf_Pyrolidon") || defaultOutputFileName.contains("_resultsf_Acetylation of protein N-term") || defaultOutputFileName.contains("_resultsf_Carbamilation of protein N-term")) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);
-            return new RawScoreModel();
+            return new RawScoreModel(paramOption);
         }
         File resultOutput = SearchExecuter.executeSearch(defaultOutputFileName, optProtSearchSettings, optProtDataset.getSubMsFile(), optProtDataset.getSubFastaFile(), tempIdParam, identificationParametersFile);
         List<SpectrumMatch> validatedMaches = SpectraUtilities.getValidatedIdentificationResults(resultOutput, optProtDataset.getSubMsFile(), Advocate.myriMatch, tempIdParam);
-        RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.myriMatch, addSpectraList);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
+        if (paramOption.contains("_")) {
+            paramOption = paramOption.split("_")[1];
+        }
+        RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.myriMatch, addSpectraList, paramOption);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
         MainUtilities.deleteFolder(resultOutput);
         if (addSpectraList && rawScore.isSignificatChange()) {
             rawScore.setSpectrumMatchResult(validatedMaches);
