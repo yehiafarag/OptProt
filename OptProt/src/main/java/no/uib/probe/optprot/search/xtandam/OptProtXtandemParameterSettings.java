@@ -13,21 +13,21 @@ public class OptProtXtandemParameterSettings {
         List<String> paramOrder = new ArrayList<>();
         // xtandem stage 1
         paramOrder.add("XtandemAdvancedParameter");
-        paramOrder.add("FragmentIonTypesParameter");
-        paramOrder.add("PrecursorChargeParameter");
-        paramOrder.add("IsotopParameter");
-        paramOrder.add("DigestionParameter_1");
-        paramOrder.add("DigestionParameter_2");
-        paramOrder.add("DigestionParameter_3");
+//        paramOrder.add("FragmentIonTypesParameter");
+//        paramOrder.add("PrecursorChargeParameter");
+//        paramOrder.add("IsotopParameter");
+//        paramOrder.add("DigestionParameter_1");
+//        paramOrder.add("DigestionParameter_2");
+//        paramOrder.add("DigestionParameter_3");
 ////////////////////////////////////////////////////                paramOrder.add("DigestionTypeParameter");
 
 ////// xtandem stage 2
         paramOrder.add("XtandemAdvancedParameter_A");//                
         paramOrder.add("ModificationParameter");
-        paramOrder.add("XtandemAdvancedParameter_B");
-
-        paramOrder.add("PrecursorToleranceParameter");
-        paramOrder.add("FragmentToleranceParameter");
+//        paramOrder.add("XtandemAdvancedParameter_B");
+//
+//        paramOrder.add("PrecursorToleranceParameter");
+//        paramOrder.add("FragmentToleranceParameter");
 
         return paramOrder;
     }

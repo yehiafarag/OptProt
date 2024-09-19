@@ -913,36 +913,39 @@ public abstract class DefaultOptProtSearchOptimizer {
         Map<String, TreeMap<Double, String>> filterVMMap = new LinkedHashMap<>();
         while (counter < 4) {
             resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, false, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, counter + "" + prefix, false));
+            filterVMMap.clear();
             if (!resultsMap.isEmpty()) {
-//                for (String modId : resultsMap.keySet()) {
-//                    Modification mod = ptmFactory.getModification(modId);
-//                    //get modified intersection with avctive spectra 
-//                    String modPattern = mod.getPattern().toString();
-//                    if (modPattern.equals("")) {
-//                        modPattern = mod.getModificationType().isNTerm() + "-" + mod.getModificationType().isCTerm();
-//                    }
-//                    if (!filterVMMap.containsKey(modPattern)) {
-//                        filterVMMap.put(modPattern, new TreeMap<>(Collections.reverseOrder()));
-//                    }
-//                    filterVMMap.get(modPattern).put(resultsMap.get(modId).getFinalScore(), modId);
-//                }
-//                boolean first=true;
-//                for (String patteren : filterVMMap.keySet()) {
-//                    first=true;
-//                    for (String mod : filterVMMap.get(patteren).values()) {
-//                        if(first){
-//                            first=false;
-//                            continue;
-//                        }
-//                        resultsMap.remove(mod);
-//                        System.out.println("reove modification "+mod);
-//                        
-//                    }
-//                }
-                System.out.println("final left mods are "+resultsMap.keySet());
-
+                for (String modId : resultsMap.keySet()) {
+                    Modification mod = ptmFactory.getModification(modId);
+                    //get modified intersection with avctive spectra 
+                    String modPattern = mod.getPattern().toString();
+                    if (modPattern.equals("")) {
+                        modPattern = mod.getModificationType().isNTerm() + "-" + mod.getModificationType().isCTerm();
+                    }
+                    if (!filterVMMap.containsKey(modPattern)) {
+                        filterVMMap.put(modPattern, new TreeMap<>(Collections.reverseOrder()));
+                    }
+                    filterVMMap.get(modPattern).put(resultsMap.get(modId).getFinalScore(), modId);
+                }
+                boolean first;
+                System.out.println("filtered vm are " + filterVMMap);
+                Set<String> toKeep = new HashSet();
+                for (String patteren : filterVMMap.keySet()) {
+                    first = true;
+                    TreeMap<Double, String> modPatMap = filterVMMap.get(patteren);
+                    for (String mod : modPatMap.values()) {
+                        if (first) {
+                            first = false;
+                            continue;
+                        }
+                        toKeep.add(mod);
+                    }
+                }
+                for (String remove : toKeep) {
+                    resultsMap.remove(remove);
+                }
                 String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());
-                System.out.println("-------------------------------------------------------<<<<<<result map round " + counter + "  " + bestMod + "  " + resultsMap.get(bestMod).isSignificatChange());
+                System.out.println("------------------------------------------------------->>>> result map round " + counter + "  " + bestMod + "  " + resultsMap.get(bestMod).isSignificatChange());
                 System.out.println("best vm score " + bestMod + "  " + resultsMap.get(bestMod) + "   " + optProtDataset.getCurrentScoreModel().getSpectrumMatchResult().size());
 
                 if (resultsMap.get(bestMod).getFinalScore() > thre) {

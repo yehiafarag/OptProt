@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBException;
@@ -129,109 +130,98 @@ public class OptProtDatasetHandler {
                 //init Q1
                 int subSize;
                 int left;
-                List<Double> quartileRatios;
-                List<Double> quartileSizeRatios = new ArrayList<>();
-                double directTagFactor = 1;
-                System.out.println("no.uib.probe.optprot.dataset.OptProtDatasetHandler.generateOptProtDataset() " + wholeDataTest);
-                quartileRatios = this.getQuartileRatios(msFile, msFileHandler, 0, 1, spectrumTitles.length, fastaFile, identificationParameters);
-                subSize = (int) (spectrumTitles.length * quartileRatios.get(4));
-                for (double d : quartileRatios) {
-                    double quartSize = (int) (spectrumTitles.length * d * 0.25);//* resizeFactor
-                    quartileSizeRatios.add(quartSize / subSize);
-                    if (d == quartileRatios.get(3)) {
-                        break;
-                    }
-                }
+                List<Double> quartileRatios= new ArrayList<>();
+                List<Double> quartileSizeRatios ;
+                quartileSizeRatios = this.getQuartileRatios(msFile, msFileHandler, 0, 1, spectrumTitles.length, fastaFile, identificationParameters);
+                int unFilteredsubSize = (int) (spectrumTitles.length);
+                //do we need to rescale?
+
                 if (!wholeDataTest) {
                     if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
-                        subSize = (int) Math.min(2500.0, (double) subSize);
-                        for (int i = 0; i < quartileRatios.size(); i++) {
-                            quartileRatios.set(i, 1.0-quartileRatios.get(i));
-                        }
+                        subSize = (int) Math.min(2500.0, (double) unFilteredsubSize);
                     } else {
-                        subSize = (int) Math.min(1500.0, (double) subSize);
-                        for (int i = 0; i < quartileRatios.size(); i++) {
-                            quartileRatios.set(i, 1.0);
-                        }
+                        subSize = (int) Math.min(1500.0, (double) unFilteredsubSize);//   
                     }
-                }else{
-                     if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
+
+                } else {
+                    subSize = unFilteredsubSize;
+                }
+                double scale = (double)subSize / (double)unFilteredsubSize;
+                System.out.println("initial subsize " + unFilteredsubSize + "   to " + subSize + "   scale " + scale);
+
+                for (int i = 0; i < quartileSizeRatios.size(); i++) {
+                           quartileRatios.add(quartileSizeRatios.get(i));
+                }
+//                if (!wholeDataTest) {
+//                    if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
 //                        subSize = (int) Math.min(2500.0, (double) subSize);
 //                        for (int i = 0; i < quartileRatios.size(); i++) {
-//                            quartileRatios.set(i, 1.0-quartileRatios.get(0));
+//                            quartileRatios.set(i, 1.0 - quartileRatios.get(i));
 //                        }
-                    } else {
-                        subSize = (int) Math.min(50000, (double) subSize);
-                        for (int i = 0; i < quartileRatios.size(); i++) {
-                            quartileRatios.set(i,1.0- quartileRatios.get(i));
-                        }
-                    }
-                
-                }
+//                    } else {
+//                        subSize = (int) Math.min(1500.0, (double) subSize);
+////                        quartileRatios.clear();
+//                        for (int i = 0; i < quartileSizeRatios.size(); i++) {
+//                            System.out.println(" i " + i + "  " + quartileSizeRatios.get(i) + "  " + "  --> " + quartileRatios.get(i));
+//                            quartileRatios.add(Math.max(0.6, 1.0 - quartileSizeRatios.get(i)));
+//                            System.out.println(" i " + i + "  " + quartileSizeRatios.get(i) + "  " + "  --> " + quartileRatios.get(i));
+//                            System.out.println("---------------------------------------------------------");
+////                            quartileRatios.set(i, quartileSizeRatios.get(i));
+//                        }
+//                        System.exit(0);
+//                    }
+//                } else {
+//                    if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
+////                        subSize = (int) Math.min(2500.0, (double) subSize);
+////                        for (int i = 0; i < quartileRatios.size(); i++) {
+////                            quartileRatios.set(i, 1.0-quartileRatios.get(i));
+////                        }
+//                    } else {
+//                        subSize = (int) Math.min(50000, (double) subSize);
+//                        for (int i = 0; i < quartileSizeRatios.size(); i++) {
+////                            quartileRatios.set(i, quartileSizeRatios.get(i));
+//                            quartileRatios.set(i, 1.0);
+//                        }
+//                    }
+//
+//                }
                 left = subSize;
                 startIndex = 0;
                 int Q_1_4_coverageSize = (int) Math.round((double) spectrumTitles.length / 4.0);
                 lastIndex = startIndex + Q_1_4_coverageSize;
-                int qSize = (int) Math.round(subSize * quartileSizeRatios.get(0));
-//                if (wholeDataTest) {
-//                    step = 1;
-//                } else {
+                int qSize = (int) Math.round(subSize * 0.25);
                 step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
-//                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
-//                    
-//                     step = Math.max(Q_1_4_coverageSize / subSize, 1);
-
-                System.out.println("step :" + step + "  potintial step " + ((double) Q_1_4_coverageSize / ((double) qSize * directTagFactor)) + "   " + ((double) qSize * directTagFactor) + " vs 3000  " + directTagFactor + "  " + Q_1_4_coverageSize);
-//                }
-
                 Map<String, Spectrum> Q1_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, quartileRatios.get(0));
                 spectraMap.putAll(Q1_spectraMap);
-                System.out.println("Quartile ratios are " + "  required qsize1 " + qSize + "  we got " + Q1_spectraMap.size());
+                System.out.println("Q1  subSize"+qSize+"  coverage  "+Q_1_4_coverageSize+" step: "+step+"   "+quartileRatios.get(0));
+           
+                
 
                 left = left - Q1_spectraMap.size();
-
                 startIndex = lastIndex + 1;
                 lastIndex = startIndex + Q_1_4_coverageSize;
-                qSize = (int) Math.round(subSize * quartileSizeRatios.get(1));
-//                if (wholeDataTest) {
-//                    step = 1;
-//                } else {
-                    step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
-//                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
-//                    step = Math.max(Q_1_4_coverageSize / subSize, 1);
-//                }
-
+                qSize = (int) Math.round(subSize * 0.25);
+                step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
                 Map<String, Spectrum> Q2_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, quartileRatios.get(1));
                 spectraMap.putAll(Q2_spectraMap);
                 left = left - Q2_spectraMap.size();
                 startIndex = lastIndex + 1;
                 lastIndex = startIndex + Q_1_4_coverageSize;
-                qSize = (int) Math.round(subSize * quartileSizeRatios.get(2));
-//                if (wholeDataTest) {
-//                    step = 1;
-//                } else {
-                    step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
-//                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
-//                    step = Math.max(Q_1_4_coverageSize / subSize, 1);
-//                }
+                qSize = (int)  Math.round(subSize * 0.25);
+                step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
 
                 Map<String, Spectrum> Q3_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, quartileRatios.get(2));
                 spectraMap.putAll(Q3_spectraMap);
+                
+                
+                Q_1_4_coverageSize=spectrumTitles.length-(3*Q_1_4_coverageSize);
                 left = left - Q3_spectraMap.size();
                 startIndex = lastIndex + 1;
                 lastIndex = startIndex + Q_1_4_coverageSize;
                 qSize = left;
-//                if (wholeDataTest) {
-//                    step = 1;
-//                } else {
-                    step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
-//                    step = Math.max(Q_1_4_coverageSize / 3000, 1);
-//                    step = Math.max(Q_1_4_coverageSize / subSize, 1);
-//                }
-
+                step = (int) Math.max(((double) Q_1_4_coverageSize / (double) qSize), 1);
                 Map<String, Spectrum> Q4_spectraMap = initSubDatasetPart(msFile, msFileHandler, startIndex, step, lastIndex, qSize, fastaFile, identificationParameters, quartileRatios.get(3));
                 spectraMap.putAll(Q4_spectraMap);
-//                }
                 MainUtilities.cleanOutputFolder();
                 //create stabkle subMs file
                 subMsFile = generateMsSubFile(spectraMap, subMsFile);
@@ -519,101 +509,123 @@ public class OptProtDatasetHandler {
     }
 
     private Map<String, Spectrum> getSubSpectraWithConfidentTag(File destinationFile, File fastaFile, IdentificationParameters identificationParameters, File identificationParametersFile, String msFileNameWithoutExtension, int spectraSizeLimit, double highQualityRatio) {
-        Set<ConfidentTagSorter> confidentSpectraSet = new LinkedHashSet<>();
+        Set<ConfidentTagSorter> confidentSpectraSet = new TreeSet<>();
         Map<String, Spectrum> subSpectraMap = new LinkedHashMap<>();
         try {
             ArrayList<SpectrumMatch> matches = getTagMaches(destinationFile, fastaFile, identificationParameters, identificationParametersFile, msFileNameWithoutExtension);
             if (matches.isEmpty()) {
                 System.out.println("there is no tags in the file ...very poor data " + msFileNameWithoutExtension);
-//                //delete previos sub mgf and cms files
-//                destinationFile.delete();
-//                File cms = new File(destinationFile.getParent(), destinationFile.getName().replace(".mgf", ".cms"));
-//                cms.delete();
-//                //not enough confident tag , increase the number 
-//                substractSpectraWithConfidentTag(msFile, fastaFile, startIndex, maxSpectraNumber + 500, msFileHandler, identificationParameters, identificationParametersFile);
                 return subSpectraMap;
             }
 
             MsFileHandler subMsFileHandler = new MsFileHandler();
             subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
 
-//            DataAnalysisHandler.showTagDistribution(msFileNameWithoutExtension.split("_-_")[1], subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(destinationFile.getName())), matches);
             for (SpectrumMatch sm : matches) {
                 TagAssumption tag = sm.getAllTagAssumptions().toList().get(0);
-//                if (tag.getScore() < acceptedTagEvalue) {
                 confidentSpectraSet.add(new ConfidentTagSorter(tag.getScore(), sm.getSpectrumTitle(), subMsFileHandler.getSpectrum(msFileNameWithoutExtension, sm.getSpectrumTitle())));
-//                }
             }
             File cms = new File(destinationFile.getParent(), destinationFile.getName().replace(".mgf", ".cms"));
             cms.delete();
             int counter = 0;
             double highQualitylimit = (double) spectraSizeLimit * highQualityRatio;
             double avgQualityLimit = spectraSizeLimit - highQualitylimit;
-            int n = (int) (confidentSpectraSet.size() / highQualitylimit);
-            int step = 0;
-            for (ConfidentTagSorter tag : confidentSpectraSet) {
-                step++;
-                if (tag.getValue() > 0.01 || step < n) {
-                    continue;
-                }
-                subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
-                counter++;
-                step = 0;
-                if (counter >= highQualitylimit) {
-                    break;
-                }
-            }
-//            highQualitylimit += avgQualityLimit - counter;
-//            counter = 0;
-            step = 0;
-            n = (int) (confidentSpectraSet.size() / avgQualityLimit);
-            for (ConfidentTagSorter tag : confidentSpectraSet) {
-                step++;
-                if (tag.getValue() > 0.1 || tag.getValue() <= 0.01 || step < n) {
-                    continue;
-                }
-                subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
-                step = 0;
-                counter++;
-                if (counter >= avgQualityLimit) {
-                    break;
-                }
-            }
-            if (subSpectraMap.size() < spectraSizeLimit) {
-                for (ConfidentTagSorter tag : confidentSpectraSet) {
-                    if (tag.getValue() > 0.01 || subSpectraMap.containsKey(tag.getTitle())) {
-                        continue;
-                    }
-                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
-                    if (subSpectraMap.size() >= spectraSizeLimit) {
-                        break;
-                    }
 
-                }
-            }
+            double highQualityCounter = 0;
+            double avgQualityCounter = 0;
+            double totalCounter = 0;
 
-            if (subSpectraMap.size() < spectraSizeLimit) {
-                for (ConfidentTagSorter tag : confidentSpectraSet) {
-                    if (tag.getValue() < 0.1 || tag.getValue() >= 1.0) {
-                        continue;
-                    }
+            for (ConfidentTagSorter tag : confidentSpectraSet) {
+                if (tag.getValue() <= 0.01 && highQualityCounter <= highQualitylimit) {
+                    highQualityCounter++;
+                    totalCounter++;
                     subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+                } else if (tag.getValue() > 0.01 && tag.getValue() <= 0.1 && avgQualityCounter <= avgQualityLimit) {
+                    avgQualityCounter++;
+                    totalCounter++;
+                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+                } else if (totalCounter <= spectraSizeLimit) {
+                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+                }
+            }
+            if (subSpectraMap.size() < spectraSizeLimit) {
+                String[] titiles = subMsFileHandler.getSpectrumTitles(msFileNameWithoutExtension);
+                for (String str : titiles) {
+                    if (!subSpectraMap.containsKey(str)) {
+                        subSpectraMap.put(str, subMsFileHandler.getSpectrum(msFileNameWithoutExtension, str));
+                    }
                     if (subSpectraMap.size() >= spectraSizeLimit) {
                         break;
                     }
                 }
             }
-            if (subSpectraMap.size() < spectraSizeLimit) {
-                for (ConfidentTagSorter tag : confidentSpectraSet) {
-                    if (tag.getValue() < 1) {
-                        continue;
-                    }
-                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
-                    if (subSpectraMap.size() >= spectraSizeLimit) {
-                        break;
-                    }
-                }
-            }
+//            System.exit(0);
+//
+//            int n = (int) (confidentSpectraSet.size() / highQualitylimit);
+//            int step = 0;
+//
+//            for (ConfidentTagSorter tag : confidentSpectraSet) {
+//                step++;
+//                if (tag.getValue() > 0.01 || step < n) {
+//                    continue;
+//                }
+//                subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+//                counter++;
+//                step = 0;
+//                if (counter >= highQualitylimit) {
+//                    break;
+//                }
+//            }
+//
+//            step = 0;
+//            n = (int) (confidentSpectraSet.size() / avgQualityLimit);
+//            for (ConfidentTagSorter tag : confidentSpectraSet) {
+//                step++;
+//                if (tag.getValue() > 0.1 || tag.getValue() <= 0.01 || step < n) {
+//                    continue;
+//                }
+//                subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+//                step = 0;
+//                counter++;
+//                if (counter >= avgQualityLimit) {
+//                    break;
+//                }
+//            }
+//            if (subSpectraMap.size() < spectraSizeLimit) {
+//                for (ConfidentTagSorter tag : confidentSpectraSet) {
+//                    if (tag.getValue() > 0.01 || subSpectraMap.containsKey(tag.getTitle())) {
+//                        continue;
+//                    }
+//                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+//                    if (subSpectraMap.size() >= spectraSizeLimit) {
+//                        break;
+//                    }
+//
+//                }
+//            }
+//
+//            if (subSpectraMap.size() < spectraSizeLimit) {
+//                for (ConfidentTagSorter tag : confidentSpectraSet) {
+//                    if (tag.getValue() < 0.1 || tag.getValue() >= 1.0) {
+//                        continue;
+//                    }
+//                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+//                    if (subSpectraMap.size() >= spectraSizeLimit) {
+//                        break;
+//                    }
+//                }
+//            }
+//            if (subSpectraMap.size() < spectraSizeLimit) {
+//                for (ConfidentTagSorter tag : confidentSpectraSet) {
+//                    if (tag.getValue() < 1) {
+//                        continue;
+//                    }
+//                    subSpectraMap.put(tag.getTitle(), tag.getSpectrum());
+//                    if (subSpectraMap.size() >= spectraSizeLimit) {
+//                        break;
+//                    }
+//                }
+//            }
 
             if (subSpectraMap.size() < spectraSizeLimit) {
                 String[] titiles = subMsFileHandler.getSpectrumTitles(msFileNameWithoutExtension);
@@ -625,7 +637,6 @@ public class OptProtDatasetHandler {
                         break;
                     }
                 }
-//                  subMsFileHandler.getSpectrum(msFileNameWithoutExtension, updatedName)
             }
 
         } catch (IOException ex) {

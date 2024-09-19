@@ -1319,7 +1319,7 @@ public class SpectraUtilities {
             scoreModelSorter.add(resultsMap.get(rs1Key));
         }
         Collections.sort(scoreModelSorter);
-        Collections.reverse(scoreModelSorter);
+//        Collections.reverse(scoreModelSorter);
 //        return sorter.lastEntry().getValue();
         int index1 = -1;
         List<String> topScoreSet = new ArrayList<>(resultsMap.keySet());

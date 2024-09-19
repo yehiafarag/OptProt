@@ -43,7 +43,7 @@ public class OptProt {
 //                
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
                 if (args == null|| args.length==0) {
-                    datasettoTestSet.add("PXD028427");
+//                    datasettoTestSet.add("PXD028427");
                     datasettoTestSet.add("PXD000561");
 //                datasettoTestSet.add("PXD001468");
 //                datasettoTestSet.add("PXD047036");
@@ -71,15 +71,15 @@ public class OptProt {
                 for (Advocate se : supportedSearchEngine) {
                     searchOpParameter.setSelectedSearchEngine(se);
                     for (String datasetId : datasettoTestSet) {
-//                        System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
-                        cleanAll = true;
-//                        MainUtilities.cleanOutputFolder();
-//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false);
-//                        cleanAll = false;
-                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
-                        System.gc();
+                        System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
+//                        cleanAll = true;
                         MainUtilities.cleanOutputFolder();
-                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
+                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false);
+//                        cleanAll = false;
+//                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
+//                        System.gc();
+//                        MainUtilities.cleanOutputFolder();
+//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
                     }
                 }
                 MainUtilities.cleanOutputFolder();
