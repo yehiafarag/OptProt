@@ -98,6 +98,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     public void setSpectrumMatchResult(List<SpectrumMatch> spectrumMatchResult) {
         this.spectrumMatchResult = spectrumMatchResult;
         this.totalNumber = spectrumMatchResult.size();
+        this.specTitles=null;
     }
 
     public int getTotalNumber() {
@@ -155,7 +156,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     @Override
     public String toString() {
-        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore + " tstat" + tTestStat + "  pvalue " + pValue + "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "  size effect " + sizeEffect;
+        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore + " tstat" + tTestStat + "  pvalue " + pValue + "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "  size effect " + sizeEffect+"   S1: "+s1+"   S2:"+s2;
     }
 
     public double getDataLengthFactor() {

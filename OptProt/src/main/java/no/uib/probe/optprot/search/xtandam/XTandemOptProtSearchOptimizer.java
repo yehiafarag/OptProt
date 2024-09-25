@@ -97,8 +97,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         XtandemParameters xtandemParameters = (XtandemParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         xtandemParameters.setRefinePointMutations(false);
         xtandemParameters.setProteinPtmComplexity(6);
-        System.out.println("xtan point isPotentialModificationsForFullRefinment " + xtandemParameters.isPotentialModificationsForFullRefinment());
-        System.out.println("xtan point isRefineUnanticipatedCleavages " + xtandemParameters.isRefineUnanticipatedCleavages());
         
     }
     
@@ -116,10 +114,9 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                 identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
                 if (!values[0].equalsIgnoreCase("")) {
                     optimisedSearchResults.setEnzymeName(values[0]);
-                    int nMissesCleavages = Integer.parseInt(values[2]);// identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(value);                   
+                    int nMissesCleavages = Integer.parseInt(values[2]);                 
                     identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(values[0]));
                     enzymeSpecificityOpt = values[1];
-//                    identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(values[0], DigestionParameters.Specificity.valueOf(values[1]));
                     identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], nMissesCleavages);
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
@@ -188,8 +185,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     xtandemParameters.setRefine(useRefinment);
                 }
                 if (!useRefinment) {
-                    System.out.println("disable second stage");
-                    
+                    System.out.println("Error----->>> disable second stage");                    
                 }
                 boolean bvalue = optimizeQuickAcetyl(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("XtandemQuickAcetyl"));
                 if (bvalue) {
@@ -427,7 +423,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("DR : " + j + "  " + scoreModel);
                 if (scoreModel.isSignificatChange()) {
                     if (scoreModel.getSpectrumMatchResult().size() <= spectraCounter) {
                         break;
@@ -488,7 +483,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("peaksNum " + j + "  " + scoreModel + " -> DS " + optProtDataset.getActiveIdentificationNum());
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j + "", scoreModel);
                     if (scoreModel.getFinalScore() <= topScore) {
@@ -544,7 +538,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("minimumFragmentMz_ " + scoreModel + "   " + spectraCounter + "  ");
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j + "", scoreModel);
                     
@@ -595,7 +588,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("min peaks to select " + j + "  " + scoreModel);
                 if (scoreModel.isSensitiveChange()) {
                     if (scoreModel.getFinalScore() <= lastScore) {
                         break;
@@ -719,7 +711,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("score model " + scoreModel);
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }
@@ -749,7 +740,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         paramScore.setParamId("QuickAcetyl");
         Map<Integer, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
-        System.out.println("is refine " + xtandemParameters.isRefine());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         boolean selectedOption = xtandemParameters.isProteinQuickAcetyl();
         
@@ -769,7 +759,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("QuickAccetyle " + scoreModel);
                 if (scoreModel.getFinalScore() > 0 || scoreModel.isSameData() || scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }
@@ -804,7 +793,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         boolean selectedOption = xtandemParameters.isQuickPyrolidone();
-        System.out.println("use quick pyro " + xtandemParameters.isProteinQuickAcetyl() + "   " + xtandemParameters.isRefine());
         for (int i = 0; i < 2; i++) {
             boolean useQuickPyrolidone = (i == 1);
             if (useQuickPyrolidone == selectedOption) {
@@ -968,7 +956,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("var ref " + vMod + "  " + scoreModel);
                 if (scoreModel.isSignificatChange()) {
                     resultsMap.put(option, scoreModel);
                 }
@@ -1138,7 +1125,6 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             try {
                 
                 RawScoreModel scoreModel = f.get();
-                System.out.println("XtandemUnanticipatedCleavage " + scoreModel);
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }

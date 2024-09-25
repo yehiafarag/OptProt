@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package no.uib.probe.optprot.util;
 
 import java.util.ArrayList;
@@ -63,12 +60,6 @@ public class ScoreComparison {
         dataSizeFrom++;
         dataSizeTo++;
         double effect = (dataSizeTo - dataSizeFrom) * 100.0 / Math.min(dataSizeFrom, dataSizeTo);
-
-// 10.0 - (Math.min(dataSizeFrom, dataSizeTo) * 10.0 / Math.max(dataSizeFrom, dataSizeTo));
-//        System.out.println("effect is " + dataSizeFrom + "  " + dataSizeTo + "  " + effect);
-//        if (dataSizeFrom > dataSizeTo) {
-//            effect *= -1.0;
-//        }
         return logScaleNormalize(effect, Math.E);
 
     }
@@ -155,10 +146,6 @@ public class ScoreComparison {
         }
         double finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat) / 5.0;
 
-        if (percentageImprovement < 0 && finalScore > 0) {
-//            finalScore *= -1.0;
-            System.out.println("-----------------------------------2------------------------------>>> flip score case");
-        }
         return finalScore;
     }
 
@@ -182,13 +169,10 @@ public class ScoreComparison {
 
         double mean1 = ds1.getMean();
         double mean2 = ds2.getMean();
-        double meanDifference = mean2 - mean1;
         double percentageImprovement = percentageImprovement(mean1, mean2);
-
         if (scores1.length == scores2.length && mean1 == mean2 && percentageImprovement == 0) {
             return new double[]{0, 0, 0, 0, 0, 0};
         }
-
         double tStat = performTStatTest(scores1, scores2, switchData);
         double pValue = performTTest(scores1, scores2, switchData);
         double normTStat = logScaleNormalize(tStat, Math.E);
@@ -204,7 +188,6 @@ public class ScoreComparison {
         double normStdDevDiff = logScaleNormalize(stdDevDifference, Math.E);
         // Assuming the possible range for these metrics is between -200 and 200 for normalization purposes.
         // Adjust these ranges based on your specific use case.
-        double normMeanDiff = logScaleNormalize(meanDifference, Math.E);
         double normPercentageImprovement = logScaleNormalize(percentageImprovement, Math.E);
         if (Double.isInfinite(Math.abs(normTStat))) {
             normTStat = normPercentageImprovement;
@@ -215,9 +198,9 @@ public class ScoreComparison {
             valuesToScore.add(normPValue);
             valuesToScore.add(normPercentageImprovement);
         } else {
-            double compScore = oneToManyScore(ds1.getMin(), ds2);
+            ds1.addValue(0);
+            double compScore = oneToManyScore(ds1.getElement(0), ds2);
             double normScore = logScaleNormalize(compScore, Math.E);
-            System.out.println("comparison score " + compScore + "  " + normScore + "  " + ds1.getN() + "   " + ds2.getN());
             valuesToScore.add(normScore);
 
         }
@@ -228,9 +211,6 @@ public class ScoreComparison {
             if (Double.isNaN(dataSizeEffect) || Double.isInfinite(dataSizeEffect)) {
                 dataSizeEffect = dataSizeEffect(scores1.length, scores2.length);
             }
-//            if (ds1.getN() > ds2.getN() && dataSizeEffect > 0) {
-//                dataSizeEffect *= -1.0;
-//            }
             valuesToScore.add(dataSizeEffect);
 
         }
@@ -240,28 +220,7 @@ public class ScoreComparison {
             finalScore += ss;
         }
         finalScore = finalScore / (double) valuesToScore.size();
-
-//        if (scores1.length == scores2.length) {
-//            finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat) / 5.0;
-//        } else {
-//            dataSizeEffect = calculateCohensD(scores1, scores2, switchData);//
-//            if (Double.isNaN(dataSizeEffect) || Double.isInfinite(dataSizeEffect)) {
-//                dataSizeEffect = dataSizeEffect(scores1.length, scores2.length);
-//            }
-//            if (ds1.getN() > ds2.getN() && dataSizeEffect > 0) {
-//                dataSizeEffect *= -1.0;
-//            }
-//            finalScore = (normMeanDiff + normPercentageImprovement + normStdDevDiff + normPValue + normTStat + dataSizeEffect) / 6.0;
-//        }
-        System.out.println("final score parts (meanDifference: " + scores1.length + " to " + scores2.length + " MD " + meanDifference + " , percentageImprovement: " + percentageImprovement + " , tStat: " + tStat + " , stdDevDifference: " + stdDevDifference + " , pValue: " + pValue + " , dataSizeEffect: " + dataSizeEffect + ") " + finalScore + "  " + Double.isInfinite(Math.abs(normTStat)));
-        System.out.println("final score parts (meanDifference: " + scores1.length + " to " + scores2.length + " MD " + normMeanDiff + " , percentageImprovement: " + normPercentageImprovement + " , tStat: " + normTStat + " , stdDevDifference: " + normStdDevDiff + " , pValue: " + normPValue + " , dataSizeEffect: " + dataSizeEffect + ") " + finalScore + "  " + Double.isInfinite(Math.abs(normTStat)));
-
-//        if (percentageImprovement < 0 && finalScore > 0) {
-////            finalScore *= -1.0;
-//            System.out.println("----------------------------------------------------------------->>> flip score case");
-//        }
         if (switchData) {
-            System.out.println("data switch happened");
             finalScore *= -1.0;
         }
 
@@ -332,10 +291,8 @@ public class ScoreComparison {
 
     public List<Double> removeOutliers(DescriptiveStatistics stats, double zScoreThreshold) {
         // Compute mean and standard deviation
-
         double mean = stats.getMean();
         double standardDeviation = stats.getStandardDeviation();
-
         // Filter out outliers
         return Arrays.stream(stats.getSortedValues())
                 .filter(value -> Math.abs((value - mean) / standardDeviation) <= zScoreThreshold)
@@ -344,25 +301,20 @@ public class ScoreComparison {
     }
 
     public double oneToManyScore(double fromScore, DescriptiveStatistics stats) {
-
-        double oldAverage = stats.getMean();//getPercentile(75.0);// oldSum / toScores.length;
-
+        double oldAverage = stats.getMean();
         // Step 2: Calculate the improvement score (percentage improvement)
         double improvementPercentage;
         if (fromScore == 0) {
-            improvementPercentage = 100;
+            improvementPercentage = 1;
         } else {
             improvementPercentage = ((oldAverage - fromScore) / fromScore) * 100;
         }
-
         // Step 3: Compare the size of the arrays (if there are more or fewer old scores)
         int newSize = 1; // Single new score vs. old scores array
         int oldSize = (int) stats.getN();
-
         // Optional: Adjust the improvement calculation based on size
         double sizeFactor = (double) oldSize / newSize;
         double adjustedImprovement = improvementPercentage * sizeFactor;
-        System.out.println("Size-adjusted improvement: " + adjustedImprovement + "%");
         return adjustedImprovement;
     }
 

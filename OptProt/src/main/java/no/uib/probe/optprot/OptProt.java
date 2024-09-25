@@ -34,7 +34,7 @@ public class OptProt {
                 supportedSearchEngine.add(Advocate.xtandem);
                 paramOrderMap.put(Advocate.xtandem, OptProtXtandemParameterSettings.Get_Xtandem_Parameters_List());
 //                supportedSearchEngine.add(Advocate.myriMatch);
-//                supportedSearchEngine.add(Advocate.sage);
+                supportedSearchEngine.add(Advocate.sage);
                 paramOrderMap.put(Advocate.sage, OptProtSageParameterSettings.Get_Sage_Parameters_List());
 
 //////   
@@ -43,13 +43,13 @@ public class OptProt {
 //                
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
                 if (args == null|| args.length==0) {
-//                    datasettoTestSet.add("PXD028427");
-                    datasettoTestSet.add("PXD000561");
-//                datasettoTestSet.add("PXD001468");
-//                datasettoTestSet.add("PXD047036");
-//                datasettoTestSet.add("PXD009340");
-//                datasettoTestSet.add("PXD001250");
-//////                datasettoTestSet.add("PXD000815");
+                    datasettoTestSet.add("PXD028427");    //1
+                    datasettoTestSet.add("PXD000561");    //2
+                datasettoTestSet.add("PXD001468");          //3
+                datasettoTestSet.add("PXD047036");        //4
+                datasettoTestSet.add("PXD009340");        //5
+//                datasettoTestSet.add("PXD001250");        //6
+//////////////////////                datasettoTestSet.add("PXD000815");
                 } else {
                     datasettoTestSet.addAll(Arrays.asList(args));
                     System.exit(0);
@@ -76,10 +76,10 @@ public class OptProt {
                         MainUtilities.cleanOutputFolder();
                         runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false);
 //                        cleanAll = false;
-//                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
-//                        System.gc();
-//                        MainUtilities.cleanOutputFolder();
-//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
+                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
+                        System.gc();
+                        MainUtilities.cleanOutputFolder();
+                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
                     }
                 }
                 MainUtilities.cleanOutputFolder();

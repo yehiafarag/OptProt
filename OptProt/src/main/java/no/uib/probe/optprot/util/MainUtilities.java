@@ -136,15 +136,12 @@ public class MainUtilities {
 
     public static String msToTime(double ms) {
         // Prompt the user to input the total seconds
-        System.out.print("Input seconds: ");
         int seconds = (int) Math.round(ms / 1000);
-
         // Calculate the hours, minutes, and seconds
         int S = seconds % 60;  // Calculate the remaining seconds
         int H = seconds / 60;  // Convert total seconds to minutes
         int M = H % 60;         // Calculate the remaining minutes
         H = H / 60;            // Convert total minutes to hours
-
         // Display the time in the format HH:MM:SS
         String time = (H + ":" + M + ":" + S);
         return time;

@@ -499,49 +499,17 @@ public class SpectraUtilities {
                         }
                     }
                     left++;
-                    String accession = protein.getAccession();
                     String sequence = protein.getSequence();
-
                     String rawHeader = header.getRawHeader();
-
                     bw.write(rawHeader);
                     bw.newLine();
                     bw.write(sequence);
 
                     bw.newLine();
-//                    bw.newLine();
-//
-//                    int accessionEndIndex = rawHeader.indexOf(accession) + accession.length();
-//
-//                    String part0 = rawHeader.substring(0, rawHeader.indexOf(accession));
-//                    String part1 = rawHeader.substring(rawHeader.indexOf(accession), accessionEndIndex);
-//                    String part2 = rawHeader.substring(accessionEndIndex);
-//
-//                    bw.write(part0);
-//
-//                    bw.write(part1);
-//
-//                    bw.write(part2);
-//
-//                    bw.newLine();
-//
-//                    char[] sequenceAsArray = protein.getSequence().toCharArray();
-//
-//                    for (int i = sequenceAsArray.length - 1; i >= 0; i--) {
-//
-//                        char aa = sequenceAsArray[i];
-//
-//                        bw.write(aa);
-//
-//                    }
-
-//                    bw.newLine();
-//                    bw.newLine();
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-//            System.out.println("total: " + total + "  left " + left);
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
         }
@@ -592,10 +560,8 @@ public class SpectraUtilities {
                 ex.printStackTrace();
             }
             if (included < 50) {
-//                System.out.println("Fasta copy all total: " + total + "  included " + included + "  seq not exist ");
                 copySubFastaFile(fastaIn, fastaOut);
             }
-//            System.out.println("Fasta total: " + total + "  included " + included + "  seq not exist " + specIndex);
 
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
@@ -613,7 +579,6 @@ public class SpectraUtilities {
             fastaOut.createNewFile();
             int total = 0;
             int left = 0;
-            int specIndex = 0;
             FastaIterator fastaIterator = new FastaIterator(fastaIn);
 
             try (BufferedWriter bw = new BufferedWriter(new FileWriter(fastaOut))) {
@@ -637,8 +602,6 @@ public class SpectraUtilities {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-
-//            System.out.println("Fasta total: " + total + "  left " + left + "  seq not exist " + specIndex);
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
         } catch (IOException ex) {
@@ -647,30 +610,6 @@ public class SpectraUtilities {
 
     }
 
-//
-//    public static Set<String> getTagsSequences(File directTag) {
-//        String line;
-//        String splitBy = ",";
-//        Set<String> sequences = new HashSet<>();
-//        try {
-////parsing a CSV file into BufferedReader class constructor  
-//            BufferedReader br = new BufferedReader(new FileReader(directTag));
-////            while ((line = br.readLine()) != null) //returns a Boolean value 
-////            {
-////                if (line.startsWith("# id,")) {
-////                    break;
-////                }
-////            }
-//
-//            while ((line = br.readLine()) != null) //returns a Boolean value 
-//            {
-//                System.out.println("line: " + line);
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return sequences;
-//    }
     public static Set<String> getSequences(File novorOutputFile) {
         String line;
         String splitBy = ",";
@@ -709,7 +648,6 @@ public class SpectraUtilities {
                     break;
                 }
             }
-
             while ((line = br.readLine()) != null) //returns a Boolean value 
             {
                 String[] values = line.split(splitBy);    // use comma as separator  
@@ -739,10 +677,7 @@ public class SpectraUtilities {
             spectrumProvider.register(sourceMgfFile, new OptProtWaitingHandler());
             final boolean precursors = true;
             final boolean fragments = true;
-//            ModificationParameters mp =  new ModificationParameters();//identificationParameters.getSearchParameters().getModificationParameters();
-//            identificationParameters.getSearchParameters().setModificationParameters(null);
             FMIndex sequenceProvider = new FMIndex(fastaFile, null, new OptProtWaitingHandler(), false, identificationParameters);
-//            identificationParameters.getSearchParameters().setModificationParameters(mp);
             try {
                 return SpectralRecalibrationUtilitiy.writeRecalibratedSpectra(
                         precursors,
@@ -756,8 +691,6 @@ public class SpectraUtilities {
 
             } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
-                System.out.println("clean after");
             }
 
         } catch (IOException ex) {
@@ -771,8 +704,6 @@ public class SpectraUtilities {
         try {
 
             int targetedAreaStep = spectrumTitles.length / 4;
-//            targetedAreaStep=0;
-//            int n = spectrumTitles.length / (maxSpectraNumber);
             int n = targetedAreaStep * 2 / (maxSpectraNumber);
             File destinationFile = new File(oreginalMsFile.getParentFile(), Configurations.DEFAULT_RESULT_NAME + "_" + msFileNameWithoutExtension + ".mgf");
             destinationFile.createNewFile();
@@ -803,14 +734,12 @@ public class SpectraUtilities {
             MsFileHandler subMsFileHandler = new MsFileHandler();
             subMsFileHandler.register(destinationFile, MainUtilities.OptProt_Waiting_Handler);
             ArrayList<SpectrumMatch> matches = idReader.getAllSpectrumMatches(subMsFileHandler, MainUtilities.OptProt_Waiting_Handler, identificationParameters.getSearchParameters());
-//            System.out.println("tag size before" + spectraMap.size());
             for (SpectrumMatch sm : matches) {
                 TagAssumption tag = sm.getAllTagAssumptions().toList().get(0);
                 if (tag.getScore() > 0.01) {
                     spectraMap.remove(sm.getSpectrumTitle());
                 }
             }
-//            System.out.println("tag size after" + spectraMap.size());
             destinationFile.delete();
             File cms = new File(destinationFile.getParent(), destinationFile.getName().replace(".mgf", ".cms"));
             cms.delete();
@@ -821,61 +750,6 @@ public class SpectraUtilities {
         return spectraMap;
     }
 
-//    public static double[] getValidatedIdentificationReferenceData(File resultOutput, File msFile, Advocate searchEngine, IdentificationParameters identificationParameters, int validatedIdNumber) {
-//
-//        try {
-//            File idResultsFile = null;
-//            if (searchEngine.getIndex() == Advocate.myriMatch.getIndex()) {
-//                MyriMatchParameters myriMatchParameters = (MyriMatchParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
-//                idResultsFile = new File(resultOutput, SearchHandler.getMyriMatchFileName(IoUtil.removeExtension(msFile.getName()), myriMatchParameters));
-//            } else if (searchEngine.getIndex() == Advocate.xtandem.getIndex()) {
-//                idResultsFile = new File(resultOutput, SearchHandler.getXTandemFileName(IoUtil.removeExtension(msFile.getName())));
-//            }
-//            if (idResultsFile == null || !idResultsFile.exists()) {
-//                System.out.println("id result file was null " + resultOutput.getAbsolutePath());
-//                return new double[]{};
-//            }
-//            IdfileReader idReader = IdfileReaderFactory.getInstance().getFileReader(idResultsFile);
-//            MsFileHandler subMsFileHandler = new MsFileHandler();
-//            subMsFileHandler.register(msFile, MainUtilities.OptProt_Waiting_Handler);
-//            ArrayList<SpectrumMatch> matches = idReader.getAllSpectrumMatches(subMsFileHandler, MainUtilities.OptProt_Waiting_Handler, identificationParameters.getSearchParameters());
-//            if (searchEngine.getIndex() == Advocate.myriMatch.getIndex()) {
-//                double[] data = new double[matches.size()];
-//                int index = 0;
-//                for (SpectrumMatch sm : matches) {
-//                    for (PeptideAssumption peptideAssumtion : sm.getAllPeptideAssumptions().toList()) {
-//                        if (peptideAssumtion.getRank() != 1) {
-//                            continue;
-//                        }
-//                        double score = -Math.log(peptideAssumtion.getScore());
-//                        data[index++] = score;
-//                        break;
-//                    }
-//                }
-//                return data;
-//            }
-////            else if (searchEngine.getIndex() == Advocate.xtandem.getIndex()) {
-////                double[] data = new double[matches.size()];
-////                int index = 0;
-////                for (SpectrumMatch sm : matches) {
-////                    for (PeptideAssumption peptideAssumtion : sm.getAllPeptideAssumptions().toList()) {
-////                        if (peptideAssumtion.getRank() != 1) {
-////                            continue;
-////                        }
-////                        double score = -Math.log(peptideAssumtion.getScore());
-////                        data[index++] = score;
-////                        break;
-////                    }
-////                }
-////                return data;
-////            }
-//
-//        } catch (IOException | SQLException | ClassNotFoundException | InterruptedException | JAXBException | XmlPullParserException | XMLStreamException ex) {
-//            System.out.println("no.uib.probe.optprot.util.SpectraUtilities.getValidatedIdentificationResults() " + ex.getLocalizedMessage());
-//            ex.printStackTrace();
-//        }
-//        return new double[]{};
-//    }
     public static double[] getValidatedIdentificationReferenceData(List<SpectrumMatch> matches, Advocate searchEngine) {
         double[] data = new double[matches.size()];
         int index = 0;
@@ -900,10 +774,6 @@ public class SpectraUtilities {
                         continue;
                     }
                     double score = peptideAssumtion.getRawScore();
-//                    if(score<21)
-//                        score=0;
-//                    else 
-//                        score=1;
                     sm.setBestPeptideAssumption(peptideAssumtion);
                     data[index++] = score;
                     break;
@@ -956,9 +826,7 @@ public class SpectraUtilities {
                         continue;
                     }
                     sm.setBestPeptideAssumption(peptideAssumtion);
-//                    if (peptideAssumtion.getRawScore() > 0) {
                     matchScores.put(sm.getSpectrumTitle(), peptideAssumtion.getRawScore());
-//                    }
                     break;
                 }
             }
@@ -1007,24 +875,10 @@ public class SpectraUtilities {
         double[] toOnlyData = onlyToData.stream().mapToDouble(Double::doubleValue).toArray();
 
         double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData);
-//        ScoreComparison sc = new ScoreComparison();
         double ratio = Math.max(onlyToData.size(), onlyFromData.size()) / (double) optProtDataset.getTotalSpectraNumber();
-//       double total =sharedFromData.size()+onlyFromData.size()+onlyToData.size();
-//        ratio = (double)(total-onlyFromData.size()-onlyToData.size())/total;
-//        double compScore = sc.calculateScore(toSharedData, toOnlyData);
-//        if (((double) onlyToData.size() / matches.size()) <= 0.05 && compScore < 0) {
-////            compScore = 0;
-//        }
-
         double score2;
-//        if (onlyFromData.size() == onlyToData.size()) {
-
         score2 = SpectraUtilities.compareData(fromOnlyData, toOnlyData)[4];
-//        } else {
-//            score2 = SpectraUtilities.compareUnPairedData(fromOnlyData, toOnlyData);
-//        }
-
-        double fs1 = improved1[4];//* (1.0 - ratio);
+        double fs1 = improved1[4];
         double fs2 = score2 * ratio;
         double fs = fs1 + fs2;
         rawScore.setS1(fs1);
@@ -1048,51 +902,14 @@ public class SpectraUtilities {
                 senstive = true;
             }
         }
-
-//        System.out.println("senstive is " + senstive);
         rawScore.setSensitiveChange(senstive);
         if (rawScore.isSignificatChange() || rawScore.isSensitiveChange() || rawScore.isSameData() || addData) {
             rawScore.setSpectrumMatchResult(matches);
         }
-        System.out.println("total output from " + (onlyFromData.size() + toSharedData.length) + "  to " + matches.size());
-        System.out.println("comparing unshared un pair rest of data fromOnlyData:" + fromOnlyData.length + "   toOnly:" + toOnlyData.length + "   shared " + sharedFromData.size() + "   score:" + fs);
-        System.out.println("  ---  scores :  s1 " + fs1 + "  -   s2 " + fs2 + "   -   final " + fs + "   " + score2 + "  " + ratio + "  " + (fs1 - fs2));
-        System.out.println("Score model " + rawScore);
         return rawScore;
 
     }
 
-//    public static double[] compare2RawScoresData(RawScoreModel rs1, RawScoreModel rs2) {
-//
-////        double ttest = StatisticsTests.tTest(rs1.getData(), rs2.getData());
-////        double pValue = StatisticsTests.pValueForTTest(rs1.getData(), rs2.getData());
-////        boolean significatChange = StatisticsTests.isSignificatChange(ttest, pValue, rs1.getData().length, rs2.getData().length);
-////        ScoreComparison sc = new ScoreComparison();
-////        double improvmentScore;
-////        double finalScore;
-////        if (rs1.getData().length == rs2.getData().length) {
-////            improvmentScore = sc.percentageImprovement(rs2.getData(), rs1.getData());
-////            finalScore = sc.calculateFinalScore(rs2.getData(), rs1.getData());
-////        } else if (rs1.getData().length > rs2.getData().length) {
-////            double[] updatedData = new double[rs1.getData().length];
-////            System.arraycopy(rs2.getData(), 0, updatedData, 0, rs2.getData().length);
-////            improvmentScore = sc.percentageImprovement(updatedData, rs1.getData());//  
-////            finalScore = sc.calculateFinalScore(updatedData, rs1.getData());// 
-////        } else {
-////            double[] updatedData = new double[rs2.getData().length];
-////            System.arraycopy(rs1.getData(), 0, updatedData, 0, rs1.getData().length);
-////            improvmentScore = sc.percentageImprovement(rs2.getData(), updatedData);// 
-////            finalScore = sc.calculateFinalScore(rs2.getData(), updatedData);
-////        }
-////        System.out.println("final score 2 " + improvmentScore + "  " + "  " + finalScore);
-//        double[] improved = SpectraUtilities.compareData(rs1.getData(), rs2.getData());
-//
-//        double r = (rs2.getImprovmentScore() - rs1.getImprovmentScore()) / rs1.getImprovmentScore();
-//
-//        System.out.println("result of score comparisons " + improved + " vs " + r);
-//        return improved;
-//
-//    }
     public static List<Double> getQuartileRatio(String[] titiles, List<SpectrumMatch> matches) {
 
         double partCount = 4;
@@ -1319,7 +1136,7 @@ public class SpectraUtilities {
             scoreModelSorter.add(resultsMap.get(rs1Key));
         }
         Collections.sort(scoreModelSorter);
-//        Collections.reverse(scoreModelSorter);
+        Collections.reverse(scoreModelSorter);
 //        return sorter.lastEntry().getValue();
         int index1 = -1;
         List<String> topScoreSet = new ArrayList<>(resultsMap.keySet());
@@ -1338,7 +1155,7 @@ public class SpectraUtilities {
                 }
                 double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber);
 //                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
-                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
+//                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
                 if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
                     topScoreSet.remove(rs2Key);
                 } else {
@@ -1356,6 +1173,62 @@ public class SpectraUtilities {
         }
         String topSelection = topScoreSet.get(0);
         if (!scoreModelSorter.get(0).getComparisonId().equalsIgnoreCase(topSelection)) {
+            System.out.println("-------------------------------->> disagree with both methods " + scoreModelSorter.get(0).getComparisonId() + "  " + topSelection);
+        }
+        return topSelection;
+    }
+
+    public static String getTopScoresSet(Map<String, RawScoreModel> resultsMap, Set<String> refMatches) {
+//        TreeMap<RawScoreModel, String> sorter = new TreeMap<>(Collections.reverseOrder());
+        List<RawScoreModel> scoreModelSorter = new ArrayList<>();
+
+        for (String rs1Key : resultsMap.keySet()) {
+            scoreModelSorter.add(resultsMap.get(rs1Key));
+            List<SpectrumMatch> updatedAddOnly= SpectraUtilities.getModificationFrequentScore(rs1Key, resultsMap.get(rs1Key).getSpecTitles(), refMatches, resultsMap.get(rs1Key).getSpectrumMatchResult());
+            resultsMap.get(rs1Key).setSpectrumMatchResult(updatedAddOnly);
+        }
+        Collections.sort(scoreModelSorter);
+        Collections.reverse(scoreModelSorter);
+        int index1 = -1;
+        List<String> topScoreSet = new ArrayList<>(resultsMap.keySet());
+        for (RawScoreModel score1 : scoreModelSorter) {
+            String rs1Key = score1.getComparisonId();
+            index1++;
+            if (!topScoreSet.contains(rs1Key)) {
+                continue;
+            }
+            int index2 = -1;
+            for (RawScoreModel score2 : scoreModelSorter) {
+                String rs2Key = score2.getComparisonId();
+                index2++;
+                if (index2 <= index1 || !topScoreSet.contains(rs2Key)) {
+                    continue;
+                }
+                Set<String> total = new HashSet<>(resultsMap.get(rs1Key).getSpecTitles());
+                total.addAll(resultsMap.get(rs2Key).getSpecTitles());
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), total.size());
+                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
+                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getTotalNumber() + "(" + resultsMap.get(rs1Key).getFinalScore() + ")   vs " + resultsMap.get(rs2Key).getTotalNumber() + "(" + resultsMap.get(rs2Key).getFinalScore() + ")" + "   " + key1Better);
+
+                if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
+                    System.out.println("-----------------------------------remove " + rs2Key + "-------------------------------");
+                    topScoreSet.remove(rs2Key);
+                } else {
+                    System.out.println("-----------------------------------remove " + rs1Key + "-------------------------------");
+                    topScoreSet.remove(rs1Key);
+                    break;
+                }
+            }
+        }
+        if (topScoreSet.size() > 1) {
+            System.out.println("error should be only oine value " + topScoreSet);
+        } else if (topScoreSet.isEmpty()) {
+            System.out.println("error should be only oine value " + topScoreSet);
+            return "";
+        }
+        String topSelection = topScoreSet.get(0);
+        if (!scoreModelSorter.get(0).getComparisonId().equalsIgnoreCase(topSelection)) {
+            topSelection = topSelection + "_-_" + scoreModelSorter.get(0).getComparisonId();
             System.out.println("-------------------------------->> disagree with both methods " + scoreModelSorter.get(0).getComparisonId() + "  " + topSelection);
         }
         return topSelection;
@@ -1426,7 +1299,7 @@ public class SpectraUtilities {
 
         double fs = fs1 + fs2;
 //        if (Double.isNaN(fs)) {
-//            System.out.println("score " + fs1 + "   " + fs2 + "  " + score2 + "*" + ratio);
+        System.out.println("score " + fs1 + "   " + fs2 + "  " + score2 + "*" + ratio);
 //            System.exit(0);
 //        }
         return fs;
@@ -1606,25 +1479,39 @@ public class SpectraUtilities {
         return subset;
     }
 
-    public static double getModificationFrequentScore(String mod, Set<String> modMaches, Set<String> refMatches) {
+    public static List<SpectrumMatch> getModificationFrequentScore(String mod, Set<String> modMaches, Set<String> refMatches, List<SpectrumMatch> specList) {
 
         double newAdded = 0;
         double lost = 0;
         double shared = 0;
         Set<String> fullSpecTitiles = new HashSet<>(refMatches);
         fullSpecTitiles.addAll(modMaches);
+        Set<String> sharedSpec = new HashSet<>();
+        Set<String> newAddedSpec = new HashSet<>();
+        List<SpectrumMatch> newAddedspecList = new ArrayList<>();
         for (String sm : fullSpecTitiles) {
             if (!refMatches.contains(sm)) {
                 newAdded++;
+                newAddedSpec.add(sm);
             } else if (!modMaches.contains(sm)) {
                 lost++;
             } else {
                 shared++;
+                sharedSpec.add(sm);
             }
         }
-        System.out.println(mod + "\t" + newAdded + "\t" + shared + "\t" + lost + "\t" + fullSpecTitiles.size() + "\t" + (fullSpecTitiles.size() - modMaches.size()) + "\t" + (fullSpecTitiles.size() - refMatches.size()) + "\t" + (newAdded + shared));
+        double effect = ((double) (newAdded) / (double) (shared + lost));
+//        if (mod.contains("of K")) {
+        System.out.println(mod + "---->>> \t" + effect);
+//        }
+        for (SpectrumMatch sm : specList) {
+            if (newAddedSpec.contains(sm.getSpectrumTitle())) {
+                newAddedspecList.add(sm);
+            }
 
-        return newAdded;
+        }
+
+        return newAddedspecList;//((lost) / (double) shared)*(newAdded);
     }
 
     public static double[] isPotintialVariableModification(String modPattern, Map<String, SpectrumMatch> modSubSet, Map<String, SpectrumMatch> nonModRefsubSet) {
