@@ -63,6 +63,7 @@ public abstract class DefaultOptProtSearchOptimizer {
         RawScoreModel oreginalScore = new RawScoreModel("CleavageParameter");
         oreginalScore.setTotalNumber(idRate);
         String[] cleavageParameters = new String[]{"wholeProtein", "unSpecific"};
+
         resultsMap.put(selectedOption, oreginalScore);
         int spectraCounter = optProtDataset.getActiveIdentificationNum();
         for (String cleavageParameter : cleavageParameters) {
@@ -125,25 +126,34 @@ public abstract class DefaultOptProtSearchOptimizer {
         paramScore.setParamId("Enzyme");
         String[] values = new String[3];
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-        boolean optimizeOnlyMissedCleaveNum = false;
+//        boolean optimizeOnlyMissedCleaveNum = false;
         boolean compareBetweenEnzymes = false;
-        int missedClavageNumb = 0;
-        if (optimisedSearchParameter.getDigestionParameterOpt().equalsIgnoreCase("enzyme") && (optProtDataset.getIdentificationRate() > 40)) {//            
-            values[0] = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName();
-            values[1] = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getSpecificity(values[0]).name();
-            missedClavageNumb = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getnMissedCleavages(values[0]);
-            optimizeOnlyMissedCleaveNum = true;
-        } else {
-            oreginaltempIdParam.getSearchParameters().getDigestionParameters().setCleavageParameter(DigestionParameters.CleavageParameter.valueOf("enzyme"));
-            compareBetweenEnzymes = true;
-            values[1] = "specific";
-        }
+        values[0] = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName();
+        values[1] = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getSpecificity(values[0]).name();
+        int missedClavageNumb = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getnMissedCleavages(values[0]);
+        values[2] = "" + missedClavageNumb;
+//        if(optimisedSearchParameter.isOptimizeEnzymeParameter()){
+//         oreginaltempIdParam.getSearchParameters().getDigestionParameters().setCleavageParameter(DigestionParameters.CleavageParameter.valueOf("enzyme"));
+//            compareBetweenEnzymes = true;
+//            values[1] = "specific";
+//        }
+//       else if ((optimisedSearchParameter.getDigestionParameterOpt().equalsIgnoreCase("enzyme")) || (optimisedSearchParameter.isOptimizeMaxMissCleavagesParameter()&&!optimisedSearchParameter.isOptimizeEnzymeParameter())) {//            
+//            values[0] = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName();
+//            values[1] = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getSpecificity(values[0]).name();
+//            missedClavageNumb = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getnMissedCleavages(values[0]);
+//            System.out.println("max missed cleave number is " + missedClavageNumb);
+//            optimizeOnlyMissedCleaveNum = true;
+//        } else {
+//            oreginaltempIdParam.getSearchParameters().getDigestionParameters().setCleavageParameter(DigestionParameters.CleavageParameter.valueOf("enzyme"));
+//            compareBetweenEnzymes = true;
+//            values[1] = "specific";
+//        }
         Map<String, RawScoreModel> resultsMapI = Collections.synchronizedMap(new LinkedHashMap<>());
         Map<String, RawScoreModel> resultsMapII = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         double threshold = 1;
         //optimise enzyme  
-        if (!optimizeOnlyMissedCleaveNum) {
+        if (optimisedSearchParameter.isOptimizeEnzymeParameter()) {
             for (Enzyme enzyme : EnzymeFactory.getInstance().getEnzymes()) {
                 if (enzyme.getName().replace(" ", "").equalsIgnoreCase("Trypsin(noPrule)")) {
                     continue;
@@ -159,6 +169,7 @@ public abstract class DefaultOptProtSearchOptimizer {
                 });
                 try {
                     RawScoreModel scoreModel = f.get();
+                    System.out.println("Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getTotalNumber());
                     if (scoreModel.getFinalScore() > threshold) {
                         resultsMapI.put(option, scoreModel);
                     }
@@ -184,9 +195,11 @@ public abstract class DefaultOptProtSearchOptimizer {
             oreginaltempIdParam.getSearchParameters().getDigestionParameters().clearEnzymes();
             oreginaltempIdParam.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(values[0]));
             oreginaltempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], missedClavageNumb);
-            resultsMapII.clear();
-            resultsMapI.clear();
-
+            oreginaltempIdParam.getSearchParameters().getDigestionParameters().setSpecificity(values[0], DigestionParameters.Specificity.valueOf(values[1]));
+        }
+        resultsMapII.clear();
+        resultsMapI.clear();
+        if (optimisedSearchParameter.isOptimizeSpecificityParameter()) {
             for (int i = 0; i < DigestionParameters.Specificity.values().length; i++) {
                 final String option = DigestionParameters.Specificity.getSpecificity(i).name();
                 oreginaltempIdParam.getSearchParameters().getDigestionParameters().setSpecificity(values[0], DigestionParameters.Specificity.getSpecificity(i));
@@ -217,40 +230,47 @@ public abstract class DefaultOptProtSearchOptimizer {
                 paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMapI.get(specifty));
 
-            } else {
-                values[1] = "specific";
             }
-
+            oreginaltempIdParam.getSearchParameters().getDigestionParameters().setSpecificity(values[0], DigestionParameters.Specificity.valueOf("specific"));
         }
-        oreginaltempIdParam.getSearchParameters().getDigestionParameters().setSpecificity(values[0], DigestionParameters.Specificity.valueOf("specific"));
+
 ///number op missed cleavage
         resultsMapI.clear();
-        for (int i = 0; i < 5; i++) {
-            oreginaltempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], i);
-            final String option = "missedCleavages_" + i;
-            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
+        if (optimisedSearchParameter.isOptimizeMaxMissCleavagesParameter()) {
+            for (int i = 0; i < 5; i++) {
+                oreginaltempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], i);
+                final String option = "missedCleavages_" + i;
+                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
 
-            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, identificationParametersFile, false);
-                return scoreModel;
-            });
-            try {
-                RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
-                    resultsMapI.put(i + "", scoreModel);
+                Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, identificationParametersFile, false);
+                    return scoreModel;
+                });
+                try {
+                    RawScoreModel scoreModel = f.get();
+                    System.out.println("mmissed " + i + "--->" + scoreModel + "    +\\t  " + optProtDataset.getCurrentScoreModel());
+//                System.exit(0);
+                    if (i < missedClavageNumb && scoreModel.getFinalScore() > 0 && scoreModel.getSharedDataSize() == optProtDataset.getCurrentScoreModel().getTotalNumber()) {
+                        resultsMapI.put(i + "", scoreModel);
+                    } else if (i > missedClavageNumb && scoreModel.getFinalScore() > 0 && scoreModel.getSharedDataSize() == optProtDataset.getCurrentScoreModel().getTotalNumber() && scoreModel.getTotalNumber() >= 1.05 * optProtDataset.getCurrentScoreModel().getTotalNumber()) {
+                        resultsMapI.put(i + "", scoreModel);
+                    } else if (i > missedClavageNumb) {
+                        break;
+                    }
+                } catch (ExecutionException | InterruptedException ex) {
+                    ex.printStackTrace();
                 }
-            } catch (ExecutionException | InterruptedException ex) {
-                ex.printStackTrace();
             }
+
+            String numbOfMissedCleavage = missedClavageNumb + "";
+            if (!resultsMapI.isEmpty()) {
+                numbOfMissedCleavage = (SpectraUtilities.compareScoresSet(resultsMapI, optProtDataset.getTotalSpectraNumber()));
+                double impact = Math.round((double) (resultsMapI.get(numbOfMissedCleavage).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+                paramScore.setImpact(impact);
+                optProtDataset.setActiveScoreModel(resultsMapI.get(numbOfMissedCleavage));
+            }
+            values[2] = numbOfMissedCleavage;
         }
-        String numbOfMissedCleavage = "2";
-        if (!resultsMapI.isEmpty()) {
-            numbOfMissedCleavage = (SpectraUtilities.compareScoresSet(resultsMapI, optProtDataset.getTotalSpectraNumber()));
-            double impact = Math.round((double) (resultsMapI.get(numbOfMissedCleavage).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
-            paramScore.setImpact(impact);
-            optProtDataset.setActiveScoreModel(resultsMapI.get(numbOfMissedCleavage));
-        }
-        values[2] = numbOfMissedCleavage;
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(Arrays.asList(values).toString());
         parameterScoreSet.add(paramScore);
@@ -267,56 +287,6 @@ public abstract class DefaultOptProtSearchOptimizer {
      * @return
      * @throws IOException
      */
-//    public String optimizeSpecificityParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
-//        final ParameterScoreModel paramScore = new ParameterScoreModel();
-//        paramScore.setParamId("Specificity");
-//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-//        if (!oreginaltempIdParam.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equalsIgnoreCase("enzyme")) {
-//            return null;
-//        }
-//        String enzymeName = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName();
-//        String selectedOption = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getSpecificity(enzymeName).name();
-//        Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
-//        for (int i = 0; i < DigestionParameters.Specificity.values().length; i++) {
-//            final String option = DigestionParameters.Specificity.getSpecificity(i).name();
-//            if (option.equalsIgnoreCase(selectedOption)) {
-//                continue;
-//            }
-//            IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-//            tempIdParam.getSearchParameters().getDigestionParameters().setSpecificity(enzymeName, DigestionParameters.Specificity.getSpecificity(i));
-//
-//            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-//
-//            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-//                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile, false);
-//                return scoreModel;
-//            });
-//            try {
-//                RawScoreModel scoreModel = f.get();
-//                if (scoreModel.isSignificatChange()) {
-//                    resultsMap.put(option, scoreModel);
-//                }
-//            } catch (ExecutionException | InterruptedException ex) {
-//                ex.printStackTrace();
-//            }
-//        }
-//
-//        TreeMap<RawScoreModel, String> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-//        if (!resultsMap.isEmpty()) {
-//            for (String option : resultsMap.keySet()) {
-//                sortedResultsMap.put(resultsMap.get(option), option);
-//            }
-//            selectedOption = sortedResultsMap.firstEntry().getValue();
-//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey());
-//        }
-//        paramScore.setScore(optProtDataset.getActiveIdentificationNum());
-//        paramScore.setParamValue(selectedOption);
-//        parameterScoreSet.add(paramScore);
-//
-//        return selectedOption;
-//
-//    }
     public String optimizeFragmentIonTypesParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("FragmentIons");
@@ -619,6 +589,7 @@ public abstract class DefaultOptProtSearchOptimizer {
             try {
 
                 RawScoreModel scoreModel = f.get();
+                System.out.println("PT " + i + "  vs " + selectedOption + "  " + scoreModel);
                 if (scoreModel.getFinalScore() > threshold) {
                     threshold += 0.5;
                     resultsMap.put(i + "", scoreModel);
@@ -680,11 +651,6 @@ public abstract class DefaultOptProtSearchOptimizer {
         return selectedOption;
     }
 
-    //add common fixed
-    //then run fixed mod
-    //if not M included
-    // add common variable
-    //then potinatial ptms
     /**
      * This function responsible for selection best combination of
      * (fixed,variable,refinement ) modifications-PTMs
@@ -956,7 +922,7 @@ public abstract class DefaultOptProtSearchOptimizer {
 //                    } else {
 //                        thre += optProtDataset.getComparisonsThreshold();
 //                    }
-                    System.out.println("updated thre " + thre+"   "+resultsMap.size());
+                    System.out.println("updated thre " + thre + "   " + resultsMap.size());
                 } else {
                     resultsMap.clear();
                 }

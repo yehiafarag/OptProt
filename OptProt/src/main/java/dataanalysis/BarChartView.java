@@ -5,10 +5,10 @@
 package dataanalysis;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Map;
 import javax.swing.JFrame;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -25,81 +25,103 @@ import org.jfree.data.category.DefaultCategoryDataset;
  * @author yfa041
  */
 public class BarChartView {
+ private  Map<String,Double> confidentScores;
 
-    public BarChartView(String title, double[][] data) {
-        try {
-            // Create dataset
-            Thread t = new Thread(() -> {
+   
+    private final Double[] values;
+    JFreeChart chart;
 
-                List<Double> ratios = calculateQuartileRatios(data);
-                CategoryDataset dataset = createDataset(data);
-                String updatedTitle = title + "-" + ratios;
-
-                // Create chart
-                JFreeChart chart = createChart(dataset, updatedTitle);
-
-                // Customize the chart
-                CategoryPlot plot = (CategoryPlot) chart.getPlot();
-                StackedBarRenderer renderer = new StackedBarRenderer();
-                chart.setBackgroundPaint(Color.WHITE);
-                plot.setRenderer(renderer);
-
-                // Customize renderer
-                renderer.setSeriesPaint(1, Color.GRAY.brighter());
-                renderer.setSeriesPaint(0, Color.GREEN.darker().darker());
-
-                // Remove bar shadows
-                renderer.setShadowVisible(false);
-                plot.setBackgroundPaint(Color.WHITE);
-
-                // Remove any reflections or glossy effects by making sure no effects are applied
-                renderer.setBarPainter(new StandardBarPainter());
-                // Create Panel
-                ChartPanel panel = new ChartPanel(chart);
-                JFrame frame = new JFrame(updatedTitle);
-                frame.setSize(500, 500);
-                frame.setContentPane(panel);
-                frame.setVisible(true);
-                frame.repaint();
-            });
-            t.start();
-            t.join();
-        } catch (InterruptedException ex) {
-            Logger.getLogger(BarChartView.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
+    public JFreeChart getChart() {
+        return chart;
     }
 
-    private List<Double> calculateQuartileRatios(double[][] data) {
+    public BarChartView(String title, Double[][] data) {
+        this.values = new Double[4];
+//        try {
+        // Create dataset
+//            Thread t = new Thread(() -> {
 
+        List<String> ratios = calculateQuartileRatios(data);
+        CategoryDataset dataset = createDataset(data, ratios);
+        String updatedTitle = title;
+
+        // Create chart
+        chart = createChart(dataset, updatedTitle);
+
+        // Customize the chart
+        CategoryPlot plot = (CategoryPlot) chart.getPlot();
+        StackedBarRenderer renderer = new StackedBarRenderer();
+        chart.setBackgroundPaint(Color.WHITE);
+        plot.setRenderer(renderer);
+
+        // Customize renderer
+        renderer.setSeriesPaint(1, Color.GRAY.brighter());
+        renderer.setSeriesPaint(0, Color.GREEN.darker().darker());
+
+        // Remove bar shadows
+        renderer.setShadowVisible(false);
+        plot.setBackgroundPaint(Color.WHITE);
+
+        chart.getTitle().setFont(new Font("Times New Roman", Font.PLAIN, 14));
+
+        // Remove any reflections or glossy effects by making sure no effects are applied
+        renderer.setBarPainter(new StandardBarPainter());
+        // Create Panel
+//                ChartPanel panel = new ChartPanel(chart);
+//                JFrame frame = new JFrame(updatedTitle);
+//                frame.setSize(1000, 1000);
+//                frame.setContentPane(panel);
+//                frame.setVisible(true);
+//                frame.repaint();
+      
+     
+
+//            });
+//            t.start();
+//            t.join();
+//        } catch (InterruptedException ex) {
+//            Logger.getLogger(BarChartView.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+    }
+
+    private List<String> calculateQuartileRatios(Double[][] data) {
+        double totalId = 0;
         double totalCount = 0;
-        List<Double> quartileRatios = new ArrayList<>();
-        for (double[] qData : data) {
+        List<String> quartileRatios = new ArrayList<>();
+        int quartIndex = 1;
+        for (Double[] qData : data) {
             totalCount += qData[0];
-            quartileRatios.add(qData[0]);
+            totalCount += qData[1];
+            totalId += qData[0];
+            double ratio = qData[0] / (qData[0] + qData[1]);
+            ratio = Math.round(ratio * 100.0);
+            quartileRatios.add("Q " + quartIndex + " (" + ratio + "%)");
+            values[quartIndex - 1] = ratio;
+            quartIndex++;
         }
-        double quat_3_sum = 0;
-        for (int j = 0; j < quartileRatios.size() - 1; j++) {
-            double ratio = quartileRatios.get(j) / totalCount;
-            ratio = Math.round(ratio * 100.0) / 100.0;
-            quartileRatios.set(j, ratio);
-            quat_3_sum += ratio;
-        }
-        double ratio = 1.0 - quat_3_sum;
-        ratio = Math.round(ratio * 100.0) / 100.0;
-        quartileRatios.set(quartileRatios.size() - 1, ratio);
-        
-        quartileRatios.add(totalCount);
+//        double quat_3_sum = 0;
+//        for (int j = 0; j < quartileRatios.size() - 1; j++) {
+//            double ratio = quartileRatios.get(j) / totalCount;
+//            ratio = Math.round(ratio * 100.0) / 100.0;
+//            quartileRatios.set(j, ratio);
+//            quat_3_sum += ratio;
+//        }
+//        double ratio = 1.0 - quat_3_sum;
+//        ratio = Math.round(ratio * 100.0) / 100.0;
+//        quartileRatios.set(quartileRatios.size() - 1, ratio);
+        double totalIdRatio = totalId / totalCount;
+        totalIdRatio = Math.round(totalIdRatio * 100.0);
+        quartileRatios.add(totalIdRatio + "");
         return quartileRatios;
 
     }
 
-    private CategoryDataset createDataset(double[][] data) {
+    private CategoryDataset createDataset(Double[][] data, List<String> labels) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        int i = 1;
-        for (double[] qData : data) {
-            dataset.addValue(qData[0], "Identified", "Q" + i);
-            dataset.addValue(qData[1], "UnIdentified", "Q" + i);
+        int i = 0;
+        for (Double[] qData : data) {
+            dataset.addValue(qData[0], "Identified", labels.get(i));
+            dataset.addValue(qData[1], "UnIdentified", labels.get(i));
             i++;
         }
         return dataset;
@@ -108,13 +130,25 @@ public class BarChartView {
     private JFreeChart createChart(CategoryDataset dataset, String title) {
         return ChartFactory.createStackedBarChart(
                 title, // Chart title
-                "Category", // X-Axis Label
-                "Value", // Y-Axis Label
+                "", // X-Axis Label
+                "#Spectra", // Y-Axis Label
                 dataset, // Dataset
                 PlotOrientation.VERTICAL, // Orientation
                 true, // Include legend
                 true, // Tooltips
                 false // URLs?
         );
+    }
+
+    public Double[] getValues() {
+        return values;
+    }
+
+    public Map<String,Double> getConfidentScores() {
+        return confidentScores;
+    }
+
+    public void setConfidentScores(Map<String,Double> confidentScores) {
+        this.confidentScores = confidentScores;
     }
 }

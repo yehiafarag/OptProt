@@ -27,6 +27,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     private double s1;
     private double s2;
     private final String comparisonId;
+    private int sharedDataSize=0;
 
     public RawScoreModel(String comparisonId) {
         this.comparisonId = comparisonId;
@@ -39,6 +40,14 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     public void setSameData(boolean sameData) {
         this.sameData = sameData;
+        if (sameData) {
+            s1 = 0;
+            s2=0;
+            finalScore=0;  
+            this.setSensitiveChange(false);
+        }
+      
+
     }
 
     public void setSensitiveChange(boolean sensitiveChange) {
@@ -98,7 +107,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     public void setSpectrumMatchResult(List<SpectrumMatch> spectrumMatchResult) {
         this.spectrumMatchResult = spectrumMatchResult;
         this.totalNumber = spectrumMatchResult.size();
-        this.specTitles=null;
+        this.specTitles = null;
     }
 
     public int getTotalNumber() {
@@ -156,7 +165,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     @Override
     public String toString() {
-        return "Param accepted: " + significatChange + "  final score: " + finalScore + " improvmentScore: " + improvmentScore + " tstat" + tTestStat + "  pvalue " + pValue + "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "  size effect " + sizeEffect+"   S1: "+s1+"   S2:"+s2;
+        return "Param accepted: " + significatChange + "  final score: " + finalScore + " shared data size: " + sharedDataSize+ "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "  size effect " + sizeEffect + "   S1: " + s1 + "   S2:" + s2;
     }
 
     public double getDataLengthFactor() {
@@ -189,6 +198,14 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     public void setS2(double s2) {
         this.s2 = s2;
+    }
+
+    public int getSharedDataSize() {
+        return sharedDataSize;
+    }
+
+    public void setSharedDataSize(int sharedDataSize) {
+        this.sharedDataSize = sharedDataSize;
     }
 
 }

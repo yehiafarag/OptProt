@@ -20,9 +20,9 @@ public class OptProtSageParameterSettings {
         paramOrder.add("PrecursorChargeParameter");
         paramOrder.add("IsotopParameter");
         paramOrder.add("DigestionParameter_1");
-//////////////////////////////////////       paramOrder.add("DigestionTypeParameter");    
+////////////////////////////////////       paramOrder.add("DigestionTypeParameter");    
 
-//        
+        
         paramOrder.add("ModificationParameter");
         paramOrder.add("SageAdvancedParameter_B");
         paramOrder.add("PrecursorToleranceParameter");

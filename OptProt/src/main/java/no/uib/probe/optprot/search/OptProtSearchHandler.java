@@ -39,16 +39,20 @@ public class OptProtSearchHandler {
                 xTandemOptProtSearchOptimizer.startProcess(paramOrder);
             } else if (searchInputSetting.getSelectedSearchEngine().getIndex() == Advocate.myriMatch.getIndex()) {
                 MyriMatchParameters myriMatchParameters = (MyriMatchParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.myriMatch.getIndex());
+               if(searchInputSetting.isOptimizeAllParameters()){
                 myriMatchParameters.setMaxDynamicMods(4);
                 myriMatchParameters.setNumberOfSpectrumMatches(1);
                 searchingSubDataset.setAcceptedIDRatioThreshold(0);
+               }
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 MyrimatchOptProtSearchOptimizer myrimatchOptProtSearchOptimizer = new MyrimatchOptProtSearchOptimizer(searchingSubDataset, searchInputSetting, generatedIdentificationParametersFile);
                 myrimatchOptProtSearchOptimizer.startProcess(paramOrder);
             } else if (searchInputSetting.getSelectedSearchEngine().getIndex() == Advocate.sage.getIndex()) {
                 SageParameters myriMatchParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
+               if(searchInputSetting.isOptimizeAllParameters()){
                 myriMatchParameters.setMaxVariableMods(2);
                 searchingSubDataset.setAcceptedIDRatioThreshold(0);
+               }
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 SageOptProtSearchOptimizer sageOptProtSearchOptimizer = new SageOptProtSearchOptimizer(searchingSubDataset, searchInputSetting, generatedIdentificationParametersFile);
                 sageOptProtSearchOptimizer.startProcess(paramOrder);

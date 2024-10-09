@@ -94,6 +94,7 @@ public class SearchingSubDataset {
     private RawScoreModel currentScoreModel;
 
     public void setActiveScoreModel(RawScoreModel scoreModel) {
+
         this.currentScoreModel = scoreModel;
         this.updateValidatedIdRefrenceData(currentScoreModel.getSpectrumMatchResult());
     }

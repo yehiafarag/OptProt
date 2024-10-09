@@ -5,20 +5,23 @@
 package no.uib.probe.optprot.util;
 
 import java.util.Arrays;
+import org.apache.commons.math.stat.correlation.PearsonsCorrelation;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.inference.TTest;
 
 public class StatisticsTests {
 
     public static void main(String[] args) {
-        // Example data
-        double[] sample1 = {45.2, 46.1, 47.3, 50.0, 48.5};
-        double[] sample2 = {52.0, 49.5, 53.2, 51.3, 50.4};
-
-        double z = zTest(sample1, sample2);
-        double pValue = pValueForZTest(z);
-
-        System.out.printf("Z-test statistic: %.4f%n", z);
-        System.out.printf("P-value: %.4f%n", pValue);
+//        // Example data
+//        double[] sample1 = {45.2, 46.1, 47.3, 50.0, 48.5};
+//        double[] sample2 = {52.0, 49.5, 53.2, 51.3, 50.4};
+//
+//        double z = zTest(sample1, sample2);
+//        double pValue = pValueForZTest(z);
+//
+//        System.out.printf("Z-test statistic: %.4f%n", z);
+//        System.out.printf("P-value: %.4f%n", pValue);
+        StatisticsTests.ratioComparisons(args);
     }
 
     public static double zTest(double[] sample1, double[] sample2) {
@@ -137,4 +140,43 @@ public class StatisticsTests {
         return true;
 
     }
+    public static void ratioComparisons(String[] args) {
+        // Example dataset: Revenue, Cost, and Employees for different departments
+        double[] scores1 = {1000, 2600, 1900, 150};     // Revenue for Marketing, Sales, HR, IT
+        double[] scores2 = {750, 2250, 1750, 75};        // Corresponding costs
+        int[] spectraNumInQuartiles = {2750, 2750, 2750, 2750};
+        String[] quartilesIds = {"Q1", "Q2", "Q3", "Q4"};        
+        System.out.println("Comparing Ratios in Same Category:");
+        
+        for (int i = 0; i < scores1.length; i++) {
+            // Calculate Revenue-to-Cost Ratio
+            double idToTagRatio = scores1[i] / scores2[i];
+            
+            // Calculate Revenue-to-Employee Ratio
+            double idToTotal = scores1[i] / spectraNumInQuartiles[i];
+            
+            // Print the ratios for each department
+            System.out.printf("\nQuartile: %s\n", quartilesIds[i]);
+            System.out.printf("Identified spectra-to-Confedent Tag Ratio: %.2f\n", idToTagRatio);
+            System.out.printf("identified spectra to total Ratio: %.2f\n", idToTotal);
+            
+            // Comparison (e.g., Ratio of Ratios)
+            double ratioOfRatios = idToTagRatio / idToTotal;
+            System.out.printf("Ratio of Ratios (identified vs total): %.2f\n", ratioOfRatios);
+            
+            // Alternatively, you can find the absolute difference between the ratios
+            double difference = idToTagRatio - idToTotal;
+            System.out.printf("Difference Between Ratios: %.2f\n", difference);
+        }
+    }
+    
+    public static double calculatePearsonCorrelationTest(double[]values1,double[]values2) {     
+          PearsonsCorrelation test=new PearsonsCorrelation();
+         double correlation =  test.correlation(values1, values2);
+         correlation=Math.floor(correlation*100.0)/100.0;
+         System.out.println("correlation is "+correlation);
+        return correlation;
+
+    }
+
 }

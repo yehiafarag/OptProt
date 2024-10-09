@@ -64,8 +64,11 @@ String digestionParameterOpt;
     //parameter to optimise
     private boolean optimizeDigestionParameter;
 //    private boolean optimizeEnzymeParameter;
-//    private boolean optimizeSpecificityParameter;
-//    private boolean optimizeMaxMissCleavagesParameter;
+    private boolean optimizeSpecificityParameter=false;
+    private boolean optimizeMaxMissCleavagesParameter=false;
+     private boolean optimizeEnzymeParameter=false;
+
+   
     private boolean optimizeFragmentIonTypesParameter;
     private boolean optimizePrecursorToleranceParameter;
     private boolean optimizeFragmentToleranceParameter;
@@ -75,6 +78,15 @@ String digestionParameterOpt;
     private boolean optimizeXtandemAdvancedParameter;
     private boolean optimizeMyriMatchAdvancedParameter;
     private boolean optimizeSageAdvancedParameter;
+    private boolean optimizeCleavageParameter=false;
+
+    public boolean isOptimizeCleavageParameter() {
+        return optimizeCleavageParameter;
+    }
+
+    public void setOptimizeCleavageParameter(boolean optimizeCleavageParameter) {
+        this.optimizeCleavageParameter = optimizeCleavageParameter;
+    }
 
     public boolean isOptimizeSageAdvancedParameter() {
         return optimizeSageAdvancedParameter|| optimizeAllParameters;
@@ -451,6 +463,30 @@ String digestionParameterOpt;
 
     public SageEnabledParameters getSageEnabledParameters() {
         return SageEnabledParameters;
+    }
+
+    public boolean isOptimizeMaxMissCleavagesParameter() {
+        return optimizeMaxMissCleavagesParameter;//||isOptimizeEnzymeParameter();
+    }
+
+    public void setOptimizeMaxMissCleavagesParameter(boolean optimizeMaxMissCleavagesParameter) {
+        this.optimizeMaxMissCleavagesParameter = optimizeMaxMissCleavagesParameter;
+    }
+
+    public boolean isOptimizeEnzymeParameter() {
+        return optimizeEnzymeParameter;
+    }
+
+    public void setOptimizeEnzymeParameter(boolean optimizeEnzymeParameter) {
+        this.optimizeEnzymeParameter = optimizeEnzymeParameter;
+    }
+
+    public boolean isOptimizeSpecificityParameter() {
+        return optimizeSpecificityParameter;
+    }
+
+    public void setOptimizeSpecificityParameter(boolean optimizeSpecificityParameter) {
+        this.optimizeSpecificityParameter = optimizeSpecificityParameter;
     }
 
 }

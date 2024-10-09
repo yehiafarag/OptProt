@@ -39,6 +39,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBException;
@@ -885,7 +886,8 @@ public class SpectraUtilities {
         rawScore.setS2(fs2);
         rawScore.setTotalNumber(matches.size());
         rawScore.setFinalScore(fs);
-        rawScore.setSameData(rawScore.getFinalScore() == 0.0 && matches.size() == ((onlyFromData.size() + toSharedData.length)));
+        rawScore.setSharedDataSize(fromSharedData.length);
+      
         boolean accepted = rawScore.getFinalScore() >= optProtDataset.getComparisonsThreshold();
         rawScore.setSignificatChange(accepted);
         boolean senstive = false;
@@ -902,7 +904,8 @@ public class SpectraUtilities {
                 senstive = true;
             }
         }
-        rawScore.setSensitiveChange(senstive);
+        rawScore.setSensitiveChange(senstive);  
+        rawScore.setSameData(rawScore.getFinalScore() == 0.0 && matches.size() == ((onlyFromData.size() + toSharedData.length)));
         if (rawScore.isSignificatChange() || rawScore.isSensitiveChange() || rawScore.isSameData() || addData) {
             rawScore.setSpectrumMatchResult(matches);
         }
@@ -1153,7 +1156,7 @@ public class SpectraUtilities {
                 if (index2 <= index1 || !topScoreSet.contains(rs2Key)) {
                     continue;
                 }
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber);
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber,false);
 //                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
 //                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
                 if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
@@ -1173,18 +1176,69 @@ public class SpectraUtilities {
         }
         String topSelection = topScoreSet.get(0);
         if (!scoreModelSorter.get(0).getComparisonId().equalsIgnoreCase(topSelection)) {
-            System.out.println("-------------------------------->> disagree with both methods " + scoreModelSorter.get(0).getComparisonId() + "  " + topSelection);
+            System.out.println("-----------------1--------------->> disagree with both methods " + scoreModelSorter.get(0).getComparisonId() + "  " + topSelection);
+        }
+        return topSelection;
+    }
+  public static String compareScoresSet(Map<String, RawScoreModel> resultsMap, int totalSpecNumber,boolean ignorS2) {
+
+        List<RawScoreModel> scoreModelSorter = new ArrayList<>();
+
+        for (String rs1Key : resultsMap.keySet()) {
+//            sorter.put(resultsMap.get(rs1Key), rs1Key);
+            scoreModelSorter.add(resultsMap.get(rs1Key));
+        }
+        Collections.sort(scoreModelSorter);
+        Collections.reverse(scoreModelSorter);
+//        return sorter.lastEntry().getValue();
+        int index1 = -1;
+        List<String> topScoreSet = new ArrayList<>(resultsMap.keySet());
+        for (RawScoreModel score1 : scoreModelSorter) {
+            String rs1Key = score1.getComparisonId();
+            index1++;
+            if (!topScoreSet.contains(rs1Key)) {
+                continue;
+            }
+            int index2 = -1;
+            for (RawScoreModel score2 : scoreModelSorter) {
+                String rs2Key = score2.getComparisonId();
+                index2++;
+                if (index2 <= index1 || !topScoreSet.contains(rs2Key)) {
+                    continue;
+                }
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber,ignorS2);
+//                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
+//                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
+                if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
+                    topScoreSet.remove(rs2Key);
+                } else {
+                    System.out.println("-----------------------------------remove " + rs1Key + "-------------------------------");
+                    topScoreSet.remove(rs1Key);
+                    break;
+                }
+            }
+        }
+        if (topScoreSet.size() > 1) {
+            System.out.println("error should be only oine value " + topScoreSet);
+        } else if (topScoreSet.isEmpty()) {
+            System.out.println("error should be only oine value " + topScoreSet);
+            return "";
+        }
+        String topSelection = topScoreSet.get(0);
+        if (!scoreModelSorter.get(0).getComparisonId().equalsIgnoreCase(topSelection)) {
+            System.out.println("---------------2----------------->> disagree with both methods " + scoreModelSorter.get(0).getComparisonId() + "  " + topSelection);
         }
         return topSelection;
     }
 
+   
     public static String getTopScoresSet(Map<String, RawScoreModel> resultsMap, Set<String> refMatches) {
 //        TreeMap<RawScoreModel, String> sorter = new TreeMap<>(Collections.reverseOrder());
         List<RawScoreModel> scoreModelSorter = new ArrayList<>();
 
         for (String rs1Key : resultsMap.keySet()) {
             scoreModelSorter.add(resultsMap.get(rs1Key));
-            List<SpectrumMatch> updatedAddOnly= SpectraUtilities.getModificationFrequentScore(rs1Key, resultsMap.get(rs1Key).getSpecTitles(), refMatches, resultsMap.get(rs1Key).getSpectrumMatchResult());
+            List<SpectrumMatch> updatedAddOnly = SpectraUtilities.getModificationFrequentScore(rs1Key, resultsMap.get(rs1Key).getSpecTitles(), refMatches, resultsMap.get(rs1Key).getSpectrumMatchResult());
             resultsMap.get(rs1Key).setSpectrumMatchResult(updatedAddOnly);
         }
         Collections.sort(scoreModelSorter);
@@ -1206,7 +1260,7 @@ public class SpectraUtilities {
                 }
                 Set<String> total = new HashSet<>(resultsMap.get(rs1Key).getSpecTitles());
                 total.addAll(resultsMap.get(rs2Key).getSpecTitles());
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), total.size());
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), total.size(),false);
                 System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
                 System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getTotalNumber() + "(" + resultsMap.get(rs1Key).getFinalScore() + ")   vs " + resultsMap.get(rs2Key).getTotalNumber() + "(" + resultsMap.get(rs2Key).getFinalScore() + ")" + "   " + key1Better);
 
@@ -1229,12 +1283,12 @@ public class SpectraUtilities {
         String topSelection = topScoreSet.get(0);
         if (!scoreModelSorter.get(0).getComparisonId().equalsIgnoreCase(topSelection)) {
             topSelection = topSelection + "_-_" + scoreModelSorter.get(0).getComparisonId();
-            System.out.println("-------------------------------->> disagree with both methods " + scoreModelSorter.get(0).getComparisonId() + "  " + topSelection);
+            System.out.println("---------------3----------------->> disagree with both methods " + scoreModelSorter.get(0).getComparisonId() + "  " + topSelection);
         }
         return topSelection;
     }
 
-    public static double isBetterScore(List<SpectrumMatch> fromData, List<SpectrumMatch> toData, int totalSpeNumber) {
+    public static double isBetterScore(List<SpectrumMatch> fromData, List<SpectrumMatch> toData, int totalSpeNumber, boolean ignorS2) {
         List<Double> sharedToData = new ArrayList<>();
         List<Double> sharedFromData = new ArrayList<>();
         List<Double> onlyToData = new ArrayList<>();
@@ -1296,7 +1350,9 @@ public class SpectraUtilities {
 
         double fs1 = improved1[4];//* (1.0 - ratio);
         double fs2 = score2 * ratio;
-
+        if (ignorS2) {
+            fs2 = 0;
+        }
         double fs = fs1 + fs2;
 //        if (Double.isNaN(fs)) {
         System.out.println("score " + fs1 + "   " + fs2 + "  " + score2 + "*" + ratio);

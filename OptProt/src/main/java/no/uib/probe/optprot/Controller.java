@@ -1,7 +1,11 @@
 package no.uib.probe.optprot;
 
+import com.compomics.util.parameters.identification.IdentificationParameters;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.dataset.model.SearchingSubDataset;
 import no.uib.probe.optprot.model.SearchInputSetting;
@@ -27,20 +31,16 @@ public class Controller {
     public void processDataset(String datasetId, File oreginalMsFile, File oreginalFastaFile, File identificationParametersFile, SearchInputSetting optProtSearchSettings, boolean wholeDataTest, List<String> paramOrder) {
         File subDataFolder = new File(Configurations.GET_DATA_FOLDER() + datasetId, optProtSearchSettings.getSelectedSearchEngine().getName());
         if (subDataFolder.exists()) {
-//            for (File f : subDataFolder.listFiles()) {
-//                System.out.println("File found  " + f.getName());
-//                if (f.getName().endsWith("_optAll.par") && optProtSearchSettings.isOptimizeAllParameters()) {
-//                    try {
-//                        IdentificationParameters identificationParameters = IdentificationParameters.getIdentificationParameters(f);
-//                        ReportExporter.printFullReport(identificationParameters, null, optProtSearchSettings.getSelectedSearchEngine());
-////                        System.exit(0);
-//                    } catch (IOException ex) {
-//                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-//                    }
-//
-//                }
-//
-//            }
+            for (File f : subDataFolder.listFiles()) {
+                System.out.println("File found  " + f.getName());
+                if (f.getName().endsWith("_optAll.par") && optProtSearchSettings.isOptimizeAllParameters()) {
+//                    ReportExporter.printFullReport(f, null, optProtSearchSettings.getSelectedSearchEngine(), datasetId);
+//                    return;
+//                    System.exit(0);
+
+                }
+
+            }
         } else {
             subDataFolder.mkdir();
         }
@@ -60,16 +60,9 @@ public class Controller {
             selectedSearchSettingsFile = identificationParametersFile;
         }
         optProtDataset.setSearchSettingsFile(selectedSearchSettingsFile);
-        //        if(wholeDataTest){
-//        optProtDataset.setSubMsFile(oreginalMsFile);
-//        optProtDataset.setSubFastaFile(oreginalFastaFile);
-//          optProtDataset.setComparisonsThreshold(0);
-//        }
-        if (!optProtDataset.isFullDataSpectaInput() || true) {
 
-            double comparisonsThreshold = SpectraUtilities.calculateDatasetScoreThreshold((double) optProtDataset.getOreginalDatasize(), (double) optProtDataset.getTotalSpectraNumber(), (optProtDataset.getIdentificationRate() / 100.0), (double) optProtDataset.getActiveIdentificationNum());
-            optProtDataset.setComparisonsThreshold(comparisonsThreshold);
-        }
+        double comparisonsThreshold = SpectraUtilities.calculateDatasetScoreThreshold((double) optProtDataset.getOreginalDatasize(), (double) optProtDataset.getTotalSpectraNumber(), (optProtDataset.getIdentificationRate() / 100.0), (double) optProtDataset.getActiveIdentificationNum());
+        optProtDataset.setComparisonsThreshold(comparisonsThreshold);
 
         MainUtilities.cleanOutputFolder();
 

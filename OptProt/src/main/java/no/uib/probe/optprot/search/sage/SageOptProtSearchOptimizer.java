@@ -65,12 +65,13 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         this.parameterScoreMap = new LinkedHashMap<>();
         optProtDataset.setParameterScoreMap(parameterScoreMap);
         MainUtilities.cleanOutputFolder();
+       if(searchInputSetting.isOptimizeAllParameters()){
         SageParameters sageParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
         sageParameters.setMaxVariableMods(2);
         sageParameters.setNumPsmsPerSpectrum(1);
         sageParameters.setGenerateDecoys(false);
         sageParameters.setWideWindow(false);
-        sageParameters.setPredictRt(true);
+        sageParameters.setPredictRt(true);}
 //        System.out.println(" identificationParameters.getFastaParameters().getDecoyFlag() " + identificationParameters.getFastaParameters().getDecoyFlag() + "  oreginal size  " + optProtDataset.getOreginalDatasize() + "  total subsize " + optProtDataset.getTotalSpectraNumber());
 //        sageParameters.setMinFragmentMz(150.0);
 //        sageParameters.setMaxFragmentMz(1500.0);
@@ -112,6 +113,12 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
     public void startProcess(List<String> paramOrder) throws IOException {
         digestionParameterOpt = identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name();
         searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
+         MainUtilities.cleanOutputFolder();
+        if (!searchInputSetting.isOptimizeAllParameters()) {
+            //run refrence search 
+            runReferenceRun(optProtDataset, identificationParameters, searchInputSetting);
+        }
+
         for (String param : paramOrder) {
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
             MainUtilities.cleanOutputFolder();
@@ -1112,5 +1119,25 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         parameterScoreSet.add(paramScore);
         return selectedOption;
     }
+    
+    public void runReferenceRun(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter) throws IOException {
+
+        String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
+        final String option = "reference_run_default_";
+        final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
+
+        Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, false);
+            return scoreModel;
+        });
+        try {
+            RawScoreModel scoreModel = f.get();
+            System.out.println("reference run " + scoreModel);
+            optProtDataset.setActiveScoreModel(scoreModel);
+        } catch (ExecutionException | InterruptedException ex) {
+            ex.printStackTrace();
+        }
+    }
+
 
 }
