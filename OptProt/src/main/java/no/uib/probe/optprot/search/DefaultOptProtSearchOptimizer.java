@@ -993,7 +993,6 @@ public abstract class DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("score model " + scoreModel + "    " + optProtDataset.getCurrentScoreModel().getTotalNumber());
                 if (scoreModel.isSensitiveChange() || addAll) {
                     resultsMap.put(modId, scoreModel);//                 
                 }

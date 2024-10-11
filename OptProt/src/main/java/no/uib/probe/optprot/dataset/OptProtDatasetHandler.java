@@ -128,9 +128,9 @@ public class OptProtDatasetHandler {
                 //init Q1
                 int subSize;
                 List<Double> quartileSizeRatios;
-                quartileSizeRatios = this.getQuartileRatios(msFile, fastaFile, identificationParameters);
+                quartileSizeRatios = this.getSectionRatios(msFile, fastaFile, identificationParameters);
 
-                Map<String, Spectrum> spectraMap = generatInitialSubset(msFile, msFileHandler, quartileSizeRatios, wholeDataTest,searchEngineToOptimise.getIndex());
+                Map<String, Spectrum> spectraMap = generatInitialSubset(msFile, msFileHandler, quartileSizeRatios, wholeDataTest, searchEngineToOptimise.getIndex());
                 System.out.println("spectra map size 1  " + spectraMap.size() + "   " + wholeDataTest);
                 if (!wholeDataTest) {
                     if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
@@ -145,8 +145,7 @@ public class OptProtDatasetHandler {
 
                 //create stabkle subMs file
                 subMsFile = generateMsSubFile(spectraMap, subMsFile);
-      
-                
+
                 subFastaFile.delete();
             }
             //create stabkle subfasta file
@@ -260,7 +259,9 @@ public class OptProtDatasetHandler {
         double stepAsInt = (int) stepSize;
         double remainFloatValue = stepSize - stepAsInt;
         double remainFloat = 0;
+
         for (int i = startIndex; i < lastIndex && i < spectrumTitles.length;) {
+//            System.out.println("no.uib.probe.optprot.dataset.OptProtDatasetHandler.substractSpectraFirstLevelDataFiltering() "+startIndex+"  "+i+"  "+spectrumTitles[i]);
             Spectrum spectrum = msFileHandler.getSpectrum(msFileNameWithoutExtension, spectrumTitles[i]);
             spectraMap.put(spectrumTitles[i], spectrum);
             i += stepAsInt;
@@ -302,14 +303,14 @@ public class OptProtDatasetHandler {
 
     }
 
-    private List<Double> getQuartileRatios(File msFile, File fastaFile, IdentificationParameters identificationParameters) {
+    private List<Double> getSectionRatios(File msFile, File fastaFile, IdentificationParameters identificationParameters) {
         ArrayList<Double> arrayList = new ArrayList<>();
         try {
-            arrayList.add(0.25);
-            arrayList.add(0.25);
-            arrayList.add(0.25);
-            arrayList.add(0.25);
-            arrayList.add(1.0);
+//            arrayList.add(0.25);
+//            arrayList.add(0.25);
+//            arrayList.add(0.25);
+//            arrayList.add(0.25);
+//            arrayList.add(1.0);
 
             final String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
 
@@ -322,44 +323,48 @@ public class OptProtDatasetHandler {
             MsFileHandler subMsFileHandler = new MsFileHandler();
             subMsFileHandler.register(msFile, MainUtilities.OptProt_Waiting_Handler);
             arrayList.clear();
-            arrayList.addAll(SpectraUtilities.getQuartileRatio(subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(msFile.getName())), matches));
+            arrayList.addAll(SpectraUtilities.getTagSectionRatios(subMsFileHandler.getSpectrumTitles(IoUtil.removeExtension(msFile.getName())), matches));
         } catch (IOException ex) {
             Logger.getLogger(OptProtDatasetHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
         return arrayList;
     }
 
-    private Map<String, Spectrum> generatInitialSubset(File msFile, MsFileHandler msFileHandler, List<Double> ratios, boolean full,int seIndex) {
+    private Map<String, Spectrum> generatInitialSubset(File msFile, MsFileHandler msFileHandler, List<Double> ratios, boolean full, int seIndex) {
         final String fileNameWithoutExtension = IoUtil.removeExtension(msFile.getName());
         String[] fullSpectrumTitiles = msFileHandler.getSpectrumTitles(fileNameWithoutExtension);
         int initStartIndex = 0;
-        int coverage = (int) Math.round(fullSpectrumTitiles.length * 0.25);
+        double factor = 1.0 / (double) ratios.size();
+        int coverage = (int) Math.round(fullSpectrumTitiles.length * factor);
         int lastIndex = -1;
-        int left = fullSpectrumTitiles.length - (coverage * 3);
+        int left = fullSpectrumTitiles.length - (coverage * (ratios.size() - 1));
+
         Map<String, Spectrum> spectraMap = new LinkedMap<>();
-        for (int i = 0; i < 4; i++) {
-            if (i == 3) {
+        for (int i = 0; i < ratios.size(); i++) {
+            if (i == (ratios.size() - 1)) {
                 coverage = Math.max(coverage, left);
             }
             //init sub quartile 1
             initStartIndex = lastIndex + 1;
             lastIndex = coverage * (i + 1);
             int subsetQuartileSize;
-            if (full && seIndex==Advocate.xtandem.getIndex()) {
+            if (full && seIndex == Advocate.xtandem.getIndex()) {
                 subsetQuartileSize = (int) ((ratios.get(i)) * coverage);
             } else {
                 double ratio = ratios.get(i);
                 if (ratio < 0.2 || ratio > 0.8) {
                     ratio = 1.0 - ratio;
                 }
-                subsetQuartileSize = (int) (ratio * coverage);//;//(1 - ratios.get(i))
+                subsetQuartileSize = (int) (ratio * coverage);//;//(1 - ratios.get(i)) 
+
             }
             double step = (double) coverage / (double) subsetQuartileSize;
+            System.out.println("total " + fullSpectrumTitiles.length + "  start index " + initStartIndex + "  coverage " + coverage + "  factor " + factor + "   last index " + lastIndex + "  left " + left + "   " + spectraMap.size() + "   ratios " + ratios);
             spectraMap.putAll(substractSpectraFirstLevelDataFiltering(msFile, msFileHandler, initStartIndex, step, lastIndex));
-          
+
         }
         return spectraMap;
- }
+    }
 
     private Map<String, Spectrum> generateSubset(String fileNameWithoutExtension, Map<String, Spectrum> spectraMap, int subsetSize, File fastaFile, IdentificationParameters identificationParameters) {
 

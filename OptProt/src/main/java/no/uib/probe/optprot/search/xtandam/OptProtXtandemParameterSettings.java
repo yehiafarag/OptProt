@@ -19,7 +19,7 @@ public class OptProtXtandemParameterSettings {
 //        paramOrder.add("DigestionParameter_1");
 //        paramOrder.add("DigestionParameter_2");
 //        paramOrder.add("DigestionParameter_3");
-//        
+////        
         
         
           paramOrder.add("XtandemAdvancedParameter");
@@ -28,7 +28,7 @@ public class OptProtXtandemParameterSettings {
 // xtandem stage 2
         paramOrder.add("XtandemAdvancedParameter_A");//                
         paramOrder.add("ModificationParameter");
-//        paramOrder.add("XtandemAdvancedParameter_B");
+        paramOrder.add("XtandemAdvancedParameter_B");
 ////
 //        paramOrder.add("PrecursorToleranceParameter");
 //        paramOrder.add("FragmentToleranceParameter");

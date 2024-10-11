@@ -111,8 +111,8 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
         searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
         MainUtilities.cleanOutputFolder();
 //        if (!searchInputSetting.isOptimizeAllParameters()) {
-            //run refrence search 
-         runReferenceRun(optProtDataset, identificationParameters, searchInputSetting);
+        //run refrence search 
+        runReferenceRun(optProtDataset, identificationParameters, searchInputSetting);
 //        }
 
         System.out.println("at refrence run " + optProtDataset.getCurrentScoreModel());
@@ -459,9 +459,10 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
     public double optimizeSpectrumDynamicRange(SearchingSubDataset optProtDataset, IdentificationParameters oreginaltempIdParam, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("spectrumDR");
-        Map<Double, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
+        Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
-        int spectraCounter = (int) Math.round(optProtDataset.getActiveIdentificationNum() * 1.01);
+//        int spectraCounter = (int) Math.round(optProtDataset.getActiveIdentificationNum() * 1.01);
+        int spectraCounter = (int) Math.round(optProtDataset.getCurrentScoreModel().getTotalNumber());
         XtandemParameters xtandemParameters = (XtandemParameters) oreginaltempIdParam.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.xtandem.getIndex());
         double selectedOption = xtandemParameters.getDynamicRange();
         for (double i = 60.0; i < 220;) {
@@ -481,13 +482,14 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
-                    if (scoreModel.getSpectrumMatchResult().size() <= spectraCounter) {
-                        break;
-                    }
+                System.out.println("score model " + j + "--->> " + scoreModel);
+                if (scoreModel.isSensitiveChange() && scoreModel.getS1() > 0 && (scoreModel.getSpectrumMatchResult().size() >= spectraCounter)) {
+//                    if (scoreModel.getSpectrumMatchResult().size() <= spectraCounter) {
+//                        break;
+//                    }
                     spectraCounter = Math.max(spectraCounter, scoreModel.getSpectrumMatchResult().size());
-                    spectraCounter = (int) Math.round(spectraCounter * 1.01);
-                    resultsMap.put(j, scoreModel);
+//                    spectraCounter = (int) Math.round(spectraCounter * 1.01);
+                    resultsMap.put(j + "", scoreModel);
 
                 }
 
@@ -498,16 +500,18 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             i += 20;
         }
         xtandemParameters.setDynamicRange(selectedOption);
-        TreeMap<RawScoreModel, Double> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
+//        TreeMap<RawScoreModel, Double> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
 
         if (!resultsMap.isEmpty()) {
-            for (double option : resultsMap.keySet()) {
-                sortedResultsMap.put(resultsMap.get(option), option);
-            }
-            selectedOption = sortedResultsMap.firstEntry().getValue();
-            double impact = Math.round((double) (resultsMap.get(selectedOption).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
+//            for (double option : resultsMap.keySet()) {
+//                sortedResultsMap.put(resultsMap.get(option), option);
+//            }
+//            selectedOption = sortedResultsMap.firstEntry().getValue();
+            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber()));
+            double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
-            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey());
+            optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
+//            optProtDataset.setActiveScoreModel(sortedResultsMap.firstEntry().getKey());
 
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());

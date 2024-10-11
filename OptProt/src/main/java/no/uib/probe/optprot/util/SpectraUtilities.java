@@ -887,7 +887,7 @@ public class SpectraUtilities {
         rawScore.setTotalNumber(matches.size());
         rawScore.setFinalScore(fs);
         rawScore.setSharedDataSize(fromSharedData.length);
-      
+
         boolean accepted = rawScore.getFinalScore() >= optProtDataset.getComparisonsThreshold();
         rawScore.setSignificatChange(accepted);
         boolean senstive = false;
@@ -904,7 +904,7 @@ public class SpectraUtilities {
                 senstive = true;
             }
         }
-        rawScore.setSensitiveChange(senstive);  
+        rawScore.setSensitiveChange(senstive);
         rawScore.setSameData(rawScore.getFinalScore() == 0.0 && matches.size() == ((onlyFromData.size() + toSharedData.length)));
         if (rawScore.isSignificatChange() || rawScore.isSensitiveChange() || rawScore.isSameData() || addData) {
             rawScore.setSpectrumMatchResult(matches);
@@ -913,9 +913,11 @@ public class SpectraUtilities {
 
     }
 
-    public static List<Double> getQuartileRatio(String[] titiles, List<SpectrumMatch> matches) {
+    public static List<Double> getTagSectionRatios(String[] titiles, List<SpectrumMatch> matches) {
 
-        double partCount = 4;
+        double partCount = SpectraUtilities.getTagSectionsNumber(titiles.length);
+        System.out.println("suggestedTag section number " + partCount);
+
         Map<String, Double> fullSpectraMap = new LinkedHashMap<>();
         for (String titel : titiles) {
             fullSpectraMap.put(titel, 100.0);
@@ -926,13 +928,16 @@ public class SpectraUtilities {
         }
         double countId = 0;
         double countUnId = 0;
-        double partI = Math.round((double) titiles.length / 4.0);
-        double partII = 2 * partI;
-        double partIII = 3 * partI;
+        double mainSectionsSize = Math.round((double) titiles.length / partCount);
+        double lastSectionsSize = (double) titiles.length - (mainSectionsSize * (partCount - 1));
+
+//        double partII = 2 * mainSectionsSize;
+//        double partIII = 3 * mainSectionsSize;
         double[][] quartileData = new double[(int) partCount][2];
         int counter = 0;
         int quartileIndex = 0;
-        int left = titiles.length;
+//        int left = titiles.length;
+           System.out.println("inital --------->>>"+mainSectionsSize+"    last:"+lastSectionsSize);
         for (String titile : titiles) {
             double v = fullSpectraMap.get(titile);
             if (v <= 0.01) {
@@ -940,93 +945,108 @@ public class SpectraUtilities {
             } else {
                 countUnId++;
             }
-            counter++;
-            left--;
-            if ((left == partI) || (left == 0) || (left == partII) || (left == partIII)) {
+               counter++;
+            if (counter == mainSectionsSize) {
                 //initpart I 
+                System.out.println("section index "+quartileIndex+"   "+counter+" ---->> "+mainSectionsSize+"    last:"+lastSectionsSize);
                 quartileData[quartileIndex++] = new double[]{countId, countUnId};
                 counter = 0;
                 countId = 0;
                 countUnId = 0;
+                System.out.println("last ?? "+quartileIndex+"  "+partCount );
+                if (quartileIndex == partCount-1) {
+                    mainSectionsSize = lastSectionsSize;
+                }
 
             }
+        
+//            left--;
+
+//            if ((left == mainSectionsSize) || (left == 0) || (left == partII) || (left == partIII)) {
+//                //initpart I 
+//                quartileData[quartileIndex++] = new double[]{countId, countUnId};
+//                counter = 0;
+//                countId = 0;
+//                countUnId = 0;
+//
+//            }
         }
 
         List<Double> quartileRatios = new ArrayList<>();
-        double total = 0;
+//        double total = 0;
         for (double[] qData : quartileData) {
             double qRatio = qData[0] / (qData[0] + qData[1]);
-            total += qData[0];
+//            total += qData[0];
             quartileRatios.add(qRatio);
         }
-        total = total / (double) titiles.length;
-        quartileRatios.add(total);
+//        total = total / (double) titiles.length;
+//        quartileRatios.add(total);
 
         return quartileRatios;
     }
-
-    public static List<Double> getQuartileRatioT(String[] titiles, List<SpectrumMatch> matches) {
-
-        double partCount = 4;
-        Map<String, Double> fullSpectraMap = new LinkedHashMap<>();
-        for (String titel : titiles) {
-            fullSpectraMap.put(titel, 100.0);
-        }
-        for (SpectrumMatch sm : matches) {
-            TagAssumption tag = sm.getAllTagAssumptions().toList().get(0);
-            fullSpectraMap.replace(sm.getSpectrumTitle(), tag.getScore());
-        }
-        double countId = 0;
-        double countUnId = 0;
-        double partI = Math.round((double) titiles.length / 4.0);
-        double partII = 2 * partI;
-        double partIII = 3 * partI;
-        double[][] quartileData = new double[(int) partCount][2];
-        int counter = 0;
-        int quartileIndex = 0;
-        int left = titiles.length;
-        for (String titile : titiles) {
-            double v = fullSpectraMap.get(titile);
-            if (v <= 0.1) {
-                countId++;
-            } else {
-                countUnId++;
-            }
-            counter++;
-            left--;
-            if ((left == partI) || (left == 0) || (left == partII) || (left == partIII)) {
-                //initpart I 
-                quartileData[quartileIndex++] = new double[]{countId, countUnId};
-                counter = 0;
-                countId = 0;
-                countUnId = 0;
-
-            }
-        }
-
-        double totalCount = 0;
-        List<Double> quartileRatios = new ArrayList<>();
-        for (double[] qData : quartileData) {
-            totalCount += qData[0];
-            quartileRatios.add(qData[0]);
-        }
-        double quat_3_sum = 0;
-        for (int j = 0; j < quartileRatios.size() - 1; j++) {
-            double ratio = quartileRatios.get(j) / totalCount;
-            ratio = Math.round(ratio * 100.0) / 100.0;
-            quartileRatios.set(j, ratio);
-            quat_3_sum += ratio;
-        }
-        double ratio = 1.0 - quat_3_sum;
-        ratio = Math.round(ratio * 100.0) / 100.0;
-        quartileRatios.set(quartileRatios.size() - 1, ratio);
-
-        double totalRatio = totalCount / titiles.length;
-        System.out.println("total ratio is " + totalRatio);
-        quartileRatios.add(totalRatio);
-
-        return quartileRatios;
-    }
+//
+//    public static List<Double> getQuartileRatioT(String[] titiles, List<SpectrumMatch> matches) {
+//
+//        double partCount = 4;
+//        Map<String, Double> fullSpectraMap = new LinkedHashMap<>();
+//        for (String titel : titiles) {
+//            fullSpectraMap.put(titel, 100.0);
+//        }
+//        for (SpectrumMatch sm : matches) {
+//            TagAssumption tag = sm.getAllTagAssumptions().toList().get(0);
+//            fullSpectraMap.replace(sm.getSpectrumTitle(), tag.getScore());
+//        }
+//        double countId = 0;
+//        double countUnId = 0;
+//        double partI = Math.round((double) titiles.length / 4.0);
+//        double partII = 2 * partI;
+//        double partIII = 3 * partI;
+//        double[][] quartileData = new double[(int) partCount][2];
+//        int counter = 0;
+//        int quartileIndex = 0;
+//        int left = titiles.length;
+//        for (String titile : titiles) {
+//            double v = fullSpectraMap.get(titile);
+//            if (v <= 0.1) {
+//                countId++;
+//            } else {
+//                countUnId++;
+//            }
+//            counter++;
+//            left--;
+//            if ((left == partI) || (left == 0) || (left == partII) || (left == partIII)) {
+//                //initpart I 
+//                quartileData[quartileIndex++] = new double[]{countId, countUnId};
+//                counter = 0;
+//                countId = 0;
+//                countUnId = 0;
+//
+//            }
+//        }
+//
+//        double totalCount = 0;
+//        List<Double> quartileRatios = new ArrayList<>();
+//        for (double[] qData : quartileData) {
+//            totalCount += qData[0];
+//            quartileRatios.add(qData[0]);
+//        }
+//        double quat_3_sum = 0;
+//        for (int j = 0; j < quartileRatios.size() - 1; j++) {
+//            double ratio = quartileRatios.get(j) / totalCount;
+//            ratio = Math.round(ratio * 100.0) / 100.0;
+//            quartileRatios.set(j, ratio);
+//            quat_3_sum += ratio;
+//        }
+//        double ratio = 1.0 - quat_3_sum;
+//        ratio = Math.round(ratio * 100.0) / 100.0;
+//        quartileRatios.set(quartileRatios.size() - 1, ratio);
+//
+//        double totalRatio = totalCount / titiles.length;
+//        System.out.println("total ratio is " + totalRatio);
+//        quartileRatios.add(totalRatio);
+//
+//        return quartileRatios;
+//    }
 
     public static List<SpectrumMatch> getValidatedIdentificationResults(File resultOutput, File msFile, Advocate searchEngine, IdentificationParameters identificationParameters) {
         List<SpectrumMatch> validatedMaches = Collections.synchronizedList(new ArrayList<>());
@@ -1156,7 +1176,7 @@ public class SpectraUtilities {
                 if (index2 <= index1 || !topScoreSet.contains(rs2Key)) {
                     continue;
                 }
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber,false);
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber, false);
 //                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
 //                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
                 if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
@@ -1180,7 +1200,8 @@ public class SpectraUtilities {
         }
         return topSelection;
     }
-  public static String compareScoresSet(Map<String, RawScoreModel> resultsMap, int totalSpecNumber,boolean ignorS2) {
+
+    public static String compareScoresSet(Map<String, RawScoreModel> resultsMap, int totalSpecNumber, boolean ignorS2) {
 
         List<RawScoreModel> scoreModelSorter = new ArrayList<>();
 
@@ -1206,7 +1227,7 @@ public class SpectraUtilities {
                 if (index2 <= index1 || !topScoreSet.contains(rs2Key)) {
                     continue;
                 }
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber,ignorS2);
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber, ignorS2);
 //                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
 //                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
                 if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
@@ -1231,7 +1252,6 @@ public class SpectraUtilities {
         return topSelection;
     }
 
-   
     public static String getTopScoresSet(Map<String, RawScoreModel> resultsMap, Set<String> refMatches) {
 //        TreeMap<RawScoreModel, String> sorter = new TreeMap<>(Collections.reverseOrder());
         List<RawScoreModel> scoreModelSorter = new ArrayList<>();
@@ -1260,7 +1280,7 @@ public class SpectraUtilities {
                 }
                 Set<String> total = new HashSet<>(resultsMap.get(rs1Key).getSpecTitles());
                 total.addAll(resultsMap.get(rs2Key).getSpecTitles());
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), total.size(),false);
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), total.size(), false);
                 System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
                 System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getTotalNumber() + "(" + resultsMap.get(rs1Key).getFinalScore() + ")   vs " + resultsMap.get(rs2Key).getTotalNumber() + "(" + resultsMap.get(rs2Key).getFinalScore() + ")" + "   " + key1Better);
 
@@ -1478,6 +1498,28 @@ public class SpectraUtilities {
         }
         return finalScore;
 
+    }
+
+    public static int getTagSectionsNumber(int oreginalFileSize) {
+        double minVal = 5000;
+        double maxVal = 100000;
+        double a = 4;
+        double b = 10;
+//        if (se.getIndex() == Advocate.sage.getIndex()) {
+//            a = 2000;
+//            b = 8000;
+//        }
+
+        if (maxVal <= oreginalFileSize) {
+            return (int) b;
+        }
+        if (minVal >= oreginalFileSize) {
+            return (int) a;
+        }
+        // Normalize to [0, 1]
+        double normalized = (oreginalFileSize - minVal) / (maxVal - minVal);
+        // Scale to [a, b]
+        return (int) Math.round((a + (b - a) * normalized));
     }
 
     public static int scaleSubsetSize(int oreginalFileSize, Advocate se) {
