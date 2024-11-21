@@ -96,7 +96,7 @@ public class OptProtDatasetHandler1 {
         }
 
         String[] spectrumTitles = msFileHandler.getSpectrumTitles(fileNameWithoutExtension);
-        subDataset.setOreginalDatasize(spectrumTitles.length);
+        subDataset.setOreginalDatasetSpectraSize(spectrumTitles.length);
         smallDataset = spectrumTitles.length < 15000;
         final Map<String, Spectrum> fullSpectrumMap = new LinkedHashMap<>();
         final Set<ConfidentTagSorter> fullConfidentSpectraSet = new TreeSet<>();
@@ -337,7 +337,7 @@ public class OptProtDatasetHandler1 {
             subMsFileHandler.register(subMsFile, new OptProtWaitingHandler());
             MainUtilities.deleteFolder(resultsFolder);
             int total = subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension).length;
-            subDataset.setTotalSpectraNumber(total);
+            subDataset.setSubDatasetSpectraSize(total);
             MainUtilities.cleanOutputFolder();
         } catch (IOException ex) {
             if (subMsFile != null) {

@@ -563,6 +563,9 @@ public class SpectraUtilities {
             if (included < 50) {
                 copySubFastaFile(fastaIn, fastaOut);
             }
+            System.out.println("total # prot sequence number "+total+"  sub fasta Size "+included);
+            
+            
 
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
@@ -807,7 +810,7 @@ public class SpectraUtilities {
         Map<String, Double> matchScores = new HashMap<>();
 
         RawScoreModel rawScore = new RawScoreModel(scoreId);
-        rawScore.setFullSpectraSize(optProtDataset.getTotalSpectraNumber());
+        rawScore.setFullSpectraSize(optProtDataset.getSubDatasetSpectraSize());
         if (searchEngine.getIndex() == Advocate.xtandem.getIndex()) {
             for (SpectrumMatch sm : matches) {
                 for (PeptideAssumption peptideAssumtion : sm.getAllPeptideAssumptions().toList()) {
@@ -876,7 +879,7 @@ public class SpectraUtilities {
         double[] toOnlyData = onlyToData.stream().mapToDouble(Double::doubleValue).toArray();
 
         double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData);
-        double ratio = Math.max(onlyToData.size(), onlyFromData.size()) / (double) optProtDataset.getTotalSpectraNumber();
+        double ratio = Math.max(onlyToData.size(), onlyFromData.size()) / (double) optProtDataset.getSubDatasetSpectraSize();
         double score2;
         score2 = SpectraUtilities.compareData(fromOnlyData, toOnlyData)[4];
         double fs1 = improved1[4];
@@ -1176,9 +1179,11 @@ public class SpectraUtilities {
                 if (index2 <= index1 || !topScoreSet.contains(rs2Key)) {
                     continue;
                 }
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber, false);
-//                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
-//                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
+
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber,false);
+                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
+                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
+
                 if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
                     topScoreSet.remove(rs2Key);
                 } else {

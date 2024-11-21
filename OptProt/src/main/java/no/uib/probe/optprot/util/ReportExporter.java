@@ -39,7 +39,7 @@ public class ReportExporter {
         }
         System.out.println("-------------------------------" + datasetId + "(" + searchEngine.getName() + ")-----------------------------------------");
         if (dataset != null) {
-        System.out.println("Spectra size        :\t" + dataset.getTotalSpectraNumber());
+        System.out.println("Spectra size        :\t" + dataset.getSubDatasetSpectraSize());
         }
         System.out.println("Digestion           :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name());
         if (optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equals("enzyme")) {
@@ -169,7 +169,7 @@ public class ReportExporter {
                 myWriter.write(
                         "Used Time           :\t" + timeInMin + "  Minutes\n");
                 myWriter.write(
-                        "Subset size         :\t" + dataset.getTotalSpectraNumber()+ "\n");
+                        "Subset size         :\t" + dataset.getSubDatasetSpectraSize()+ "\n");
                 myWriter.write(
                         "Digestion           :\t" + optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name() + "\n");
                 if (optimisedSearchParameter.getSearchParameters().getDigestionParameters().getCleavageParameter().name().equals("enzyme")) {

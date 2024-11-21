@@ -31,41 +31,44 @@ public class OptProt {
 
 //                List<String> paramOrder = new ArrayList<>();
                 Set<Advocate> supportedSearchEngine = new LinkedHashSet<>();
-//                supportedSearchEngine.add(Advocate.sage);
+
+                supportedSearchEngine.add(Advocate.sage);
+                paramOrderMap.put(Advocate.sage, OptProtSageParameterSettings.Get_Sage_Parameters_List());
+
                 supportedSearchEngine.add(Advocate.xtandem);
                 paramOrderMap.put(Advocate.xtandem, OptProtXtandemParameterSettings.Get_Xtandem_Parameters_List());
 //                supportedSearchEngine.add(Advocate.myriMatch);
-//                
-                paramOrderMap.put(Advocate.sage, OptProtSageParameterSettings.Get_Sage_Parameters_List());
 
 //////   
 //                paramOrder.add("MyriMatchAdvancedParameter");
 //               
 //                
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
-                if (args == null|| args.length==0) {
-//                    datasettoTestSet.add("PXD028427");    //1
+                if (args == null || args.length == 0) {
+                    datasettoTestSet.add("PXD028427");    //1
 //                    datasettoTestSet.add("PXD000561");    //2
-//                datasettoTestSet.add("PXD001468");          //3
-//                datasettoTestSet.add("PXD047036");        //4
-//                datasettoTestSet.add("PXD009340");        //5
-                datasettoTestSet.add("PXD001250");        //6
-//////////////////////                datasettoTestSet.add("PXD000815");        
+//                    datasettoTestSet.add("PXD001468");          //3
+//                    datasettoTestSet.add("PXD047036");        //4
+//                    datasettoTestSet.add("PXD009340");        //5
+//                    datasettoTestSet.add("PXD001250");        //6
+////////////////////                datasettoTestSet.add("PXD000815");        
                 } else {
                     datasettoTestSet.addAll(Arrays.asList(args));
                     System.exit(0);
                 }
-                
+
 //             
                 boolean cleanAll = false;
                 SearchInputSetting searchOpParameter = new SearchInputSetting();
                 boolean all = true;
+                boolean useFullFasta = false;
+                boolean useOreginalInputs = true;
                 searchOpParameter.setOptimizeAllParameters(all);
                 searchOpParameter.setOptimizeDigestionParameter(true || all);
                 searchOpParameter.setOptimizeCleavageParameter(false);
-                searchOpParameter.setOptimizeEnzymeParameter(true);
+                searchOpParameter.setOptimizeEnzymeParameter(false);
                 searchOpParameter.setOptimizeMaxMissCleavagesParameter(false || all);
-                 searchOpParameter.setOptimizeSpecificityParameter(false);
+                searchOpParameter.setOptimizeSpecificityParameter(false);
                 searchOpParameter.setOptimizeFragmentIonTypesParameter(false || all);
                 searchOpParameter.setOptimizePrecursorToleranceParameter(false || all);
                 searchOpParameter.setOptimizeFragmentToleranceParameter(false || all);
@@ -73,20 +76,29 @@ public class OptProt {
                 searchOpParameter.setOptimizeIsotopsParameter(false || all);
                 searchOpParameter.setOptimizeModificationParameter(false || all);
 //            searchOpParameter.setRecalibrateSpectraParameter(false);
+
+                
+
                 for (Advocate se : supportedSearchEngine) {
+//                    if (se.getIndex() == Advocate.xtandem.getIndex()) {
+//                        System.out.println("---------------------------------------------------------full-" + "PXD001250" + "----------------------------------------------");
+//                        System.gc();
+//                        MainUtilities.cleanOutputFolder();
+//                        runDataset("PXD001250", cleanAll, paramOrderMap.get(se), searchOpParameter, true);
+//                        continue;
+//                    }
+
                     searchOpParameter.setSelectedSearchEngine(se);
                     for (String datasetId : datasettoTestSet) {
                         System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
-//                        if(se.getIndex()==Advocate.sage.getIndex()){
                         cleanAll = true;
                         MainUtilities.cleanOutputFolder();
-                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false);
-//                        }
+                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false, useFullFasta, false);
 //                        cleanAll = false;
 //                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
 //                        System.gc();
 //                        MainUtilities.cleanOutputFolder();
-//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true);
+//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true, useFullFasta, useOreginalInputs);
                     }
                 }
                 MainUtilities.cleanOutputFolder();
@@ -102,7 +114,7 @@ public class OptProt {
         );
     }
 
-    private static void runDataset(String datasetId, boolean cleanAll, List<String> paramOrder, SearchInputSetting searchOpParameter, boolean wholeDataTest) {
+    private static void runDataset(String datasetId, boolean cleanAll, List<String> paramOrder, SearchInputSetting searchOpParameter, boolean wholeDataTest, boolean fullFasta, boolean useOreginalInputs) {
         ArrayList<File> msFiles = new ArrayList<>();
         File datasetFolder = new File(Configurations.GET_DATA_FOLDER() + datasetId);//  
         File searchParamFile = null;
@@ -130,7 +142,7 @@ public class OptProt {
         }
 
         Controller controller = new Controller();
-        controller.processDataset(datasetId, msFiles.get(0), fastaFile, searchParamFile, searchOpParameter, wholeDataTest, paramOrder);
+        controller.processDataset(datasetId, msFiles.get(0), fastaFile, searchParamFile, searchOpParameter, wholeDataTest, fullFasta, paramOrder, useOreginalInputs);
         MainUtilities.cleanOutputFolder();
 
     }

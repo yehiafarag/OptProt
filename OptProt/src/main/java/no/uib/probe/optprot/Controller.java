@@ -1,11 +1,7 @@
 package no.uib.probe.optprot;
 
-import com.compomics.util.parameters.identification.IdentificationParameters;
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.dataset.model.SearchingSubDataset;
 import no.uib.probe.optprot.model.SearchInputSetting;
@@ -28,7 +24,7 @@ public class Controller {
 
     }
 
-    public void processDataset(String datasetId, File oreginalMsFile, File oreginalFastaFile, File identificationParametersFile, SearchInputSetting optProtSearchSettings, boolean wholeDataTest, List<String> paramOrder) {
+    public void processDataset(String datasetId, File oreginalMsFile, File oreginalFastaFile, File identificationParametersFile, SearchInputSetting optProtSearchSettings, boolean wholeDataTest,boolean fullFasta, List<String> paramOrder,boolean useOreginalInputs) {
         File subDataFolder = new File(Configurations.GET_DATA_FOLDER() + datasetId, optProtSearchSettings.getSelectedSearchEngine().getName());
         if (subDataFolder.exists()) {
             for (File f : subDataFolder.listFiles()) {
@@ -46,11 +42,16 @@ public class Controller {
         }
         MainUtilities.cleanOutputFolder();
         long startDsInit = System.currentTimeMillis();
-        SearchingSubDataset optProtDataset = optProtDatasetHandler.generateOptProtDataset(oreginalMsFile, oreginalFastaFile, optProtSearchSettings.getSelectedSearchEngine(), subDataFolder, identificationParametersFile, wholeDataTest);
+        SearchingSubDataset optProtDataset = optProtDatasetHandler.generateOptProtDataset(oreginalMsFile, oreginalFastaFile, optProtSearchSettings.getSelectedSearchEngine(), subDataFolder, identificationParametersFile, wholeDataTest,fullFasta,useOreginalInputs);
         long endDsInit = System.currentTimeMillis();
         String totalDsTime = MainUtilities.msToTime(endDsInit - startDsInit);
         optProtDataset.setSubDataFolder(subDataFolder);
         optProtDataset.setFullDataSpectaInput(wholeDataTest);
+        System.out.println("Size of sub dataset --- "+optProtDataset.getSubDatasetSpectraSize());
+//        
+//        optProtDataset.setSubFastaFile(oreginalFastaFile);
+//        optProtDataset.setSubMsFile(oreginalMsFile);
+        
 
         File selectedSearchSettingsFile;
 
@@ -61,13 +62,17 @@ public class Controller {
         }
         optProtDataset.setSearchSettingsFile(selectedSearchSettingsFile);
 
-        double comparisonsThreshold = SpectraUtilities.calculateDatasetScoreThreshold((double) optProtDataset.getOreginalDatasize(), (double) optProtDataset.getTotalSpectraNumber(), (optProtDataset.getIdentificationRate() / 100.0), (double) optProtDataset.getActiveIdentificationNum());
+        double comparisonsThreshold = SpectraUtilities.calculateDatasetScoreThreshold((double) optProtDataset.getOreginalDatasetSpectraSize(), (double) optProtDataset.getSubDatasetSpectraSize(), (optProtDataset.getIdentificationRate() / 100.0), (double) optProtDataset.getActiveIdentificationNum());
+       
+        
+        
         optProtDataset.setComparisonsThreshold(comparisonsThreshold);
 
         MainUtilities.cleanOutputFolder();
 
         OptProtSearchHandler optProtSearchHandler = new OptProtSearchHandler();
         long start = System.currentTimeMillis();
+        System.out.println("---run");
         File generatedFile = optProtSearchHandler.optimizeSearchEngine(optProtDataset, optProtSearchSettings, paramOrder);
         long end = System.currentTimeMillis();
         String totalTime = MainUtilities.msToTime(end - start);

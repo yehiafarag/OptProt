@@ -42,7 +42,6 @@ public class OptProtSearchHandler {
                if(searchInputSetting.isOptimizeAllParameters()){
                 myriMatchParameters.setMaxDynamicMods(4);
                 myriMatchParameters.setNumberOfSpectrumMatches(1);
-                searchingSubDataset.setAcceptedIDRatioThreshold(0);
                }
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 MyrimatchOptProtSearchOptimizer myrimatchOptProtSearchOptimizer = new MyrimatchOptProtSearchOptimizer(searchingSubDataset, searchInputSetting, generatedIdentificationParametersFile);
@@ -51,7 +50,6 @@ public class OptProtSearchHandler {
                 SageParameters myriMatchParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
                if(searchInputSetting.isOptimizeAllParameters()){
                 myriMatchParameters.setMaxVariableMods(2);
-                searchingSubDataset.setAcceptedIDRatioThreshold(0);
                }
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 SageOptProtSearchOptimizer sageOptProtSearchOptimizer = new SageOptProtSearchOptimizer(searchingSubDataset, searchInputSetting, generatedIdentificationParametersFile);

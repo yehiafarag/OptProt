@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import no.uib.probe.optprot.model.ParameterScoreModel;
 import no.uib.probe.optprot.model.RawScoreModel;
-import org.jgrapht.util.DoublyLinkedList;
 
 /**
  *
@@ -86,11 +85,10 @@ public class SearchingSubDataset {
         this.searchSettingsFile = searchSettingsFile;
     }
     private int defaultSettingIdentificationNum;
-    private int totalSpectraNumber;
+    private int SubDatasetSpectraSize;
     private int tempIdentificationNum;
     private double processDelay;
     private boolean highResolutionMassSpectrometers = true;
-    private double acceptedIDRatioThreshold = -1.0;
     private RawScoreModel currentScoreModel;
 
     public void setActiveScoreModel(RawScoreModel scoreModel) {
@@ -110,26 +108,6 @@ public class SearchingSubDataset {
 
     private String datasetId;
 
-    public void setAcceptedIDRatioThreshold(double acceptedIDRatioThreshold) {
-        this.acceptedIDRatioThreshold = acceptedIDRatioThreshold;
-    }
-
-    public double getAcceptedIDRatioThreshold() {
-        if (acceptedIDRatioThreshold == -1.0) {
-            double d = this.getActiveIdentificationNum() * 100.0 / this.getTotalSpectraNumber();
-            if (d >= 20) {
-                acceptedIDRatioThreshold = 5;
-            } else if (d <= 4.0) {
-                acceptedIDRatioThreshold = 1;
-            } else {
-                acceptedIDRatioThreshold = d * 5 / 20;
-            }
-            acceptedIDRatioThreshold = Math.round(acceptedIDRatioThreshold);
-
-        }
-        return acceptedIDRatioThreshold;
-    }
-
     public double getProcessDelay() {
         return processDelay;
     }
@@ -146,29 +124,29 @@ public class SearchingSubDataset {
         this.tempIdentificationNum = tempIdentificationNum;
     }
 
-    private int oreginalDatasize;
+    private int oreginalDatasetSpectraSize;
     private int currentIdentifiedSpectra;
 
     private double comparisonsThreshold = 0.0;
 
-    public int getOreginalDatasize() {
-        return oreginalDatasize;
+    public int getOreginalDatasetSpectraSize() {
+        return oreginalDatasetSpectraSize;
     }
 
-    public void setOreginalDatasize(int oreginalDatasize) {
-        this.oreginalDatasize = oreginalDatasize;
+    public void setOreginalDatasetSpectraSize(int oreginalDatasetSpectraSize) {
+        this.oreginalDatasetSpectraSize = oreginalDatasetSpectraSize;
     }
 
-    public int getTotalSpectraNumber() {
-        return totalSpectraNumber;
+    public int getSubDatasetSpectraSize() {
+        return SubDatasetSpectraSize;
     }
 
-    public void setTotalSpectraNumber(int totalSpectraNumber) {
-        this.totalSpectraNumber = totalSpectraNumber;
+    public void setSubDatasetSpectraSize(int SubDatasetSpectraSize) {
+        this.SubDatasetSpectraSize = SubDatasetSpectraSize;
     }
 
     public synchronized double getIdentificationRate() {
-        return currentIdentifiedSpectra * 100.0 / totalSpectraNumber;
+        return currentIdentifiedSpectra * 100.0 / SubDatasetSpectraSize;
     }
 
     public int getDefaultSettingIdentificationNum() {
@@ -217,7 +195,7 @@ public class SearchingSubDataset {
 
     public double getpValueThresholds() {
         if (pValueThresholds == -1) {
-            double res = this.currentIdentifiedSpectra * 100 / getTotalSpectraNumber();
+            double res = this.currentIdentifiedSpectra * 100 / getSubDatasetSpectraSize();
             if (res <= 5) {
                 pValueThresholds = 0.1;
             } else {
@@ -241,7 +219,11 @@ public class SearchingSubDataset {
     }
 
     public void setComparisonsThreshold(double comparisonsThreshold) {
+//        if (comparisonsThreshold == 0.0) {
         this.comparisonsThreshold = comparisonsThreshold;
+//        }
+//        System.out.println("comparison score " + comparisonsThreshold);
+
     }
 
     public RawScoreModel getCurrentScoreModel() {

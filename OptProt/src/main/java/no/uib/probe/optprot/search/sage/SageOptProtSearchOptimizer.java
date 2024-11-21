@@ -114,10 +114,10 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         digestionParameterOpt = identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name();
         searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
          MainUtilities.cleanOutputFolder();
-        if (!searchInputSetting.isOptimizeAllParameters()) {
+//        if (!searchInputSetting.isOptimizeAllParameters()) {
             //run refrence search 
             runReferenceRun(optProtDataset, identificationParameters, searchInputSetting);
-        }
+//        }
 
         for (String param : paramOrder) {
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
@@ -241,12 +241,12 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                     sageParameters.setMaxPeptideLength(values[1]);
                     System.out.println("peptide length " + values[0] + "--" + values[1] + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
                 }
-                dvalues = optimizePeptideMassParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SagePeptideMassParameter"));
-                if (dvalues[1] != sageParameters.getMaxPeptideMass() || dvalues[0] != sageParameters.getMinPeptideMass()) {
-                    sageParameters.setMinPeptideMass(dvalues[0]);
-                    sageParameters.setMaxPeptideMass(dvalues[1]);
-                    System.out.println("optimizePeptideMassParameter " + dvalues[0] + "--" + dvalues[1] + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
-                }
+//                dvalues = optimizePeptideMassParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SagePeptideMassParameter"));
+//                if (dvalues[1] != sageParameters.getMaxPeptideMass() || dvalues[0] != sageParameters.getMinPeptideMass()) {
+//                    sageParameters.setMinPeptideMass(dvalues[0]);
+//                    sageParameters.setMaxPeptideMass(dvalues[1]);
+//                    System.out.println("optimizePeptideMassParameter " + dvalues[0] + "--" + dvalues[1] + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
+//                }
 //
 
                 sageParameters.setMaxVariableMods(2);
@@ -257,7 +257,23 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 
             if (param.equalsIgnoreCase("SageAdvancedParameter_B") && searchInputSetting.isOptimizeSageAdvancedParameter()) {
                 SageParameters sageParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
-//               
+                
+                
+                /**maybe remove**/
+//                  int value = optimizeIonMinIndexParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageIonMinIndexParameter"));
+//                if (value != sageParameters.getMinIonIndex()) {
+//                    sageParameters.setMinIonIndex(value);
+//                    System.out.println("optimizeIonMinIndexParameter " + value + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
+//                }
+            double[]  dvalues = optimizePeptideMassParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SagePeptideMassParameter"));
+                if (dvalues[1] != sageParameters.getMaxPeptideMass() || dvalues[0] != sageParameters.getMinPeptideMass()) {
+                    sageParameters.setMinPeptideMass(dvalues[0]);
+                    sageParameters.setMaxPeptideMass(dvalues[1]);
+                    System.out.println("optimizePeptideMassParameter " + dvalues[0] + "--" + dvalues[1] + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
+                }
+                /****until here**/
+                
+                
                 int[] values = optimizeNumberOfPeakParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageNumberOfPeakParameter"));
                 if (values[1] != sageParameters.getMaxPeaks() || values[0] != sageParameters.getMinPeaks()) {
                     sageParameters.setMinPeaks(values[0]);
@@ -282,19 +298,19 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 //               
 
 //                System.out.println("optimizeMaxFragmentChargeParameter " + value + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
-                int value = optimizeMaxVariableModificationParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageMaxVariableModificationParameter"));
-                if (value != sageParameters.getMaxVariableMods()) {
-                    sageParameters.setMaxVariableMods(value);
+               int  intvalue = optimizeMaxVariableModificationParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageMaxVariableModificationParameter"));
+                if (intvalue != sageParameters.getMaxVariableMods()) {
+                    sageParameters.setMaxVariableMods(intvalue);
 //                    System.out.println("optimizeMaxVariableModificationParameter " + value + "------------------------------------------------------------------------->>> 12 id rate " + optProtDataset.getActiveIdentificationNum());
 //
                 }
-                value = optimizeMinMatchedPeaksParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageMinMatchedPeaksPeakParameter"));
-                if (value != sageParameters.getMinMatchedPeaks()) {
-                    sageParameters.setMinMatchedPeaks(value);
+                intvalue = optimizeMinMatchedPeaksParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageMinMatchedPeaksPeakParameter"));
+                if (intvalue != sageParameters.getMinMatchedPeaks()) {
+                    sageParameters.setMinMatchedPeaks(intvalue);
                 }
 //                      
-                value = optimizeMaxFragmentChargeParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageMaxFragmentChargeParameter"));
-                sageParameters.setMaxFragmentCharge(value);
+                intvalue = optimizeMaxFragmentChargeParameter(optProtDataset, identificationParameters, searchInputSetting, parameterScoreMap.get("SageMaxFragmentChargeParameter"));
+                sageParameters.setMaxFragmentCharge(intvalue);
 
                 //need adjustment
                 sageParameters.setGenerateDecoys(true);
@@ -358,7 +374,6 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         File resultOutput = null;
         try {
             while (!f.isDone()) {
-//                System.out.print("----------------");
             }
             resultOutput = f.get();
         } catch (InterruptedException | ExecutionException ex) {
@@ -460,7 +475,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            selectedMaxPeptideLengthOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber()));
+            selectedMaxPeptideLengthOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize()));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeptideLengthOption + ""));
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
@@ -510,7 +525,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedMinPeptideMassOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -541,7 +556,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedMaxPeptideMassOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -584,7 +599,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -634,7 +649,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 
         if (!resultsMap.isEmpty()) {
 
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedMinFragmentMzOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -669,7 +684,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             i += 250;
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedMaxFragmentMzOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -701,6 +716,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
+                System.out.println("ionindex : "+i+"  "+scoreModel);
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j + "", scoreModel);
                 } else {
@@ -712,7 +728,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -756,7 +772,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            int bestOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber()));
+            int bestOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize()));
             selectedOption = bestOption == 1;
             double impact = Math.round((double) (resultsMap.get(bestOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
@@ -801,7 +817,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -841,7 +857,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -887,7 +903,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
             paramScore.setComments("Slow processing");
@@ -932,7 +948,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -987,7 +1003,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//            
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//            
             selectedMinPeaksNumberOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
 
@@ -1022,7 +1038,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 
         if (!resultsMap.isEmpty()) {
 
-            selectedMaxPeaksNumberOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber()));
+            selectedMaxPeaksNumberOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize()));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeaksNumberOption + ""));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeaksNumberOption + ""));
         }
@@ -1065,7 +1081,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -1110,7 +1126,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getTotalSpectraNumber());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
