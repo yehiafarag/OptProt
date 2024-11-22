@@ -575,7 +575,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
 
-        for (int i = 1; i <= 4; i++) {
+        for (int i = 1; i <= 3; i++) {
             if (i == selectedOption) {
                 continue;
             }

@@ -754,6 +754,7 @@ public abstract class DefaultOptProtSearchOptimizer {
 //        List<Double> scoresList = new ArrayList<>();
         for (String modId : fullFixedModificationScore.keySet()) {
             RawScoreModel scoreModel = fullFixedModificationScore.get(modId);
+//            System.out.println("Fixed mod test modId: " + modId + " score: " + scoreModel);
             if (scoreModel.isSensitiveChange()) {
                 resultsMap.put(modId, scoreModel);
 
@@ -804,11 +805,13 @@ public abstract class DefaultOptProtSearchOptimizer {
             if (modPattern.equals("")) {
                 modPattern = ptmFactory.getModification(bestMod).getModificationType().isNTerm() + "-" + ptmFactory.getModification(bestMod).getModificationType().isCTerm();
             }
-            if (modPattern.equalsIgnoreCase("true-false") && resultsMap.containsKey("Acetylation of protein N-term") && !bestMod.equalsIgnoreCase("Acetylation of protein N-term")) {
+            if (resultsMap.containsKey("Acetylation of protein N-term") && resultsMap.containsKey("Carbamilation of protein N-term")) {
                 //we favor Acetylation of protein N-term in the case of multi n-teminal fixed mod
-                if (resultsMap.get(bestMod).getFinalScore() <= resultsMap.get("Acetylation of protein N-term").getFinalScore() * 1.05 || resultsMap.get(bestMod).getTotalNumber() <= resultsMap.get("Acetylation of protein N-term").getTotalNumber()) {
-                    resultsMap.remove(bestMod);
-                    bestMod = "Acetylation of protein N-term";
+                if (resultsMap.get("Carbamilation of protein N-term").getFinalScore() <= resultsMap.get("Acetylation of protein N-term").getFinalScore() * 1.05 || resultsMap.get("Carbamilation of protein N-term").getTotalNumber() <= resultsMap.get("Acetylation of protein N-term").getTotalNumber()) {
+                    resultsMap.remove("Carbamilation of protein N-term");
+                    if (bestMod.equalsIgnoreCase("Carbamilation of protein N-term")) {
+                        bestMod = "Acetylation of protein N-term";
+                    }
                 }
             }
             selectedFixedModificationOption.add(bestMod);
@@ -819,6 +822,7 @@ public abstract class DefaultOptProtSearchOptimizer {
 
             resultsMap.remove(bestMod);
         }
+
         //3rd and 4th  fixed modification processing 
         boolean test = !resultsMap.isEmpty();
         int counter = 3;
@@ -862,6 +866,9 @@ public abstract class DefaultOptProtSearchOptimizer {
             }
 
         }
+//        System.out.println("final fixed mod " + selectedFixedModificationOption);
+
+//        System.exit(0);
         modificationsResults.put("fixedModifications", new HashSet<>(selectedFixedModificationOption));
         modificationsResults.put("refinmentFixedModifications", new HashSet<>(selectedFixedModificationOption));
         preservedMods.removeAll(selectedFixedModificationOption);
@@ -915,7 +922,7 @@ public abstract class DefaultOptProtSearchOptimizer {
                         modPattern = mod.getModificationType().isNTerm() + "-" + mod.getModificationType().isCTerm();
                     }
                     if (modPattern.equalsIgnoreCase("true-false") && resultsMap.containsKey("Acetylation of protein N-term") && resultsMap.containsKey("Carbamilation of protein N-term")) {
-                        if (resultsMap.get(modId).getFinalScore() <= resultsMap.get("Acetylation of protein N-term").getFinalScore() * 1.05 || resultsMap.get(modId).getTotalNumber() <= resultsMap.get("Acetylation of protein N-term").getTotalNumber()) {                          
+                        if (resultsMap.get(modId).getFinalScore() <= resultsMap.get("Acetylation of protein N-term").getFinalScore() * 1.05 || resultsMap.get(modId).getTotalNumber() <= resultsMap.get("Acetylation of protein N-term").getTotalNumber()) {
                             modId = "Acetylation of protein N-term";
                         }
                     }
