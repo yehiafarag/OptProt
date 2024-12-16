@@ -45,13 +45,14 @@ public class OptProt {
 //                
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
                 if (args == null || args.length == 0) {
-//                    datasettoTestSet.add("PXD028427");    //1
-//                    datasettoTestSet.add("PXD000561");    //2
-//                    datasettoTestSet.add("PXD001468");          //3
+                    datasettoTestSet.add("PXD028427");    //1
+                    datasettoTestSet.add("PXD000561");    //2
+                    datasettoTestSet.add("PXD001468");          //3
                     datasettoTestSet.add("PXD047036");        //4
-//                    datasettoTestSet.add("PXD009340");        //5
-//                    datasettoTestSet.add("PXD001250");        //6
-////////////////////                datasettoTestSet.add("PXD000815");        
+                    datasettoTestSet.add("PXD009340");        //5
+                    datasettoTestSet.add("PXD001250");        //6
+////////////////            datasettoTestSet.add("PXD000815");        
+////////////////            datasettoTestSet.add("PXD054727");    
                 } else {
                     datasettoTestSet.addAll(Arrays.asList(args));
                     System.exit(0);
@@ -66,7 +67,7 @@ public class OptProt {
                 searchOpParameter.setOptimizeAllParameters(all);
                 searchOpParameter.setOptimizeDigestionParameter(true || all);
                 searchOpParameter.setOptimizeCleavageParameter(false);
-                searchOpParameter.setOptimizeEnzymeParameter(false);
+                searchOpParameter.setOptimizeEnzymeParameter(true);
                 searchOpParameter.setOptimizeMaxMissCleavagesParameter(false || all);
                 searchOpParameter.setOptimizeSpecificityParameter(false);
                 searchOpParameter.setOptimizeFragmentIonTypesParameter(false || all);
@@ -75,9 +76,9 @@ public class OptProt {
                 searchOpParameter.setOptimizePrecursorChargeParameter(false || all);
                 searchOpParameter.setOptimizeIsotopsParameter(false || all);
                 searchOpParameter.setOptimizeModificationParameter(false || all);
+                searchOpParameter.setOptimizeSageAdvancedParameter(false||all);
+                 searchOpParameter.setOptimizeXtandemAdvancedParameter(false||all);
 //            searchOpParameter.setRecalibrateSpectraParameter(false);
-
-                
 
                 for (Advocate se : supportedSearchEngine) {
 //                    if (se.getIndex() == Advocate.xtandem.getIndex()) {
@@ -94,10 +95,10 @@ public class OptProt {
 //                        cleanAll = true;
                         MainUtilities.cleanOutputFolder();
                         runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false, useFullFasta, false);
-                        cleanAll = false;
-                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
-                        System.gc();
-                        MainUtilities.cleanOutputFolder();
+//                        cleanAll = false;
+//                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
+//                        System.gc();
+//                        MainUtilities.cleanOutputFolder();
 //                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true, useFullFasta, useOreginalInputs);
                     }
                 }

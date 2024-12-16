@@ -24,7 +24,7 @@ public class Controller {
 
     }
 
-    public void processDataset(String datasetId, File oreginalMsFile, File oreginalFastaFile, File identificationParametersFile, SearchInputSetting optProtSearchSettings, boolean wholeDataTest,boolean fullFasta, List<String> paramOrder,boolean useOreginalInputs) {
+    public void processDataset(String datasetId, File oreginalMsFile, File oreginalFastaFile, File identificationParametersFile, SearchInputSetting optProtSearchSettings, boolean wholeDataTest, boolean fullFasta, List<String> paramOrder, boolean useOreginalInputs) {
         File subDataFolder = new File(Configurations.GET_DATA_FOLDER() + datasetId, optProtSearchSettings.getSelectedSearchEngine().getName());
         if (subDataFolder.exists()) {
             for (File f : subDataFolder.listFiles()) {
@@ -42,17 +42,15 @@ public class Controller {
         }
         MainUtilities.cleanOutputFolder();
         long startDsInit = System.currentTimeMillis();
-        SearchingSubDataset optProtDataset = optProtDatasetHandler.generateOptProtDataset(oreginalMsFile, oreginalFastaFile, optProtSearchSettings.getSelectedSearchEngine(), subDataFolder, identificationParametersFile, wholeDataTest,fullFasta,useOreginalInputs);
+        SearchingSubDataset optProtDataset = optProtDatasetHandler.generateOptProtDataset(oreginalMsFile, oreginalFastaFile, optProtSearchSettings.getSelectedSearchEngine(), subDataFolder, identificationParametersFile, wholeDataTest, fullFasta, useOreginalInputs);
         long endDsInit = System.currentTimeMillis();
         String totalDsTime = MainUtilities.msToTime(endDsInit - startDsInit);
         optProtDataset.setSubDataFolder(subDataFolder);
         optProtDataset.setFullDataSpectaInput(wholeDataTest);
-        System.out.println("Size of sub dataset --- "+optProtDataset.getSubDatasetSpectraSize());
+
 //        
 //        optProtDataset.setSubFastaFile(oreginalFastaFile);
 //        optProtDataset.setSubMsFile(oreginalMsFile);
-        
-
         File selectedSearchSettingsFile;
 
         if (optProtSearchSettings.isOptimizeAllParameters()) {
@@ -62,18 +60,15 @@ public class Controller {
         }
         optProtDataset.setSearchSettingsFile(selectedSearchSettingsFile);
 
-        double comparisonsThreshold = SpectraUtilities.calculateDatasetScoreThreshold((double) optProtDataset.getOreginalDatasetSpectraSize(), (double) optProtDataset.getSubDatasetSpectraSize(), (optProtDataset.getIdentificationRate() / 100.0), (double) optProtDataset.getActiveIdentificationNum());
-       
-        
-        
-        optProtDataset.setComparisonsThreshold(comparisonsThreshold);
+        double comparisonsThreshold = 0.05;//SpectraUtilities.calculateDatasetScoreThreshold((double) optProtDataset.getOreginalDatasetSpectraSize(), (double) optProtDataset.getSubsetSize(), (optProtDataset.getIdentificationRate() / 100.0), (double) optProtDataset.getActiveIdentificationNum());
 
+        optProtDataset.setComparisonsThreshold(comparisonsThreshold);
+        System.out.println("Size of sub dataset --- " + optProtDataset.getSubsetSize() + " comparisonsThreshold " + comparisonsThreshold + "  selectedSearchSettingsFile " + selectedSearchSettingsFile.getName());
         MainUtilities.cleanOutputFolder();
 
         OptProtSearchHandler optProtSearchHandler = new OptProtSearchHandler();
         long start = System.currentTimeMillis();
-        System.out.println("---run");
-        File generatedFile = optProtSearchHandler.optimizeSearchEngine(optProtDataset, optProtSearchSettings, paramOrder);
+        File generatedFile = optProtSearchHandler.startAutoSelectParamProcess(optProtDataset, optProtSearchSettings, paramOrder);
         long end = System.currentTimeMillis();
         String totalTime = MainUtilities.msToTime(end - start);
         if (generatedFile != null) {

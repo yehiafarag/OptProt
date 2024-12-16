@@ -21,21 +21,54 @@ public class StatisticsTests {
 //
 //        System.out.printf("Z-test statistic: %.4f%n", z);
 //        System.out.printf("P-value: %.4f%n", pValue);
-        StatisticsTests.ratioComparisons(args);
+//        StatisticsTests.ratioComparisons(args);
     }
 
-    public static double zTest(double[] sample1, double[] sample2) {
-        int n1 = sample1.length;
-        int n2 = sample2.length;
+    public static double independentZTest(DescriptiveStatistics referenceSamples, DescriptiveStatistics improvedSample) {
+//        int n1 = sample1.length;
+//        int n2 = sample2.length;
+//
+//        double mean1 = mean(sample1);
+//        double mean2 = mean(sample2);
+//
+//        double std1 = stdDev(sample1);
+//        double std2 = stdDev(sample2);
+//
+//        double z = (mean1 - mean2) / Math.sqrt((std1 * std1 / n1) + (std2 * std2 / n2));
+//        return z;
+        double mean1 = referenceSamples.getMean();
+        double mean2 = improvedSample.getMean();
+        double variance1 = referenceSamples.getVariance();
+        double variance2 = improvedSample.getVariance();
 
-        double mean1 = mean(sample1);
-        double mean2 = mean(sample2);
+        double standardError = Math.sqrt((variance2 / improvedSample.getN()) + (variance1 / referenceSamples.getN()));
+        double zScore = (mean2 - mean1) / standardError;
+        return zScore;
 
-        double std1 = stdDev(sample1);
-        double std2 = stdDev(sample2);
+    }
 
-        double z = (mean1 - mean2) / Math.sqrt((std1 * std1 / n1) + (std2 * std2 / n2));
-        return z;
+    public static double pairedZTest(DescriptiveStatistics referenceSamples, DescriptiveStatistics improvedSample) {
+        double meanDifference = calculatePairedMeanDifference( referenceSamples.getValues(),improvedSample.getValues());
+        double standardDeviation = calculatePairedStandardDeviation(referenceSamples.getValues(),improvedSample.getValues(),  meanDifference);
+        double standardError = standardDeviation / Math.sqrt(improvedSample.getN());
+        double zScore = meanDifference / standardError;
+        return zScore;
+    }
+
+    private static double calculatePairedMeanDifference(double[] refrenceSample,double[] improvedSample) {
+        double sum = 0;
+        for (int i = 0; i < improvedSample.length; i++) {
+            sum += improvedSample[i] - refrenceSample[i];
+        }
+        return sum / improvedSample.length;
+    }
+
+    private static double calculatePairedStandardDeviation( double[] refrenceSample,double[] improvedSample, double meanDifference) {
+        double sum = 0;
+        for (int i = 0; i < improvedSample.length; i++) {
+            sum += Math.pow((improvedSample[i] - refrenceSample[i]) - meanDifference, 2);
+        }
+        return Math.sqrt(sum / (improvedSample.length - 1));
     }
 
     public static double mean(double[] sample) {
@@ -140,41 +173,42 @@ public class StatisticsTests {
         return true;
 
     }
+
     public static void ratioComparisons(String[] args) {
         // Example dataset: Revenue, Cost, and Employees for different departments
         double[] scores1 = {1000, 2600, 1900, 150};     // Revenue for Marketing, Sales, HR, IT
         double[] scores2 = {750, 2250, 1750, 75};        // Corresponding costs
         int[] spectraNumInQuartiles = {2750, 2750, 2750, 2750};
-        String[] quartilesIds = {"Q1", "Q2", "Q3", "Q4"};        
+        String[] quartilesIds = {"Q1", "Q2", "Q3", "Q4"};
         System.out.println("Comparing Ratios in Same Category:");
-        
+
         for (int i = 0; i < scores1.length; i++) {
             // Calculate Revenue-to-Cost Ratio
             double idToTagRatio = scores1[i] / scores2[i];
-            
+
             // Calculate Revenue-to-Employee Ratio
             double idToTotal = scores1[i] / spectraNumInQuartiles[i];
-            
+
             // Print the ratios for each department
             System.out.printf("\nQuartile: %s\n", quartilesIds[i]);
             System.out.printf("Identified spectra-to-Confedent Tag Ratio: %.2f\n", idToTagRatio);
             System.out.printf("identified spectra to total Ratio: %.2f\n", idToTotal);
-            
+
             // Comparison (e.g., Ratio of Ratios)
             double ratioOfRatios = idToTagRatio / idToTotal;
             System.out.printf("Ratio of Ratios (identified vs total): %.2f\n", ratioOfRatios);
-            
+
             // Alternatively, you can find the absolute difference between the ratios
             double difference = idToTagRatio - idToTotal;
             System.out.printf("Difference Between Ratios: %.2f\n", difference);
         }
     }
-    
-    public static double calculatePearsonCorrelationTest(double[]values1,double[]values2) {     
-          PearsonsCorrelation test=new PearsonsCorrelation();
-         double correlation =  test.correlation(values1, values2);
-         correlation=Math.floor(correlation*100.0)/100.0;
-         System.out.println("correlation is "+correlation);
+
+    public static double calculatePearsonCorrelationTest(double[] values1, double[] values2) {
+        PearsonsCorrelation test = new PearsonsCorrelation();
+        double correlation = test.correlation(values1, values2);
+        correlation = Math.floor(correlation * 100.0) / 100.0;
+        System.out.println("correlation is " + correlation);
         return correlation;
 
     }

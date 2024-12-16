@@ -139,13 +139,17 @@ public class OptProtDatasetHandler {
                     quartileSizeRatios = this.getSectionRatios(msFile, fastaFile, identificationParameters);
 
                     Map<String, Spectrum> spectraMap = generatFilteredData(msFile, msFileHandler, quartileSizeRatios, wholeDataTest, searchEngineToOptimise.getIndex());
-                    System.out.println("spectra map size 1  " + spectraMap.size() + "   " + wholeDataTest);
+                    if (spectraMap.size() > 70000) {
+                        Configurations.MIN_SUBSET_SIZE = 2000;
+                    }
                     if (!wholeDataTest) {
                         if (searchEngineToOptimise.getIndex() == Advocate.sage.getIndex()) {
-                            subSize = (int) Math.min(3000.0, (double) spectraMap.size());
+                            subSize = (int) Math.min(Configurations.MAX_SUBSET_SIZE, (double) spectraMap.size());
                         } else {
-                            subSize = (int) Math.min(1500.0, (double) spectraMap.size());//   
+                            subSize = (int) Math.min(Configurations.MIN_SUBSET_SIZE, (double) spectraMap.size());//   
                         }
+                        System.out.println("final subset size " + subSize);
+
 //                    spectraMap = generatFinalSubset(spectraMap, subSize);
                         spectraMap = generateSubset(fileNameWithoutExtension, spectraMap, subSize, fastaFile, identificationParameters);
                     }
@@ -246,8 +250,9 @@ public class OptProtDatasetHandler {
             MainUtilities.deleteFolder(resultsFolder);
 
             int total = subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension).length;
-            optProtDataset.setSubDatasetSpectraSize(total);
+            optProtDataset.setSubsetSize(total);
             MainUtilities.cleanOutputFolder();
+
             //one more search for threshold?
 //            identificationParameters.getSearchParameters().setFragmentIonAccuracy(0.01);
 //            resultsFolder = SearchExecuter.executeSearch(updatedName, searchInputSetting, subMsFile, subFastaFile, identificationParameters, new File(Configurations.DEFAULT_OPTPROT_SEARCH_SETTINGS_FILE));

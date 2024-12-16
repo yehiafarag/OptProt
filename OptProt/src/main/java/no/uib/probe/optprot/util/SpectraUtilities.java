@@ -563,9 +563,7 @@ public class SpectraUtilities {
             if (included < 50) {
                 copySubFastaFile(fastaIn, fastaOut);
             }
-            System.out.println("total # prot sequence number "+total+"  sub fasta Size "+included);
-            
-            
+            System.out.println("total # prot sequence number " + total + "  sub fasta Size " + included);
 
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
@@ -804,13 +802,13 @@ public class SpectraUtilities {
     public static RawScoreModel getComparableRawScore(SearchingSubDataset optProtDataset, List<SpectrumMatch> matches, Advocate searchEngine, boolean addData, String scoreId) {
 
         List<Double> sharedToData = new ArrayList<>();
-        List<Double> sharedFromData = new ArrayList<>();
-        List<Double> onlyFromData = new ArrayList<>();
+        List<Double> sharedReferenceData = new ArrayList<>();
+        List<Double> uniqueReferenceData = new ArrayList<>();
         List<Double> onlyToData = new ArrayList<>();
         Map<String, Double> matchScores = new HashMap<>();
 
         RawScoreModel rawScore = new RawScoreModel(scoreId);
-        rawScore.setFullSpectraSize(optProtDataset.getSubDatasetSpectraSize());
+        rawScore.setFullSpectraSize(optProtDataset.getSubsetSize());
         if (searchEngine.getIndex() == Advocate.xtandem.getIndex()) {
             for (SpectrumMatch sm : matches) {
                 for (PeptideAssumption peptideAssumtion : sm.getAllPeptideAssumptions().toList()) {
@@ -850,46 +848,48 @@ public class SpectraUtilities {
         }
 
         for (String titile : optProtDataset.getFullSpectraScore().keySet()) {
-            double fromScore = optProtDataset.getFullSpectraScore().get(titile);
+            double referenceScore = optProtDataset.getFullSpectraScore().get(titile);
             if (matchScores.containsKey(titile)) {
                 double toScore = matchScores.get(titile);
-                if (fromScore > 0) {
+                if (referenceScore > 0) {
                     sharedToData.add(toScore);
-                    sharedFromData.add(fromScore);
+                    sharedReferenceData.add(referenceScore);
                 } else {
                     onlyToData.add(toScore);
                 }
 
-            } else if (fromScore > 0) {
-                onlyFromData.add(fromScore);
+            } else if (referenceScore > 0) {
+                uniqueReferenceData.add(referenceScore);
             }
         }
-        if (sharedFromData.isEmpty() && matches.size() < ((double) onlyFromData.size() * 0.2)) {
-            rawScore.setTotalNumber(matches.size());
+        if (sharedReferenceData.isEmpty() && matches.size() < ((double) uniqueReferenceData.size() * 0.2)) {
+            rawScore.setIdPSMNumber(matches.size());
             rawScore.setFinalScore(-10);
             return rawScore;
         }
 
-        Collections.sort(sharedFromData);
+        Collections.sort(sharedReferenceData);
         //devide the TODATA data into 3 category         
 
-        double[] fromSharedData = sharedFromData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] referenceSharedData = sharedReferenceData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] toSharedData = sharedToData.stream().mapToDouble(Double::doubleValue).toArray();
-        double[] fromOnlyData = onlyFromData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] referenceUniqueData = uniqueReferenceData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] toOnlyData = onlyToData.stream().mapToDouble(Double::doubleValue).toArray();
 
-        double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData);
-        double ratio = Math.max(onlyToData.size(), onlyFromData.size()) / (double) optProtDataset.getSubDatasetSpectraSize();
+        double score1 = SpectraUtilities.compareData(referenceSharedData, toSharedData,true);
+        double totalSampleSize = toSharedData.length + Math.max(onlyToData.size(), uniqueReferenceData.size());
+        double ratio1 = sharedReferenceData.size() / totalSampleSize; //1;//
+        double ratio2 =  Math.max(onlyToData.size(), uniqueReferenceData.size()) / totalSampleSize; //Math.max(onlyToData.size(), onlyFromData.size()) / (double) optProtDataset.getSubsetSize(); //
         double score2;
-        score2 = SpectraUtilities.compareData(fromOnlyData, toOnlyData)[4];
-        double fs1 = improved1[4];
-        double fs2 = score2 * ratio;
+        score2 = SpectraUtilities.compareData(referenceUniqueData, toOnlyData,false);
+        double fs1 = score1 * ratio1;
+        double fs2 = score2 * ratio2;
         double fs = fs1 + fs2;
         rawScore.setS1(fs1);
         rawScore.setS2(fs2);
-        rawScore.setTotalNumber(matches.size());
+        rawScore.setIdPSMNumber(matches.size());
         rawScore.setFinalScore(fs);
-        rawScore.setSharedDataSize(fromSharedData.length);
+        rawScore.setSharedDataSize(referenceSharedData.length);
 
         boolean accepted = rawScore.getFinalScore() >= optProtDataset.getComparisonsThreshold();
         rawScore.setSignificatChange(accepted);
@@ -903,12 +903,16 @@ public class SpectraUtilities {
                 senstive = true;
             } else if ((fs1 > 0 && matches.size() > optProtDataset.getActiveIdentificationNum())) {
                 senstive = true;
-            } else if ((fs1 - fs2 > 0)) {
-                senstive = true;
             }
+//            else if(fs1>0 && fs2<0)
+//            else if (fs1>0 && fs2<0 && fs1 + fs2 > 0) {
+////                senstive = true;
+//                 System.out.println("------------------->> final score case  "+5+"   "+((fs1 - fs2))+"   "+fs1+"  "+fs2);
+////                 System.exit(0);
+//            }
         }
         rawScore.setSensitiveChange(senstive);
-        rawScore.setSameData(rawScore.getFinalScore() == 0.0 && matches.size() == ((onlyFromData.size() + toSharedData.length)));
+        rawScore.setSameData(rawScore.getFinalScore() == 0.0 && matches.size() == ((uniqueReferenceData.size() + toSharedData.length)));
         if (rawScore.isSignificatChange() || rawScore.isSensitiveChange() || rawScore.isSameData() || addData) {
             rawScore.setSpectrumMatchResult(matches);
         }
@@ -940,7 +944,7 @@ public class SpectraUtilities {
         int counter = 0;
         int quartileIndex = 0;
 //        int left = titiles.length;
-           System.out.println("inital --------->>>"+mainSectionsSize+"    last:"+lastSectionsSize);
+        System.out.println("inital --------->>>" + mainSectionsSize + "    last:" + lastSectionsSize);
         for (String titile : titiles) {
             double v = fullSpectraMap.get(titile);
             if (v <= 0.01) {
@@ -948,23 +952,22 @@ public class SpectraUtilities {
             } else {
                 countUnId++;
             }
-               counter++;
+            counter++;
             if (counter == mainSectionsSize) {
                 //initpart I 
-                System.out.println("section index "+quartileIndex+"   "+counter+" ---->> "+mainSectionsSize+"    last:"+lastSectionsSize);
+                System.out.println("section index " + quartileIndex + "   " + counter + " ---->> " + mainSectionsSize + "    last:" + lastSectionsSize);
                 quartileData[quartileIndex++] = new double[]{countId, countUnId};
                 counter = 0;
                 countId = 0;
                 countUnId = 0;
-                System.out.println("last ?? "+quartileIndex+"  "+partCount );
-                if (quartileIndex == partCount-1) {
+                System.out.println("last ?? " + quartileIndex + "  " + partCount);
+                if (quartileIndex == partCount - 1) {
                     mainSectionsSize = lastSectionsSize;
                 }
 
             }
-        
-//            left--;
 
+//            left--;
 //            if ((left == mainSectionsSize) || (left == 0) || (left == partII) || (left == partIII)) {
 //                //initpart I 
 //                quartileData[quartileIndex++] = new double[]{countId, countUnId};
@@ -1135,35 +1138,32 @@ public class SpectraUtilities {
 
     }
 
-    public static double[] isBetterScore(double[] fromData, double[] toData, boolean pairData) {
+    public static double isBetterScore(double[] referenceData, double[] toData, boolean pairData) {
         ScoreComparison sc = new ScoreComparison();
         if (pairData) {
-            if (toData.length > fromData.length) {
+            if (toData.length > referenceData.length) {
                 double[] updatedData = new double[toData.length];
-                System.arraycopy(fromData, 0, updatedData, 0, fromData.length);
-                fromData = updatedData;
-            } else if (toData.length < fromData.length) {
-                double[] updatedData = new double[fromData.length];
+                System.arraycopy(referenceData, 0, updatedData, 0, referenceData.length);
+                referenceData = updatedData;
+            } else if (toData.length < referenceData.length) {
+                double[] updatedData = new double[referenceData.length];
                 System.arraycopy(toData, 0, updatedData, 0, toData.length);
                 toData = updatedData;
             }
         }
-        double[] finalScores = sc.calculateFinalScore(fromData, toData);
+        double finalScores = sc.calculateScore(referenceData, toData,pairData);
         return finalScores;
 
     }
 
-    public static String compareScoresSet(Map<String, RawScoreModel> resultsMap, int totalSpecNumber) {
-//        TreeMap<RawScoreModel, String> sorter = new TreeMap<>(Collections.reverseOrder());
+    public static String compareScoresSet(Map<String, RawScoreModel> resultsMap) {
         List<RawScoreModel> scoreModelSorter = new ArrayList<>();
 
         for (String rs1Key : resultsMap.keySet()) {
-//            sorter.put(resultsMap.get(rs1Key), rs1Key);
             scoreModelSorter.add(resultsMap.get(rs1Key));
         }
         Collections.sort(scoreModelSorter);
         Collections.reverse(scoreModelSorter);
-//        return sorter.lastEntry().getValue();
         int index1 = -1;
         List<String> topScoreSet = new ArrayList<>(resultsMap.keySet());
         for (RawScoreModel score1 : scoreModelSorter) {
@@ -1180,16 +1180,40 @@ public class SpectraUtilities {
                     continue;
                 }
 
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber,false);
-                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
-                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
-
-                if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
+                double comparisonScore = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), false);
+                double roundComparisonScore=Math.round(comparisonScore*100.0)/100.0;
+                System.out.println(rs1Key + " better " + rs2Key + "  " + comparisonScore+"  roundComparisonScore" +roundComparisonScore);
+                if ((roundComparisonScore > 0) || Double.isNaN(comparisonScore)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
                     topScoreSet.remove(rs2Key);
-                } else {
-                    System.out.println("-----------------------------------remove " + rs1Key + "-------------------------------");
+                } else if (roundComparisonScore < 0) {
+                    System.out.println("-----------------------------------remove " + rs1Key + "-------------------------------"+comparisonScore+"   "+(comparisonScore < -0.05));
                     topScoreSet.remove(rs1Key);
                     break;
+                } else {
+                    if (score2.getFinalScore() > score1.getFinalScore()) {
+                        topScoreSet.remove(rs1Key);
+                        break;
+                    } else if (score2.getFinalScore() < score1.getFinalScore()) {
+                        topScoreSet.remove(rs2Key);
+                    } else if (score2.getIdPSMNumber() > score1.getIdPSMNumber()) {
+                        topScoreSet.remove(rs1Key);
+                        break;
+
+                    } else if (score2.getIdPSMNumber()< score1.getIdPSMNumber()) {
+                        topScoreSet.remove(rs2Key);
+                        break;
+
+                    }else if (score2.getS1()< score1.getS1()) {
+                        topScoreSet.remove(rs2Key);
+                    } else if (score2.getS1() > score1.getS1()) {
+                        topScoreSet.remove(rs1Key);
+                        break;
+
+                    } else {
+                        topScoreSet.remove(rs2Key);
+                        System.out.println("2<<<>>>>comparison was even what should we do with " + rs1Key + " and " + rs2Key+"  "+topScoreSet);
+                    }
+                    
                 }
             }
         }
@@ -1232,7 +1256,7 @@ public class SpectraUtilities {
                 if (index2 <= index1 || !topScoreSet.contains(rs2Key)) {
                     continue;
                 }
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), totalSpecNumber, ignorS2);
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), ignorS2);
 //                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getFinalScore() + "   " + resultsMap.get(rs2Key).getFinalScore());
 //                System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
                 if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
@@ -1285,17 +1309,31 @@ public class SpectraUtilities {
                 }
                 Set<String> total = new HashSet<>(resultsMap.get(rs1Key).getSpecTitles());
                 total.addAll(resultsMap.get(rs2Key).getSpecTitles());
-                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), total.size(), false);
+                double key1Better = isBetterScore(resultsMap.get(rs2Key).getSpectrumMatchResult(), resultsMap.get(rs1Key).getSpectrumMatchResult(), false);
                 System.out.println(rs1Key + " better " + rs2Key + "  " + key1Better);
-                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getTotalNumber() + "(" + resultsMap.get(rs1Key).getFinalScore() + ")   vs " + resultsMap.get(rs2Key).getTotalNumber() + "(" + resultsMap.get(rs2Key).getFinalScore() + ")" + "   " + key1Better);
+                System.out.println("resultsMap.get(rs1Key) " + resultsMap.get(rs1Key).getIdPSMNumber() + "(" + resultsMap.get(rs1Key).getFinalScore() + ")   vs " + resultsMap.get(rs2Key).getIdPSMNumber() + "(" + resultsMap.get(rs2Key).getFinalScore() + ")" + "   " + key1Better);
 
                 if ((key1Better > 0) || Double.isNaN(key1Better)) {// && (resultsMap.get(rs1Key).getFinalScore() > resultsMap.get(rs2Key).getFinalScore())
                     System.out.println("-----------------------------------remove " + rs2Key + "-------------------------------");
                     topScoreSet.remove(rs2Key);
-                } else {
+                } else if ((key1Better < 0)) {
                     System.out.println("-----------------------------------remove " + rs1Key + "-------------------------------");
                     topScoreSet.remove(rs1Key);
                     break;
+                } else {
+                     if (score2.getFinalScore() > score1.getFinalScore()) {
+                        topScoreSet.remove(rs1Key);
+                        break;
+                    } else if (score2.getFinalScore() < score1.getFinalScore()) {
+                        topScoreSet.remove(rs2Key);
+                    } else if (score2.getIdPSMNumber() > score1.getIdPSMNumber()) {
+                        topScoreSet.remove(rs1Key);
+                        break;
+
+                    } else {
+                        topScoreSet.remove(rs2Key);
+                    }
+                    System.out.println("1<<<>>>>comparison was even what should we do with " + rs1Key + " and " + rs2Key+"  "+topScoreSet);
                 }
             }
         }
@@ -1313,20 +1351,20 @@ public class SpectraUtilities {
         return topSelection;
     }
 
-    public static double isBetterScore(List<SpectrumMatch> fromData, List<SpectrumMatch> toData, int totalSpeNumber, boolean ignorS2) {
+    public static double isBetterScore(List<SpectrumMatch> referenceData, List<SpectrumMatch> toData, boolean ignorS2) {
         List<Double> sharedToData = new ArrayList<>();
-        List<Double> sharedFromData = new ArrayList<>();
+        List<Double> sharedReferenceData = new ArrayList<>();
         List<Double> onlyToData = new ArrayList<>();
-        List<Double> onlyFromData = new ArrayList<>();
+        List<Double> uniqueReferenceData = new ArrayList<>();
         Map<String, Double> fullMatchScores = new HashMap<>();
         Map<String, Double> toMatchScores = new HashMap<>();
-        if (fromData == null && toData != null) {
+        if (referenceData == null && toData != null) {
             return 1;
         }
-        if (fromData != null && toData == null) {
+        if (referenceData != null && toData == null) {
             return -1;
         }
-        if (fromData == null && toData == null) {
+        if (referenceData == null && toData == null) {
             return -1;
         }
         toData.stream().map(sm -> {
@@ -1335,61 +1373,50 @@ public class SpectraUtilities {
         }).forEachOrdered(sm -> {
             toMatchScores.put(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
         });
-        fromData.forEach(sm -> {
+        referenceData.forEach(sm -> {
             fullMatchScores.put(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
         });
 
         for (String titile : fullMatchScores.keySet()) {
-            double fromScore = fullMatchScores.get(titile);
+            double referenceScore = fullMatchScores.get(titile);
             if (toMatchScores.containsKey(titile)) {
                 double toScore = toMatchScores.get(titile);
-                if (fromScore > 0) {
+                if (referenceScore > 0) {
                     sharedToData.add(toScore);
-                    sharedFromData.add(fromScore);
+                    sharedReferenceData.add(referenceScore);
                 } else {
                     onlyToData.add(toScore);
                 }
-            } else if (fromScore > 0) {
-                onlyFromData.add(fromScore);
+            } else if (referenceScore > 0) {
+                uniqueReferenceData.add(referenceScore);
             }
         }
-        Collections.sort(sharedFromData);
-//        System.out.println("at total score is better is " + " from: " + onlyFromData.size() + " - share: " + sharedToData.size() + " - to: " + onlyToData.size());
-        //devide the TODATA data into 3 category         
-        double[] fromSharedData = sharedFromData.stream().mapToDouble(Double::doubleValue).toArray();
+        Collections.sort(sharedReferenceData);      
+        double[] referenceSharedData = sharedReferenceData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] toSharedData = sharedToData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] toOnlyData = onlyToData.stream().mapToDouble(Double::doubleValue).toArray();
-        double[] fromOnlyData = onlyFromData.stream().mapToDouble(Double::doubleValue).toArray();
-        double[] improved1 = SpectraUtilities.compareData(fromSharedData, toSharedData);
-        double score2;
-//        if (onlyFromData.size() == onlyToData.size()) {
-        score2 = SpectraUtilities.compareData(fromOnlyData, toOnlyData)[4];
-//        } else {
-//            score2 = SpectraUtilities.compareUnPairedData(fromOnlyData, toOnlyData);
-//        }
+        double[] referenceUniqueData = uniqueReferenceData.stream().mapToDouble(Double::doubleValue).toArray();
+        double score1 = SpectraUtilities.compareData(referenceSharedData, toSharedData,true);
+        double score2 = SpectraUtilities.compareData(referenceUniqueData, toOnlyData,false);
+//       
+        double totalSampleSize = toSharedData.length + Math.max(onlyToData.size(), uniqueReferenceData.size());
+        double ratio1 =  sharedReferenceData.size() / totalSampleSize; //1;//
+        double ratio2 = Math.max(onlyToData.size(), uniqueReferenceData.size()) / totalSampleSize;   //Math.max(onlyToData.size(), onlyFromData.size()) / (double) optProtDataset.getSubsetSize();//Math.max(onlyToData.size(), onlyFromData.size()) / totalSampleSize;   //
 
-//       double
-        double ratio = ((double) onlyToData.size() / totalSpeNumber);
-//         double total =sharedFromData.size()+onlyFromData.size()+onlyToData.size();  
-//         ratio = (double)(total-onlyFromData.size()-onlyToData.size())/total;
 
-        double fs1 = improved1[4];//* (1.0 - ratio);
-        double fs2 = score2 * ratio;
+        double fs1 = score1 * ratio1;//* (1.0 - ratio);
+        double fs2 = score2 * ratio2;//ratio;
         if (ignorS2) {
-            fs2 = 0;
+           fs2 = 0;
         }
         double fs = fs1 + fs2;
-//        if (Double.isNaN(fs)) {
-        System.out.println("score " + fs1 + "   " + fs2 + "  " + score2 + "*" + ratio);
-//            System.exit(0);
-//        }
         return fs;
 
     }
 
-    public static double[] compareData(double[] fromData, double[] toData) {
+    public static double compareData(double[] referenceData, double[] toData,boolean pairData) {
         ScoreComparison sc = new ScoreComparison();
-        double[] finalScores = sc.calculateFinalScore(fromData, toData);
+        double finalScores = sc.calculateScore(referenceData, toData,pairData);
         return finalScores;
 
     }
@@ -1410,98 +1437,6 @@ public class SpectraUtilities {
         comparisonsThreshold = Math.floor(comparisonsThreshold * 100.0) / 100.0;
 //        System.out.println("at finalnormalised " + comparisonsThreshold);
         return comparisonsThreshold;
-
-    }
-
-    public static double compareUnPairedData(double[] fromData, double[] toData) {//, List<Double> sharedFromData, List<Double> sharedToData
-//
-//        double[] updatedFrom;
-//        double[] updatedTo;
-//        double[] updatedleftFrom;
-//        double[] updatedleftTo;
-        double finalScore;
-//
-//        if (fromData.length == toData.length) {
-//            System.out.println("case I same length ");
-        finalScore = SpectraUtilities.compareData(fromData, toData)[4];
-//        }
-
-//        else if (fromData.length < toData.length) {
-//            int medianIndex = SpectraUtilities.getMedianIndex(sharedFromData);
-////            System.out.println("case II fromData.length < toData.length");
-//            updatedFrom = fromData;
-//            updatedTo = new double[fromData.length];
-//
-//            updatedleftTo = new double[toData.length - fromData.length];
-//            updatedleftFrom = new double[updatedleftTo.length];
-//            // new double[fromData.length + toData.length];
-//            Arrays.sort(toData);
-//            Arrays.sort(updatedFrom);
-//            for (int i = 0; i < updatedTo.length; i++) {
-//                updatedTo[i] = toData[toData.length - 1 - i];
-//            }
-////            System.out.println("at median index " + medianIndex + "  " + sharedFromData.size() + "  " + updatedleftTo.length);
-//            for (int i = 0; i < updatedleftTo.length; i++) {
-//                updatedleftTo[i] = toData[i];
-//                if (medianIndex + i < sharedFromData.size() && medianIndex >= 0) {
-//                    updatedleftFrom[i] = sharedFromData.get(medianIndex + i);
-//                }
-//            }
-//
-//            double score1 = SpectraUtilities.compareData(updatedFrom, updatedTo)[4];
-//            double score2 = SpectraUtilities.compareData(updatedleftFrom, updatedleftTo)[4];
-//            double ratio1 = (double) updatedFrom.length / (double) (toData.length);
-//            double ratio2 = 1.0 - ratio1;
-//            finalScore = (score1 * 1) + (score2 * ratio2);
-////            System.out.println("--------------------------------->>>  " + score1 + " * " + 1 + " + " + score2 + " * " + ratio2 + "  " + (updatedFrom.length) + "   " + (toData.length));
-////              System.out.println("--------------------------------->>>  " + score1 + " * " + 1 + " + " + score2 + " * " + ratio2 + "  " + (updatedleftFrom.length) + "   " + (updatedleftTo.length));
-//
-//        } else {
-//            System.out.println(" here we go time to compare ");
-//            
-//            if (fromData.length * 0.9 > toData.length + sharedToData.size()) {
-//                return -1.0;
-//            }
-//            int medianIndex = SpectraUtilities.getMedianIndex(sharedFromData);
-////            System.out.println("case III fromData.length > toData.length");
-//            updatedFrom = new double[toData.length];
-//            updatedleftFrom = new double[fromData.length - toData.length];
-//            updatedleftTo = new double[updatedleftFrom.length];
-//            updatedTo = toData;// new double[fromData.length + toData.length];
-//            Arrays.sort(fromData);
-//            Arrays.sort(updatedTo);
-//            for (int i = 0; i < updatedFrom.length; i++) {
-//                updatedFrom[i] = fromData[updatedFrom.length - i];
-//            }
-//
-////            System.out.println("at median index " + medianIndex + "  " + sharedToData.size() + "  " + updatedleftFrom.length);
-//            for (int i = 0; i < updatedleftFrom.length; i++) {
-//                updatedleftFrom[i] = fromData[i];
-//                if (medianIndex + i < sharedFromData.size()) {
-//                    updatedleftTo[i] = sharedFromData.get(medianIndex + i);
-//                }
-//            }
-//
-//            double score1 = SpectraUtilities.compareData(updatedFrom, updatedTo)[4];
-//            //for score 2 the higher the worest is the score should be ...mean we get rid of bas spectra
-//            double score2 = SpectraUtilities.compareData(updatedleftFrom, updatedleftTo)[4] * -1.0;
-//
-//            double ratio1 = (double) updatedFrom.length / (double) (fromData.length);
-//            double ratio2 = 1.0 - ratio1;
-//            finalScore = (score1 * 1) + (score2 * ratio2);
-////            System.out.println("--------------------------------->>> other case from data is larger " + updatedFrom.length + "  " + updatedTo.length + " --- >> " + updatedleftFrom.length + "  " + updatedleftTo.length + "  " + score1 + "  " + score2);
-//
-//        }
-        if (Double.isNaN(finalScore)) {
-            if (fromData.length > toData.length) {
-                finalScore = -1;
-            } else if (fromData.length < toData.length) {
-                finalScore = 1;
-            } else {
-                finalScore = 0;
-            }
-        }
-        return finalScore;
 
     }
 
@@ -1691,9 +1626,9 @@ public class SpectraUtilities {
     }
 
     public static void main(String[] args) {
-        double[] from = new double[]{5, 10, 15, 20, 25, 30, 40, 50};
+        double[] reference = new double[]{5, 10, 15, 20, 25, 30, 40, 50};
         double[] to = new double[]{10, 15, 20, 25, 30, 40, 50, 60};
-        compareData(to, to);
+        compareData(to, to,true);
     }
 
     public static int findMainDrop(int[] numbers) {

@@ -85,7 +85,7 @@ public class SearchingSubDataset {
         this.searchSettingsFile = searchSettingsFile;
     }
     private int defaultSettingIdentificationNum;
-    private int SubDatasetSpectraSize;
+    private int subsetSize;
     private int tempIdentificationNum;
     private double processDelay;
     private boolean highResolutionMassSpectrometers = true;
@@ -137,16 +137,16 @@ public class SearchingSubDataset {
         this.oreginalDatasetSpectraSize = oreginalDatasetSpectraSize;
     }
 
-    public int getSubDatasetSpectraSize() {
-        return SubDatasetSpectraSize;
+    public int getSubsetSize() {
+        return subsetSize;
     }
 
-    public void setSubDatasetSpectraSize(int SubDatasetSpectraSize) {
-        this.SubDatasetSpectraSize = SubDatasetSpectraSize;
+    public void setSubsetSize(int subsetSize) {
+        this.subsetSize = subsetSize;
     }
 
     public synchronized double getIdentificationRate() {
-        return currentIdentifiedSpectra * 100.0 / SubDatasetSpectraSize;
+        return currentIdentifiedSpectra * 100.0 / subsetSize;
     }
 
     public int getDefaultSettingIdentificationNum() {
@@ -195,7 +195,7 @@ public class SearchingSubDataset {
 
     public double getpValueThresholds() {
         if (pValueThresholds == -1) {
-            double res = this.currentIdentifiedSpectra * 100 / getSubDatasetSpectraSize();
+            double res = this.currentIdentifiedSpectra * 100 / getSubsetSize();
             if (res <= 5) {
                 pValueThresholds = 0.1;
             } else {

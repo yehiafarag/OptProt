@@ -475,7 +475,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            selectedMaxPeptideLengthOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize()));
+            selectedMaxPeptideLengthOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeptideLengthOption + ""));
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
@@ -525,7 +525,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedMinPeptideMassOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -556,7 +556,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedMaxPeptideMassOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -599,7 +599,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -649,7 +649,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 
         if (!resultsMap.isEmpty()) {
 
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedMinFragmentMzOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -684,7 +684,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             i += 250;
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedMaxFragmentMzOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -728,7 +728,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -772,7 +772,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            int bestOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize()));
+            int bestOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap));
             selectedOption = bestOption == 1;
             double impact = Math.round((double) (resultsMap.get(bestOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
@@ -806,8 +806,8 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-//                System.out.println("at j " + (j == 1) + "  " + scoreModel);
-                if (scoreModel.isSignificatChange()) {
+                System.out.println("deistop score "+scoreModel+"   "+selectedOption+"   "+(i == 1)+"   "+(selectedOption == (i == 1)));
+                if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j + "", scoreModel);
 
                 }
@@ -817,7 +817,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -857,7 +857,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -893,7 +893,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             try {
                 RawScoreModel scoreModel = f.get();
 //                System.out.println("score model " + (option) + "  " + scoreModel);
-                if (scoreModel.getFinalScore() > 1+optProtDataset.getComparisonsThreshold()) {
+                if (scoreModel.getFinalScore() > 1.5+optProtDataset.getComparisonsThreshold()) {
                     resultsMap.put(j + "", scoreModel);
 
                 }
@@ -903,7 +903,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
             paramScore.setComments("Slow processing");
@@ -948,7 +948,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -984,7 +984,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSensitiveChange() && scoreModel.getTotalNumber() >= optProtDataset.getCurrentScoreModel().getTotalNumber()) { //|| scoreModel.isSameData()
+                if (scoreModel.isSensitiveChange() && scoreModel.getIdPSMNumber() >= optProtDataset.getCurrentScoreModel().getIdPSMNumber()) { //|| scoreModel.isSameData()
                     if (prescoreModel == null) {
                         prescoreModel = scoreModel;
                     } else if (prescoreModel.getFinalScore() < scoreModel.getFinalScore()) {
@@ -993,7 +993,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                         continue;
                     }
                     resultsMap.put(j + "", scoreModel);
-                } else if (j > selectedMinPeaksNumberOption || scoreModel.getTotalNumber() < optProtDataset.getCurrentScoreModel().getTotalNumber()) {
+                } else if (j > selectedMinPeaksNumberOption || scoreModel.getIdPSMNumber() < optProtDataset.getCurrentScoreModel().getIdPSMNumber()) {
                     break;
                 }
 
@@ -1003,7 +1003,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//            
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//            
             selectedMinPeaksNumberOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
 
@@ -1038,7 +1038,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 
         if (!resultsMap.isEmpty()) {
 
-            selectedMaxPeaksNumberOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize()));
+            selectedMaxPeaksNumberOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeaksNumberOption + ""));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeaksNumberOption + ""));
         }
@@ -1070,7 +1070,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSensitiveChange() && scoreModel.getTotalNumber() >= optProtDataset.getActiveIdentificationNum()) {
+                if (scoreModel.isSensitiveChange() && scoreModel.getIdPSMNumber() >= optProtDataset.getActiveIdentificationNum()) {
                     resultsMap.put(j + "", scoreModel);
                 } else if (j > selectedOption) {
                     break;
@@ -1081,7 +1081,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -1126,7 +1126,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubDatasetSpectraSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap);//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }

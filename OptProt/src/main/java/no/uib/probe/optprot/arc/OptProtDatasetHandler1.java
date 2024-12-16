@@ -337,7 +337,7 @@ public class OptProtDatasetHandler1 {
             subMsFileHandler.register(subMsFile, new OptProtWaitingHandler());
             MainUtilities.deleteFolder(resultsFolder);
             int total = subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension).length;
-            subDataset.setSubDatasetSpectraSize(total);
+            subDataset.setSubsetSize(total);
             MainUtilities.cleanOutputFolder();
         } catch (IOException ex) {
             if (subMsFile != null) {

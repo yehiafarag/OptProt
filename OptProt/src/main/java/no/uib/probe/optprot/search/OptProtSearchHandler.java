@@ -20,7 +20,7 @@ import no.uib.probe.optprot.search.xtandam.XTandemOptProtSearchOptimizer;
  */
 public class OptProtSearchHandler {
 
-    public File optimizeSearchEngine(SearchingSubDataset searchingSubDataset, SearchInputSetting searchInputSetting, List<String> paramOrder) {
+    public File startAutoSelectParamProcess(SearchingSubDataset searchingSubDataset, SearchInputSetting searchInputSetting, List<String> paramOrder) {
         try {
             final File generatedIdentificationParametersFile;
             IdentificationParameters identificationParameters = IdentificationParameters.getIdentificationParameters(searchingSubDataset.getSearchSettingsFile());

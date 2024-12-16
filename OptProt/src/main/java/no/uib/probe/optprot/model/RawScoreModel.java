@@ -19,7 +19,7 @@ import no.uib.probe.optprot.util.SpectraUtilities;
 public class RawScoreModel implements Comparable<RawScoreModel> {
 
     private final ScoreComparison sc;
-    private int totalNumber = 0;
+    private int idPSMNumber = 0;
     private double tTestStat;
     private double pValue;
     private boolean sameData;
@@ -106,16 +106,16 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     public void setSpectrumMatchResult(List<SpectrumMatch> spectrumMatchResult) {
         this.spectrumMatchResult = spectrumMatchResult;
-        this.totalNumber = spectrumMatchResult.size();
+        this.idPSMNumber = spectrumMatchResult.size();
         this.specTitles = null;
     }
 
-    public int getTotalNumber() {
-        return totalNumber;
+    public int getIdPSMNumber() {
+        return idPSMNumber;
     }
 
-    public void setTotalNumber(int totalNumber) {
-        this.totalNumber = totalNumber;
+    public void setIdPSMNumber(int idPSMNumber) {
+        this.idPSMNumber = idPSMNumber;
     }
 
     public double gettTestStat() {
@@ -149,7 +149,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     @Override
     public int compareTo(RawScoreModel rs) {
         if (finalScore == rs.finalScore) {
-            return Double.compare(totalNumber, rs.totalNumber);
+            return Double.compare(idPSMNumber, rs.idPSMNumber);
         }
 //        double compscore = SpectraUtilities.isBetterScore(spectrumMatchResult, rs.spectrumMatchResult, fullSpectraSize);
 //        if (compscore == 0) {
@@ -165,7 +165,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     @Override
     public String toString() {
-        return "Param accepted: " + significatChange + "  final score: " + finalScore + " shared data size: " + sharedDataSize+ "  #Spectra: " + totalNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "  size effect " + sizeEffect + "   S1: " + s1 + "   S2:" + s2;
+        return "Param accepted: " + significatChange + "  final score: " + finalScore + " shared data size: " + sharedDataSize+ "  #Spectra: " + idPSMNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "  size effect " + sizeEffect + "   S1: " + s1 + "   S2:" + s2;
     }
 
     public double getDataLengthFactor() {

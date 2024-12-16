@@ -1,3 +1,4 @@
+
 package no.uib.probe.optprot.util;
 
 import java.util.ArrayList;
@@ -6,7 +7,7 @@ import java.util.List;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.inference.TTest;
 
-public class ScoreComparison {
+public class ScoreComparison1 {
 
     private double calculateMean(double[] scores) {
         double sum = 0;
@@ -16,8 +17,8 @@ public class ScoreComparison {
         return sum / scores.length;
     }
 
-    private double percentageImprovement(double referenceMean1, double improvedMean) {
-        return ((improvedMean - referenceMean1) / referenceMean1) * 100.0;
+    private double percentageImprovement(double mean1, double mean2) {
+        return ((mean2 - mean1) / mean1) * 100.0;
     }
 
     public double calculateStandardDeviation(double[] scores) {
@@ -28,9 +29,16 @@ public class ScoreComparison {
         }
         return Math.sqrt(sum / scores.length);
     }
-    // Create a normal distribution with mean 0 and standard deviation 1
 
-    public double performTStatTest(double[] scores1, double[] scores2, boolean paired) {
+    public double performTStatTest(double[] s1, double[] s2, boolean switchData) {
+        double[] scores1, scores2;
+        if (switchData) {
+            scores1 = s2;
+            scores2 = s1;
+        } else {
+            scores1 = s1;
+            scores2 = s2;
+        }
 
         if (scores1.length < 2 || scores2.length < 2) {
             if (scores1.length > scores2.length) {
@@ -39,18 +47,12 @@ public class ScoreComparison {
                 return 1;
             }
         }
-
-//        double zScore = StatisticsTests.zTest(scores2, scores1);
-//        performTStatTest(scores1, scores2, switchData);
-        double tValue;
         TTest tTest = new TTest();
-        if (paired) {
-            return tValue = tTest.pairedT(scores2, scores1);
+        if (scores1.length == scores2.length) {
+            return tTest.pairedT(scores2, scores1);
         } else {
-            return tValue = tTest.t(scores2, scores1);
+            return tTest.t(scores2, scores1);
         }
-//        System.out.println("t value " + tValue + " vs " + zScore);
-//        return zScore;
     }
 
     public double dataSizeEffect(double dataSizeFrom, double dataSizeTo) {
@@ -75,10 +77,8 @@ public class ScoreComparison {
             return 1;
         }
         TTest tTest = new TTest();
-
         return tTest.tTest(scores2, scores1);
-    }
-
+    } 
     /**
      * Applies log scale normalization to an array of data.
      *
@@ -99,52 +99,42 @@ public class ScoreComparison {
         return normalizedData;
     }
 
-    public double calculateScore(double[] referenceScores, double[] improvedScores, boolean paired) {
-        if (referenceScores.length < 2 && improvedScores.length < 2) {
-            return 0;//new double[]{0, 0, 0, 0, 0, 0};
+    public double[] calculateScore(double[] scores1, double[] scores2) {
+        if (scores1.length < 2 && scores2.length < 2) {
+            return new double[]{0, 0, 0, 0, 0, 0};
         }
-        DescriptiveStatistics referenceData;
-        DescriptiveStatistics improvedData;
+
+        DescriptiveStatistics ds1;
+        DescriptiveStatistics ds2;
         boolean switchData = false;
         List<Double> valuesToScore = new ArrayList<>();
-        if (improvedScores.length >= referenceScores.length) {
-            referenceData = new DescriptiveStatistics(referenceScores);
-            improvedData = new DescriptiveStatistics(improvedScores);
+        if (scores2.length >= scores1.length) {
+            ds1 = new DescriptiveStatistics(scores1);
+            ds2 = new DescriptiveStatistics(scores2);
         } else {
             switchData = true;
-            referenceData = new DescriptiveStatistics(improvedScores);
-            improvedData = new DescriptiveStatistics(referenceScores);
+            ds1 = new DescriptiveStatistics(scores2);
+            ds2 = new DescriptiveStatistics(scores1);
         }
-        double mean1 = referenceData.getMean();
-        double mean2 = improvedData.getMean();
+
+        double mean1 = ds1.getMean();
+        double mean2 = ds2.getMean();
         double percentageImprovement = percentageImprovement(mean1, mean2);
-        if (referenceScores.length == improvedScores.length && mean1 == mean2 && percentageImprovement == 0) {
-            return 0;//new double[]{0, 0, 0, 0, 0, 0};
+        if (scores1.length == scores2.length && mean1 == mean2 && percentageImprovement == 0) {
+            return new double[]{0, 0, 0, 0, 0, 0};
         }
-//        double tScore = performTStatTest(ds1.getValues(), ds2.getValues(), paired);
-        double zScore;
-        if (paired) {
-            zScore = StatisticsTests.pairedZTest(referenceData, improvedData);
-
-        } else {
-            zScore = StatisticsTests.independentZTest(referenceData, improvedData);
+        double tStat = performTStatTest(scores1, scores2, switchData);
+        double pValue = performTTest(scores1, scores2, switchData);
+        double normTStat = logScaleNormalize(tStat, Math.E);
+        double normPValue = logScaleNormalize((1.0 - pValue), Math.E); // Inverting p-value for interpretation
+        if (tStat < 0) {
+            normPValue *= -1.0;
         }
-        double pValue = StatisticsTests.pValueForZTest(zScore);//performTTest(scores1, scores2, switchData); 
 
-        if (pValue > 0.05) {
-            zScore = 0;
-            System.out.println("pvalue is " + pValue);
-        }
-        double normTStat = logScaleNormalize(zScore, Math.E);
-//        double normPValue = logScaleNormalize((1.0 - pValue), Math.E); // Inverting p-value for interpretation
-//        if (tStat < 0) {
-//            normPValue *= -1.0;
-//        }
+        double stdDev1 = ds1.getStandardDeviation();//calculateStandardDeviation(scores1);
+        double stdDev2 = ds2.getStandardDeviation();//calculateStandardDeviation(scores2);
 
-        double stdDev1 = referenceData.getStandardDeviation();//calculateStandardDeviation(scores1);
-        double stdDev2 = improvedData.getStandardDeviation();//calculateStandardDeviation(scores2);
-
-        double stdDevDifference = stdDev2 - stdDev1;
+        double stdDevDifference = stdDev1 - stdDev2;
         double normStdDevDiff = logScaleNormalize(stdDevDifference, Math.E);
         // Assuming the possible range for these metrics is between -200 and 200 for normalization purposes.
         // Adjust these ranges based on your specific use case.
@@ -152,27 +142,26 @@ public class ScoreComparison {
         if (Double.isInfinite(Math.abs(normTStat))) {
             normTStat = normPercentageImprovement;
         }
-        if (referenceData.getN() > 1 && improvedData.getN() > 1) {
-//            valuesToScore.add(normStdDevDiff);
+        if (ds1.getN() > 1 && ds2.getN() > 1) {
+            valuesToScore.add(normStdDevDiff);
             valuesToScore.add(normTStat);
-//            valuesToScore.add(normPValue);
+            valuesToScore.add(normPValue);
             valuesToScore.add(normPercentageImprovement);
         } else {
-            referenceData.addValue(0);
-            valuesToScore.add(0.0);
-//            double compScore = oneToManyScore(ds1.getElement(0), ds2);
-//            double normScore = logScaleNormalize(compScore, Math.E);
-//            valuesToScore.add(normScore);
+            ds1.addValue(0);
+            double compScore = oneToManyScore(ds1.getElement(0), ds2);
+            double normScore = logScaleNormalize(compScore, Math.E);
+            valuesToScore.add(normScore);
 
         }
 
         double dataSizeEffect = 0;
-        if (referenceScores.length != improvedScores.length) {
-//            dataSizeEffect = calculateCohensD(scores1, scores2, switchData);//
-//            if (Double.isNaN(dataSizeEffect) || Double.isInfinite(dataSizeEffect)) {
-//                dataSizeEffect = dataSizeEffect(scores1.length, scores2.length);
-//            }
-//            valuesToScore.add(dataSizeEffect);
+        if (scores1.length != scores2.length) {
+            dataSizeEffect = calculateCohensD(scores1, scores2, switchData);//
+            if (Double.isNaN(dataSizeEffect) || Double.isInfinite(dataSizeEffect)) {
+                dataSizeEffect = dataSizeEffect(scores1.length, scores2.length);
+            }
+            valuesToScore.add(dataSizeEffect);
 
         }
 
@@ -184,11 +173,11 @@ public class ScoreComparison {
         if (switchData) {
             finalScore *= -1.0;
         }
-        System.out.println("final score is " + finalScore + "  " + pValue + "  " + normTStat + "  " + normPercentageImprovement);
-        return finalScore;//new double[]{percentageImprovement, zScore, pValue, dataSizeEffect, finalScore, 0};
-    }
 
-    public double calculateFinalScore(Double[] scores1, Double[] scores2, boolean paired) {
+        return new double[]{percentageImprovement, tStat, pValue, dataSizeEffect, finalScore, 0};
+    }
+   
+    public double[] calculateFinalScore(Double[] scores1, Double[] scores2) {
         double[] s1 = new double[scores1.length];
         for (int i = 0; i < s1.length; i++) {
             s1[i] = scores1[i];
@@ -197,7 +186,7 @@ public class ScoreComparison {
         for (int i = 0; i < s2.length; i++) {
             s2[i] = scores2[i];
         }
-        return this.calculateScore(s1, s2, paired);
+        return this.calculateScore(s1, s2);
     }
 
     public double calculateCohensD(double[] s1, double[] s2, boolean switchData) {
@@ -217,7 +206,7 @@ public class ScoreComparison {
         double normCohenD = ((mean2 - mean1) / pooledStdDev);
         return logScaleNormalize(normCohenD, Math.E);
     }
-
+  
     public double oneToManyScore(double fromScore, DescriptiveStatistics stats) {
         double oldAverage = stats.getMean();
         // Step 2: Calculate the improvement score (percentage improvement)
@@ -240,7 +229,7 @@ public class ScoreComparison {
         double scores1 = 91.0;// {80.0, 88.0, 94.0, 86.0, 92.5, 89.0};
         double[] scores2 = {91.0, 89.0, 95.0, 87.0, 93.5, 90.0, 89.0, 95.0, 87.0, 93.5, 90.0, 89.0, 95.0, 87.0, 93.5, 90.0};
 
-        ScoreComparison sc = new ScoreComparison();
+        ScoreComparison1 sc = new ScoreComparison1();
         double finalScore = sc.oneToManyScore(scores1, new DescriptiveStatistics(scores2));
 
         System.out.println("Final Score: " + finalScore + "  ");

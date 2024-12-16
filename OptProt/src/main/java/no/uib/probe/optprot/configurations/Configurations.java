@@ -62,8 +62,9 @@ public class Configurations {
 
     public static final String EXTRACT_MS_TYPE = "TA";//TA  WF
     public static final int EXTRACT_MAX_MS_SIZE = 2000;//3000
-//    public static int EXTRACT_MIN_MS_SIZE = 1000;
-//    public static int MIN_TAG_SIZE = 1000;
+    public static int MIN_SUBSET_SIZE = 1500; //1500
+    
+    public static int MAX_SUBSET_SIZE = 3000;
     public static final int REFINED_MS_SIZE = 1000;//3000
 
     public static final double ACCEPTED_REFERENCE_ID_RATIO = 0.05;
