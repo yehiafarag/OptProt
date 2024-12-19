@@ -60,7 +60,7 @@ public class Controller {
         }
         optProtDataset.setSearchSettingsFile(selectedSearchSettingsFile);
 
-        double comparisonsThreshold = 0.05;//SpectraUtilities.calculateDatasetScoreThreshold((double) optProtDataset.getOreginalDatasetSpectraSize(), (double) optProtDataset.getSubsetSize(), (optProtDataset.getIdentificationRate() / 100.0), (double) optProtDataset.getActiveIdentificationNum());
+        double comparisonsThreshold = 0.1;//SpectraUtilities.calculateDatasetScoreThreshold((double) optProtDataset.getOreginalDatasetSpectraSize(), (double) optProtDataset.getSubsetSize(), (optProtDataset.getIdentificationRate() / 100.0), (double) optProtDataset.getActiveIdentificationNum());
 
         optProtDataset.setComparisonsThreshold(comparisonsThreshold);
         System.out.println("Size of sub dataset --- " + optProtDataset.getSubsetSize() + " comparisonsThreshold " + comparisonsThreshold + "  selectedSearchSettingsFile " + selectedSearchSettingsFile.getName());

@@ -699,7 +699,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             try {
                 RawScoreModel scoreModel = f.get();
 
-                if (scoreModel.isSignificatChange()) {
+                if (scoreModel.isAcceptedChange()) {
                     resultsMap.put(0.0, scoreModel);
 
                 }
@@ -721,7 +721,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
 
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
+                if (scoreModel.isAcceptedChange()) {
                     resultsMap.put(i, scoreModel);
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -925,7 +925,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
+                if (scoreModel.isAcceptedChange()) {
                     resultsMap.put(j, scoreModel);
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -1018,7 +1018,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
+                if (scoreModel.isAcceptedChange()) {
                     resultsMap.put(option, scoreModel);
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -1045,7 +1045,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     });
                     try {
                         RawScoreModel scoreModel = f.get();
-                        if (scoreModel.isSignificatChange()) {
+                        if (scoreModel.isAcceptedChange()) {
                             sorterSet.add(scoreModel);
                             sorterSet.add(resultsMap.get(selectedRef));
                             sorterSet.add(resultsMap.get(vMod));
@@ -1080,7 +1080,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     });
                     try {
                         RawScoreModel scoreModel = f.get();
-                        if (scoreModel.isSignificatChange()) {
+                        if (scoreModel.isAcceptedChange()) {
                             sorterSet.add(scoreModel);
                             sorterSet.add(resultsMap.get(selectedRef));
                             sorterSet.add(twoDResultsMap.get(vMod));
@@ -1118,7 +1118,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
                     });
                     try {
                         RawScoreModel scoreModel = f.get();
-                        if (scoreModel.isSignificatChange()) {
+                        if (scoreModel.isAcceptedChange()) {
                             sorterSet.add(scoreModel);
                             sorterSet.add(resultsMap.get(selectedRef));
                             sorterSet.add(threeDResultsMap.get(vMod));
@@ -1291,7 +1291,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
+                if (scoreModel.isAcceptedChange()) {
                     resultsMap.put(j, scoreModel);
                 }
             } catch (ExecutionException | InterruptedException ex) {
@@ -1399,7 +1399,7 @@ public class XTandemOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
+                if (scoreModel.isAcceptedChange()) {
                     resultsMap.put(j, scoreModel);
                 }
             } catch (ExecutionException | InterruptedException ex) {

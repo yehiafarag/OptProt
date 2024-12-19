@@ -16,17 +16,16 @@ public class OptProtSageParameterSettings {
     public static List<String> Get_Sage_Parameters_List() {
         List<String> paramOrder = new ArrayList<>();
         paramOrder.add("SageAdvancedParameter_A");
-//        paramOrder.add("FragmentIonTypesParameter");
-//        paramOrder.add("PrecursorChargeParameter");
-//        paramOrder.add("IsotopParameter");
-//        paramOrder.add("DigestionParameter_1");
-////////////////////////////////////       paramOrder.add("DigestionTypeParameter");    
-//
-//        paramOrder.add("ModificationParameter");
-//        paramOrder.add("SageAdvancedParameter_A");
-//        paramOrder.add("SageAdvancedParameter_B");
-//        paramOrder.add("PrecursorToleranceParameter");
-//        paramOrder.add("FragmentToleranceParameter");
+        paramOrder.add("FragmentIonTypesParameter");
+        paramOrder.add("PrecursorChargeParameter");
+        paramOrder.add("IsotopParameter");
+        paramOrder.add("DigestionParameter_1");
+////////////////////////////       paramOrder.add("DigestionTypeParameter");    
+
+        paramOrder.add("ModificationParameter");
+        paramOrder.add("SageAdvancedParameter_B");
+        paramOrder.add("PrecursorToleranceParameter");
+        paramOrder.add("FragmentToleranceParameter");
         return paramOrder;
     }
 

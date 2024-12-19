@@ -474,7 +474,7 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
         }
         RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.myriMatch, addSpectraList, paramOption);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
         MainUtilities.deleteFolder(resultOutput);
-        if (addSpectraList && rawScore.isSignificatChange()) {
+        if (addSpectraList && rawScore.isAcceptedChange()) {
             rawScore.setSpectrumMatchResult(validatedMaches);
         }
         return (rawScore);

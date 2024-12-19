@@ -7,6 +7,7 @@ package no.uib.probe.optprot.dataset.model;
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +52,7 @@ public class SearchingSubDataset {
     private File oreginalFastaFile;
     private boolean fullDataSpectaInput;
     private Set<String> potintialVariableMod;
-    private final Map<String, Double> fullSpectraScore = new HashMap<>();
+    private final Map<String, Double> fullSpectraScore = new LinkedHashMap<>();
 
     public void setSpectraTitiles(String[] titiles) {
         for (String titile : titiles) {

@@ -10,6 +10,8 @@ import com.compomics.util.parameters.searchgui.OutputParameters;
 import com.compomics.util.parameters.tools.ProcessingParameters;
 import eu.isas.searchgui.SearchHandler;
 import java.io.File;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -27,7 +29,13 @@ public class MainUtilities {
     private static ExecutorService executor2;// = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors() / 2;
     private static ExecutorService executor;// = new ThreadPoolExecutor(AVAILABLE_PROCESSORS, AVAILABLE_PROCESSORS, 5, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10));
+    public static TreeSet<Double> zScoreSet = new TreeSet<>();
+    public static TreeSet<Double> improvmentScoreSet = new TreeSet<>();
 
+     public static TreeSet<Double> zScoreSet2 = new TreeSet<>();
+    public static TreeSet<Double> improvmentScoreSet2 = new TreeSet<>();
+    
+    
     static {
         System.out.println(" " + AVAILABLE_PROCESSORS + "  ");
         UtilitiesUserParameters userParameters = UtilitiesUserParameters.loadUserParameters();

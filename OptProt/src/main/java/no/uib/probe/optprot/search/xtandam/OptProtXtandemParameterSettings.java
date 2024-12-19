@@ -12,18 +12,16 @@ public class OptProtXtandemParameterSettings {
     public static List<String> Get_Xtandem_Parameters_List() {
         List<String> paramOrder = new ArrayList<>();
         // xtandem stage 1
-      
+
         paramOrder.add("FragmentIonTypesParameter");
         paramOrder.add("PrecursorChargeParameter");
         paramOrder.add("IsotopParameter");
         paramOrder.add("DigestionParameter_1");
         paramOrder.add("DigestionParameter_2");
         paramOrder.add("DigestionParameter_3");
-//        
-        
-        
-          paramOrder.add("XtandemAdvancedParameter");
-////////////////////////////////////////////////                paramOrder.add("DigestionTypeParameter");
+
+        paramOrder.add("XtandemAdvancedParameter");
+//////////////////////////////////////////////                paramOrder.add("DigestionTypeParameter");
 
 // xtandem stage 2
         paramOrder.add("XtandemAdvancedParameter_A");//                

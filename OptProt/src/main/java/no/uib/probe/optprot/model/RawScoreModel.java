@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import no.uib.probe.optprot.util.MainUtilities;
 import no.uib.probe.optprot.util.ScoreComparison;
 import no.uib.probe.optprot.util.SpectraUtilities;
 
@@ -18,12 +19,11 @@ import no.uib.probe.optprot.util.SpectraUtilities;
  */
 public class RawScoreModel implements Comparable<RawScoreModel> {
 
-    private final ScoreComparison sc;
+   
     private int idPSMNumber = 0;
     private double tTestStat;
     private double pValue;
     private boolean sameData;
-    private int fullSpectraSize;
     private double s1;
     private double s2;
     private final String comparisonId;
@@ -31,7 +31,6 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     public RawScoreModel(String comparisonId) {
         this.comparisonId = comparisonId;
-        this.sc = new ScoreComparison();
     }
 
     public boolean isSameData() {
@@ -53,7 +52,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     public void setSensitiveChange(boolean sensitiveChange) {
         this.sensitiveChange = sensitiveChange;
     }
-    private boolean significatChange;
+    private boolean acceptedChange;
     private boolean sensitiveChange;
 
     public boolean isSensitiveChange() {
@@ -78,7 +77,9 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     }
 
     public void setFinalScore(double finalScore) {
+        
         this.finalScore = Math.round(finalScore * 1000.0) / 1000.0;
+//        MainUtilities.fullScoreSet.add( this.finalScore);
     }
     private Set<String> specTitles;
 
@@ -134,13 +135,13 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         this.pValue = pValue;
     }
 
-    public boolean isSignificatChange() {
-        return significatChange;
+    public boolean isAcceptedChange() {
+        return acceptedChange;
     }
 
-    public void setSignificatChange(boolean significatChange) {
-        this.significatChange = significatChange;
-        if (significatChange) {
+    public void setAcceptedChange(boolean acceptedChange) {
+        this.acceptedChange = acceptedChange;
+        if (acceptedChange) {
             sensitiveChange = true;
         }
 
@@ -165,7 +166,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 
     @Override
     public String toString() {
-        return "Param accepted: " + significatChange + "  final score: " + finalScore + " shared data size: " + sharedDataSize+ "  #Spectra: " + idPSMNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "  size effect " + sizeEffect + "   S1: " + s1 + "   S2:" + s2;
+        return "Param accepted: " + acceptedChange + "  final score: " + finalScore + " shared data size: " + sharedDataSize+ "  #Spectra: " + idPSMNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "   S1: " + s1 + "   S2:" + s2;
     }
 
     public double getDataLengthFactor() {
@@ -180,9 +181,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         this.dataLengthFactor = dataLengthFactor;
     }
 
-    public void setFullSpectraSize(int fullSpectraSize) {
-        this.fullSpectraSize = fullSpectraSize;
-    }
+   
 
     public double getS1() {
         return s1;

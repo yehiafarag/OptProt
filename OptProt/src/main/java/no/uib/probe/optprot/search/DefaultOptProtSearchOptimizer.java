@@ -152,6 +152,28 @@ public abstract class DefaultOptProtSearchOptimizer {
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         double threshold = 1;
         //optimise enzyme  
+
+        //rerernce search with    Chymotrypsin (no P rule)   delete after get the data
+//        {
+//            Enzyme enzyme = EnzymeFactory.getInstance().getEnzyme("CNBr");
+//            oreginaltempIdParam.getSearchParameters().getDigestionParameters().clearEnzymes();
+//            oreginaltempIdParam.getSearchParameters().getDigestionParameters().addEnzyme(enzyme);
+//            oreginaltempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(enzyme.getName(), missedClavageNumb);
+//            final String option = enzyme.getName();
+//            final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
+//            Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+//                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, identificationParametersFile, false);
+//                return scoreModel;
+//            });
+//            try {
+//                RawScoreModel scoreModel = f.get();
+//                System.out.println("Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getIdPSMNumber() + "   " + scoreModel + "   ");
+//                optProtDataset.setActiveScoreModel(scoreModel);
+//            } catch (InterruptedException | ExecutionException ex) {
+//                ex.printStackTrace();
+//            }
+//        }
+
         if (optimisedSearchParameter.isOptimizeEnzymeParameter()) {
             for (Enzyme enzyme : EnzymeFactory.getInstance().getEnzymes()) {
                 if (enzyme.getName().replace(" ", "").equalsIgnoreCase("Trypsin(noPrule)")) {
@@ -168,8 +190,9 @@ public abstract class DefaultOptProtSearchOptimizer {
                 });
                 try {
                     RawScoreModel scoreModel = f.get();
+                    System.out.println("Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getIdPSMNumber() + "   " + scoreModel + "   ");
+
                     if (scoreModel.isSensitiveChange()) {
-                        System.out.println("Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getIdPSMNumber() + "   " + scoreModel + "   ");
                         resultsMapI.put(option, scoreModel);
                     }
                 } catch (InterruptedException | ExecutionException ex) {
@@ -311,7 +334,7 @@ public abstract class DefaultOptProtSearchOptimizer {
                 });
                 try {
                     RawScoreModel scoreModel = f.get();
-                    if (scoreModel.isSignificatChange()) {
+                    if (scoreModel.isAcceptedChange()) {
                         resultsMap.put(option, scoreModel);
                     }
                 } catch (ExecutionException | InterruptedException ex) {
@@ -362,7 +385,7 @@ public abstract class DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSignificatChange()) {
+                if (scoreModel.isAcceptedChange()) {
                     resultsMap.put(i + "", scoreModel);
                 } else if (i > selectedOption && !scoreModel.isSensitiveChange()) {
                     break;
@@ -469,7 +492,7 @@ public abstract class DefaultOptProtSearchOptimizer {
                 try {
 
                     RawScoreModel scoreModel = f.get();
-                    if (scoreModel.isSignificatChange()) {
+                    if (scoreModel.isAcceptedChange()) {
                         if (scoreModel.getSpectrumMatchResult().size() < spectraCounter) {
                             continue;
                         }
@@ -527,7 +550,7 @@ public abstract class DefaultOptProtSearchOptimizer {
                 });
                 try {
                     RawScoreModel scoreModel = f.get();
-                    if (scoreModel.isSignificatChange()) {
+                    if (scoreModel.isAcceptedChange()) {
                         resultsMap.put(option, scoreModel);
                     }
                 } catch (ExecutionException | InterruptedException ex) {
@@ -678,20 +701,17 @@ public abstract class DefaultOptProtSearchOptimizer {
         tempIdParam.getSearchParameters().getModificationParameters().clearRefinementModifications();
         tempIdParam.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-//        TreeMap<RawScoreModel, String> sortedResultsMap = new TreeMap<>(Collections.reverseOrder());
-        Set<String> potintialMods = new LinkedHashSet<>();//ptmFactory.getModifications(ModificationCategory.Common)
+        Set<String> potintialMods = new LinkedHashSet<>();
         String commonFixedMod = "Carbamidomethylation of C";
         potintialMods.add(commonFixedMod);
         String commonVariableMod = "Oxidation of M";
-//        boolean addedCommonFixedPTMs = false;
         Map<String, RawScoreModel> targtedFixedModificationScore = new TreeMap<>();
         Map<String, RawScoreModel> fullFixedModificationScore = new LinkedHashMap<>();
-//        ArrayList<SortedPTMs> fullFixedModificationEffect = new ArrayList<>();
         //first stage common fixed modification
         String prefix = "f_";
         resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, true, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, true));
         if (!resultsMap.isEmpty()) {
-            String bestMod = SpectraUtilities.compareScoresSet(resultsMap);
+            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, true);
             if (resultsMap.get(bestMod).getFinalScore() > 0 || (resultsMap.get(bestMod).getFinalScore() < 0.0 && (resultsMap.get(bestMod).getFinalScore() * -1.0) < 0.1)) {
                 selectedFixedModificationOption.add(bestMod);
                 optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
@@ -710,7 +730,7 @@ public abstract class DefaultOptProtSearchOptimizer {
         prefix = "v_";
         resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, false, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, false));
         if (!resultsMap.isEmpty()) {
-            String bestMod = SpectraUtilities.compareScoresSet(resultsMap);
+            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, true);
             selectedVariableModificationOption.add(bestMod);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
             potintialMods.clear();
@@ -724,8 +744,8 @@ public abstract class DefaultOptProtSearchOptimizer {
         //second stage fixed modifications
         for (String modId : mods) {
             String modPattern = ptmFactory.getModification(modId).getPattern().toString();
-            if (modPattern.equals("")) {
-                modPattern = ptmFactory.getModification(modId).getModificationType().isNTerm() + "-" + ptmFactory.getModification(modId).getModificationType().isCTerm();
+            if (modPattern.equals("") || ptmFactory.getModification(modId).getModificationType().isNTerm() || ptmFactory.getModification(modId).getModificationType().isCTerm()) {
+                modPattern = modPattern + "-" + ptmFactory.getModification(modId).getModificationType().isNTerm() + "-" + ptmFactory.getModification(modId).getModificationType().isCTerm();
             }
             if (targtedFixedModificationScore.containsKey(modPattern)) {
                 continue;
@@ -736,11 +756,9 @@ public abstract class DefaultOptProtSearchOptimizer {
             potintialMods.add(modId);
         }
         prefix = "f_";
-//        
         Map<String, Map<String, RawScoreModel>> filterPotintialPtmMap = new LinkedHashMap<>();
         fullFixedModificationScore.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, true, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, true));
 
-//        List<Double> scoresList = new ArrayList<>();
         for (String modId : fullFixedModificationScore.keySet()) {
             RawScoreModel scoreModel = fullFixedModificationScore.get(modId);
             System.out.println("Fixed mod test modId: " + modId + " score: " + scoreModel);
@@ -748,24 +766,16 @@ public abstract class DefaultOptProtSearchOptimizer {
                 resultsMap.put(modId, scoreModel);
 
             }
-
-//            double avg1 = SpectraUtilities.getModificationFrequentScore(modId, scoreModel.getSpecTitles(), optProtDataset.getCurrentScoreModel().getSpecTitles());
-//            double b1 = avg1;
-//            if (avg1 > -1) {
-//                scoresList.add(b1);
             Modification mod = ptmFactory.getModification(modId);
             //get modified intersection with avctive spectra 
             String modPattern = mod.getPattern().toString();
-            if (modPattern.equals("")) {
-                modPattern = mod.getModificationType().isNTerm() + "-" + mod.getModificationType().isCTerm();
+            if (modPattern.equals("") || ptmFactory.getModification(modId).getModificationType().isNTerm() || ptmFactory.getModification(modId).getModificationType().isCTerm()) {
+                modPattern = modPattern + "-" + ptmFactory.getModification(modId).getModificationType().isNTerm() + "-" + ptmFactory.getModification(modId).getModificationType().isCTerm();
             }
             if (!filterPotintialPtmMap.containsKey(modPattern)) {
                 filterPotintialPtmMap.put(modPattern, new TreeMap<>(Collections.reverseOrder()));
             }
             filterPotintialPtmMap.get(modPattern).put(modId, scoreModel);
-//            }
-//            fullFixedModificationEffect.add(new SortedPTMs(modId, b1, 0));
-
         }
 
         potintialMods.clear();
@@ -775,11 +785,8 @@ public abstract class DefaultOptProtSearchOptimizer {
         for (String modId : clearResults.keySet()) {
             RawScoreModel vScore = clearResults.get(modId);
             if (vScore.isSensitiveChange()) {
-                System.out.println("mod id :d " + modId + "  vscore " + vScore);
-                System.out.println("mod id :d " + modId + "  fscore " + resultsMap.get(modId));
-                System.out.println("-----------------------------------------------------------------");
                 if (vScore.getFinalScore() > 1.1 * resultsMap.get(modId).getFinalScore() && vScore.getIdPSMNumber() > 1.02 * resultsMap.get(modId).getIdPSMNumber()) {// (SpectraUtilities.isBetterScore(resultsMap.get(modId).getSpectrumMatchResult(), vScore.getSpectrumMatchResult(), optProtDataset.getTotalSpectraNumber()) > 0) {
-                    System.out.println("----------------------remove " + modId + "-------------------------------------------");
+                    System.out.println("----------------------remove from fixed " + modId + "-------------------------------------------");
                     resultsMap.remove(modId);
                 }
             }
@@ -789,10 +796,10 @@ public abstract class DefaultOptProtSearchOptimizer {
 
         if (!resultsMap.isEmpty()) {
 
-            String bestMod = SpectraUtilities.compareScoresSet(resultsMap);
+            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, true);
             String modPattern = ptmFactory.getModification(bestMod).getPattern().toString();
-            if (modPattern.equals("")) {
-                modPattern = ptmFactory.getModification(bestMod).getModificationType().isNTerm() + "-" + ptmFactory.getModification(bestMod).getModificationType().isCTerm();
+            if (modPattern.equals("") || ptmFactory.getModification(bestMod).getModificationType().isNTerm() || ptmFactory.getModification(bestMod).getModificationType().isCTerm()) {
+                modPattern = modPattern + "-" + ptmFactory.getModification(bestMod).getModificationType().isNTerm() + "-" + ptmFactory.getModification(bestMod).getModificationType().isCTerm();
             }
             if (resultsMap.containsKey("Acetylation of protein N-term") && resultsMap.containsKey("Carbamilation of protein N-term")) {
                 //we favor Acetylation of protein N-term in the case of multi n-teminal fixed mod
@@ -808,7 +815,6 @@ public abstract class DefaultOptProtSearchOptimizer {
             potintialMods.clear();
             targtedFixedModificationScore.put(modPattern, resultsMap.get(bestMod));
             MainUtilities.cleanOutputFolder();
-
             resultsMap.remove(bestMod);
         }
 
@@ -818,8 +824,8 @@ public abstract class DefaultOptProtSearchOptimizer {
         while (test) {
             for (String modId : resultsMap.keySet()) {
                 String modPattern = ptmFactory.getModification(modId).getPattern().toString();
-                if (modPattern.equals("")) {
-                    modPattern = ptmFactory.getModification(modId).getModificationType().isNTerm() + "-" + ptmFactory.getModification(modId).getModificationType().isCTerm();
+                if (modPattern.equals("") || ptmFactory.getModification(modId).getModificationType().isNTerm() || ptmFactory.getModification(modId).getModificationType().isCTerm()) {
+                    modPattern = modPattern + "-" + ptmFactory.getModification(modId).getModificationType().isNTerm() + "-" + ptmFactory.getModification(modId).getModificationType().isCTerm();
                 }
 
                 if (targtedFixedModificationScore.containsKey(modPattern)) {
@@ -832,15 +838,14 @@ public abstract class DefaultOptProtSearchOptimizer {
                 prefix = "f_";
                 resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, true, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, false));
                 if (!resultsMap.isEmpty()) {
-                    String bestMod = SpectraUtilities.compareScoresSet(resultsMap);
+                    String bestMod = SpectraUtilities.compareScoresSet(resultsMap, true);
                     selectedFixedModificationOption.add(bestMod);
                     optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
                     potintialMods.clear();
                     String modPattern = ptmFactory.getModification(bestMod).getPattern().toString();
-                    if (modPattern.equals("")) {
-                        modPattern = ptmFactory.getModification(bestMod).getModificationType().isNTerm() + "-" + ptmFactory.getModification(bestMod).getModificationType().isCTerm();
+                    if (modPattern.equals("") || ptmFactory.getModification(bestMod).getModificationType().isNTerm() || ptmFactory.getModification(bestMod).getModificationType().isCTerm()) {
+                        modPattern = modPattern + "-" + ptmFactory.getModification(bestMod).getModificationType().isNTerm() + "-" + ptmFactory.getModification(bestMod).getModificationType().isCTerm();
                     }
-
                     targtedFixedModificationScore.put(modPattern, resultsMap.get(bestMod));
                     MainUtilities.cleanOutputFolder();
                     System.out.println("targtedFixedModificationScore " + targtedFixedModificationScore.keySet());
@@ -865,6 +870,18 @@ public abstract class DefaultOptProtSearchOptimizer {
         parameterScoreSet.add(fixedModParamScore);
         resultsMap.clear();
         potintialMods.clear();
+
+        for (String fixedMod : selectedFixedModificationOption) {
+            String modPattern = ptmFactory.getModification(fixedMod).getPattern().toString();
+            if (modPattern.equals("") || ptmFactory.getModification(fixedMod).getModificationType().isNTerm() || ptmFactory.getModification(fixedMod).getModificationType().isCTerm()) {
+                modPattern = modPattern + "-" + ptmFactory.getModification(fixedMod).getModificationType().isNTerm() + "-" + ptmFactory.getModification(fixedMod).getModificationType().isCTerm();
+            }
+            if (filterPotintialPtmMap.containsKey(modPattern)) {
+                filterPotintialPtmMap.remove(modPattern);
+            }
+
+        }
+
         for (String modPatternKey : filterPotintialPtmMap.keySet()) {
             if (modPatternKey.contains("-")) {
                 for (String ptm : filterPotintialPtmMap.get(modPatternKey).keySet()) {
@@ -897,8 +914,8 @@ public abstract class DefaultOptProtSearchOptimizer {
                     Modification mod = ptmFactory.getModification(modId);
 //                    get modified intersection with avctive spectra 
                     String modPattern = mod.getPattern().toString();
-                    if (modPattern.equals("")) {
-                        modPattern = mod.getModificationType().isNTerm() + "-" + mod.getModificationType().isCTerm();
+                    if (modPattern.equals("") || mod.getModificationType().isNTerm() || mod.getModificationType().isCTerm()) {
+                        modPattern = modPattern + "-" + mod.getModificationType().isNTerm() + "-" + mod.getModificationType().isCTerm();
                     }
                     if (modPattern.equalsIgnoreCase("true-false") && resultsMap.containsKey("Acetylation of protein N-term") && resultsMap.containsKey("Carbamilation of protein N-term")) {
                         if (resultsMap.get(modId).getFinalScore() <= resultsMap.get("Acetylation of protein N-term").getFinalScore() * 1.05 || resultsMap.get(modId).getIdPSMNumber() <= resultsMap.get("Acetylation of protein N-term").getIdPSMNumber()) {
@@ -912,49 +929,44 @@ public abstract class DefaultOptProtSearchOptimizer {
                     filterVMMap.get(modPattern).put(resultsMap.get(modId).getFinalScore(), modId);
 
                 }
-
-//               
-                boolean first;
-                System.out.println("filtered --------------->> " + counter + "  vm are " + filterVMMap);
+//                System.out.println("filtered --------------->> " + counter + "  vm are " + filterVMMap);
                 Set<String> toRemove = new HashSet();
                 for (String patteren : filterVMMap.keySet()) {
                     if (patteren.contains("-")) {
                         continue;
                     }
-                    first = true;
-
                     TreeMap<Double, String> modPatMap = filterVMMap.get(patteren);
                     Map<String, RawScoreModel> subresultsMap = new LinkedHashMap<>();
                     for (String mod : modPatMap.values()) {
-
                         subresultsMap.put(mod, resultsMap.get(mod));
-//                        if (first) {
-//                            first = false;
-//                            continue;
-//                        }
                         toRemove.add(mod);
                     }
-                    toRemove.remove(SpectraUtilities.compareScoresSet(subresultsMap));
-                    System.out.println("subResult--->> " + patteren + "--to keep " + toRemove + "  " + SpectraUtilities.compareScoresSet(subresultsMap) + "   " + subresultsMap.keySet());
+                    String tokeepMod = SpectraUtilities.compareScoresSet(subresultsMap, true);
+                    toRemove.remove(tokeepMod);
+                    System.out.println("subResult--->> " + patteren + "--to keep " + toRemove + "  " + tokeepMod + "   " + subresultsMap.keySet());
                 }
 
                 for (String remove : toRemove) {
                     resultsMap.remove(remove);
                 }
-                String bestMod = SpectraUtilities.compareScoresSet(resultsMap);
-                System.out.println("best vm score " + bestMod + "  " + resultsMap.get(bestMod) + "   " + optProtDataset.getCurrentScoreModel().getSpectrumMatchResult().size() + "   thre " + thre);
+                String bestMod = SpectraUtilities.compareScoresSet(resultsMap, true);
+
                 if (resultsMap.get(bestMod).getFinalScore() > thre) {
                     selectedVariableModificationOption.add(bestMod);
                     optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
                     MainUtilities.cleanOutputFolder();
-                    resultsMap.remove(bestMod);
+
 //                    if (!optProtDataset.isFullDataSpectaInput()) {
-                    thre += 0.5;
+                    System.out.println("before thers is " + thre);
+                    thre += 0.01;
+                    System.out.println("updated thers is " + thre);
+                    resultsMap.remove(bestMod);
 //                    } else {
 //                        thre += optProtDataset.getComparisonsThreshold();
 //                    }
                     System.out.println("updated thre " + thre + "   " + resultsMap.size());
                 } else {
+                    System.out.println("resultsMap.get(bestMod).getFinalScore()  " + resultsMap.get(bestMod).getFinalScore() + "   " + thre);
                     resultsMap.clear();
                 }
                 if (resultsMap.isEmpty()) {
@@ -1024,7 +1036,7 @@ public abstract class DefaultOptProtSearchOptimizer {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if (scoreModel.isSensitiveChange() || addAll) {
+                if (scoreModel.getFinalScore() > 0 || addAll) {
                     resultsMap.put(modId, scoreModel);//                 
                 }
 

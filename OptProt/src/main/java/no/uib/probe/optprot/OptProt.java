@@ -32,10 +32,10 @@ public class OptProt {
 //                List<String> paramOrder = new ArrayList<>();
                 Set<Advocate> supportedSearchEngine = new LinkedHashSet<>();
 
-                supportedSearchEngine.add(Advocate.sage);
+//                supportedSearchEngine.add(Advocate.sage);
                 paramOrderMap.put(Advocate.sage, OptProtSageParameterSettings.Get_Sage_Parameters_List());
 
-//                supportedSearchEngine.add(Advocate.xtandem);
+                supportedSearchEngine.add(Advocate.xtandem);
                 paramOrderMap.put(Advocate.xtandem, OptProtXtandemParameterSettings.Get_Xtandem_Parameters_List());
 //                supportedSearchEngine.add(Advocate.myriMatch);
 
@@ -46,13 +46,13 @@ public class OptProt {
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
                 if (args == null || args.length == 0) {
                     datasettoTestSet.add("PXD028427");    //1
-                    datasettoTestSet.add("PXD000561");    //2
-                    datasettoTestSet.add("PXD001468");          //3
-                    datasettoTestSet.add("PXD047036");        //4
-                    datasettoTestSet.add("PXD009340");        //5
-                    datasettoTestSet.add("PXD001250");        //6
-////////////////            datasettoTestSet.add("PXD000815");        
-////////////////            datasettoTestSet.add("PXD054727");    
+//                    datasettoTestSet.add("PXD000561");    //2
+//                    datasettoTestSet.add("PXD001468");          //3
+//                    datasettoTestSet.add("PXD047036");        //4
+//                    datasettoTestSet.add("PXD009340");        //5
+//                    datasettoTestSet.add("PXD001250");        //6
+//////            datasettoTestSet.add("PXD000815");        
+//////            datasettoTestSet.add("PXD054727");    
                 } else {
                     datasettoTestSet.addAll(Arrays.asList(args));
                     System.exit(0);
@@ -76,8 +76,8 @@ public class OptProt {
                 searchOpParameter.setOptimizePrecursorChargeParameter(false || all);
                 searchOpParameter.setOptimizeIsotopsParameter(false || all);
                 searchOpParameter.setOptimizeModificationParameter(false || all);
-                searchOpParameter.setOptimizeSageAdvancedParameter(false||all);
-                 searchOpParameter.setOptimizeXtandemAdvancedParameter(false||all);
+                searchOpParameter.setOptimizeSageAdvancedParameter(false || all);
+                searchOpParameter.setOptimizeXtandemAdvancedParameter(false || all);
 //            searchOpParameter.setRecalibrateSpectraParameter(false);
 
                 for (Advocate se : supportedSearchEngine) {
@@ -103,6 +103,24 @@ public class OptProt {
                     }
                 }
                 MainUtilities.cleanOutputFolder();
+//                System.out.println("final score limits " + MainUtilities.zScoreSet.first() + "   " + MainUtilities.zScoreSet.last() + "    " + MainUtilities.zScoreSet.size());
+                System.out.println("final score limits " + MainUtilities.improvmentScoreSet2.first() + "   " + MainUtilities.improvmentScoreSet2.last() + "    " + MainUtilities.improvmentScoreSet2.size());
+                
+//                  System.out.println("final score limits " + MainUtilities.zScoreSet2.first() + "   " + MainUtilities.zScoreSet2.last() + "    " + MainUtilities.zScoreSet2.size());
+//                System.out.println("final score limits " + MainUtilities.improvmentScoreSet2.first() + "   " + MainUtilities.improvmentScoreSet2.last() + "    " + MainUtilities.improvmentScoreSet2.size());
+                System.out.println();
+                System.out.println();
+                System.out.println();
+                System.out.println();
+                System.out.println();
+
+                for (double zSc : MainUtilities.zScoreSet2) {
+                    System.out.println("z score: " + zSc);
+                }
+                System.out.println("---------------------------------");
+                for (double zSc : MainUtilities.improvmentScoreSet2) {
+                    System.out.println("imp score: " + zSc);
+                }
                 System.exit(0);
 
             } catch (Exception e) {
