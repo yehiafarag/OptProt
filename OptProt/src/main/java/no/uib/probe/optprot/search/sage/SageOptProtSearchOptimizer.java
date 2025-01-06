@@ -32,6 +32,7 @@ import no.uib.probe.optprot.search.DefaultOptProtSearchOptimizer;
 import no.uib.probe.optprot.search.SearchExecuter;
 import no.uib.probe.optprot.util.MainUtilities;
 import no.uib.probe.optprot.util.SpectraUtilities;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 /**
  *
@@ -64,7 +65,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         this.optimisedSearchResults = new OptimisedSearchResults();
         this.parameterScoreMap = new LinkedHashMap<>();
         optProtDataset.setParameterScoreMap(parameterScoreMap);
-        MainUtilities.cleanOutputFolder();
+        MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
         if (searchInputSetting.isOptimizeAllParameters()) {
             SageParameters sageParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
             sageParameters.setMaxVariableMods(2);
@@ -76,7 +77,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 //        System.out.println(" identificationParameters.getFastaParameters().getDecoyFlag() " + identificationParameters.getFastaParameters().getDecoyFlag() + "  oreginal size  " + optProtDataset.getOreginalDatasize() + "  total subsize " + optProtDataset.getTotalSpectraNumber());
 //        sageParameters.setMinFragmentMz(150.0);
 //        sageParameters.setMaxFragmentMz(1500.0);
-        MainUtilities.cleanOutputFolder();
+        MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
         parameterScoreMap.put("DigestionParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("EnzymeParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("SpecificityParameter", new TreeSet<>(Collections.reverseOrder()));
@@ -114,19 +115,34 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
     public void startProcess(List<String> paramOrder) throws IOException {
         digestionParameterOpt = identificationParameters.getSearchParameters().getDigestionParameters().getCleavageParameter().name();
         searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
-        MainUtilities.cleanOutputFolder();
+        MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
+        String bestEnzyme = CalculateEnzymeComparisonsBasedThreshold(optProtDataset, generatedIdentificationParametersFile, searchInputSetting);    
 //        if (!searchInputSetting.isOptimizeAllParameters()) {
         //run refrence search 
+        String preEnzyme = identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName();
+        if (!bestEnzyme.equalsIgnoreCase(preEnzyme)) {
+            enzymeSpecificityOpt = identificationParameters.getSearchParameters().getDigestionParameters().getSpecificity(preEnzyme).name();
+            int nMissesCleavages = identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(preEnzyme);
+            identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
+            optimisedSearchResults.setEnzymeName(bestEnzyme);
+            identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(bestEnzyme));
+            identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(bestEnzyme, DigestionParameters.Specificity.valueOf(enzymeSpecificityOpt));
+            identificationParameters.getSearchParameters().getDigestionParameters().setnMissedCleavages(bestEnzyme, nMissesCleavages);
+            IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
+        }
+
         runReferenceRun(optProtDataset, identificationParameters, searchInputSetting);
 //        }
 
         for (String param : paramOrder) {
+
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
-            MainUtilities.cleanOutputFolder();
+            MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
             if (param.equalsIgnoreCase("DigestionParameter_1") && searchInputSetting.isOptimizeDigestionParameter()) {
                 String[] values = this.optimizeEnzymeParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("EnzymeParameter"));
-                identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
-                if (!values[0].equalsIgnoreCase("")) {
+            
+                if (!values[0].equalsIgnoreCase("")) {  
+                    identificationParameters.getSearchParameters().getDigestionParameters().clearEnzymes();
                     optimisedSearchResults.setEnzymeName(values[0]);
                     int nMissesCleavages = Integer.parseInt(values[2]);// identificationParameters.getSearchParameters().getDigestionParameters().getnMissedCleavages(value);                   
                     identificationParameters.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(values[0]));
@@ -207,6 +223,8 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
                 Map<String, Set<String>> modificationsResults = this.optimizeModificationsParameter(optProtDataset, generatedIdentificationParametersFile, searchInputSetting, parameterScoreMap.get("ModificationsParameter"));
                 identificationParameters.getSearchParameters().getModificationParameters().clearFixedModifications();
                 identificationParameters.getSearchParameters().getModificationParameters().clearVariableModifications();
+                SageParameters sageParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
+
                 for (String fixedMod : modificationsResults.get("fixedModifications")) {
                     if (ptmFactory.getModification(fixedMod) != null) {
                         identificationParameters.getSearchParameters().getModificationParameters().addFixedModification(ptmFactory.getModification(fixedMod));
@@ -225,7 +243,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             if (param.equalsIgnoreCase("SageAdvancedParameter_A") && searchInputSetting.isOptimizeSageAdvancedParameter()) {
                 SageParameters sageParameters = (SageParameters) identificationParameters.getSearchParameters().getAlgorithmSpecificParameters().get(Advocate.sage.getIndex());
                 sageParameters.setMaxVariableMods(0);
-                double[] dvalues = optimizeFragmentMzParameter(optProtDataset, identificationParameters, searchInputSetting, sageParameters,parameterScoreMap.get("SageFragmentMzParameter"));
+                double[] dvalues = optimizeFragmentMzParameter(optProtDataset, identificationParameters, searchInputSetting, sageParameters, parameterScoreMap.get("SageFragmentMzParameter"));
                 if (dvalues[1] != sageParameters.getMaxFragmentMz() || dvalues[0] != sageParameters.getMinFragmentMz()) {
                     sageParameters.setMinFragmentMz(dvalues[0]);
                     sageParameters.setMaxFragmentMz(dvalues[1]);
@@ -354,7 +372,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
     }
 
     @Override
-    public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile, boolean pairData) {
+    public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile) {
         if (!optProtSearchSettings.getSageEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);
             return new RawScoreModel(paramOption);
@@ -383,7 +401,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             paramOption = paramOption.split("_")[1];
         }
         RawScoreModel rawScore = SpectraUtilities.getComparableRawScore(optProtDataset, validatedMaches, Advocate.sage, addSpectraList, paramOption);//(optProtDataset, resultOutput, optProtDataset.getSubMsFile(), Advocate.sage, tempIdParam, updateDataReference);
-        if (addSpectraList && rawScore.isSensitiveChange()) {
+        if (addSpectraList || rawScore.isSensitiveChange()) {
             rawScore.setSpectrumMatchResult(validatedMaches);
         }
         return (rawScore);
@@ -410,7 +428,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             int j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -456,7 +474,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
             int j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -503,7 +521,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             double j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, false);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -537,7 +555,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
             double j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, false);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -582,7 +600,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             final int j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -627,7 +645,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             double j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, false);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -661,7 +679,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
             double j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -707,21 +725,21 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             final int j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam,true, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("ionindex : " + i + "  " + scoreModel+"  current psm "+psmNum);
-                if (scoreModel.isSensitiveChange() && scoreModel.getIdPSMNumber() > psmNum) {
-                    resultsMap.put(j + "", scoreModel);
+                System.out.println("ionindex : " + i + "  " + scoreModel.isSensitiveChange() + "  current psm " + psmNum + "   " + (((double) scoreModel.getIdPSMNumber() * 1.01) >= psmNum));
+//                if (scoreModel.isSensitiveChange() && (((double)scoreModel.getIdPSMNumber()*1.01) >= psmNum)) {
+//                    resultsMap.put(j + "", scoreModel);
+//                    psmNum = scoreModel.getIdPSMNumber();
+//                }
+//                else
+                if (scoreModel.getFinalScore() >= 0 && (((double) scoreModel.getIdPSMNumber() * 1.01) >= psmNum)) {
                     psmNum = scoreModel.getIdPSMNumber();
-                }
-                else if (scoreModel.getFinalScore()>=0 && scoreModel.getIdPSMNumber() > psmNum) {
-                    psmNum = scoreModel.getIdPSMNumber();
                     resultsMap.put(j + "", scoreModel);
-                } 
-                else if(scoreModel.getIdPSMNumber() < psmNum){
+                } else if (scoreModel.getIdPSMNumber() < psmNum) {
                     break;
                 }
 
@@ -758,7 +776,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             sageParameters.setGenerateDecoys(generateDecoy);
             final int j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -802,7 +820,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             sageParameters.setDeisotope(i == 1);
             final int j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -845,7 +863,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             sageParameters.setChimera(i == 1);
             final int j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -888,13 +906,12 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             final int j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
 
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
-//                System.out.println("score model " + (option) + "  " + scoreModel);
-                if (scoreModel.getFinalScore() > 1.5 + optProtDataset.getComparisonsThreshold()) {
+                if (scoreModel.getFinalScore() > optProtDataset.getComparisonsThreshold(5)) {
                     resultsMap.put(j + "", scoreModel);
 
                 }
@@ -935,7 +952,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
 
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -980,7 +997,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             int j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -1021,7 +1038,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
             int j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -1066,7 +1083,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             sageParameters.setMinMatchedPeaks(i);
             final int j = i;
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -1112,7 +1129,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
             final int j = i;
 
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile, true);
+                RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, false, optimisedSearchParameter, generatedIdentificationParametersFile);
                 return scoreModel;
             });
             try {
@@ -1144,7 +1161,7 @@ public class SageOptProtSearchOptimizer extends DefaultOptProtSearchOptimizer {
         final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
 
         Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile, false);
+            RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile);
             return scoreModel;
         });
         try {

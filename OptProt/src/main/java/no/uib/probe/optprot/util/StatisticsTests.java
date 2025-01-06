@@ -7,11 +7,13 @@ package no.uib.probe.optprot.util;
 import java.util.Arrays;
 import org.apache.commons.math.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.inference.ChiSquareTest;
 import org.apache.commons.math3.stat.inference.TTest;
 
 public class StatisticsTests {
 
     public static void main(String[] args) {
+        modeMedian();
 //        // Example data
 //        double[] sample1 = {45.2, 46.1, 47.3, 50.0, 48.5};
 //        double[] sample2 = {52.0, 49.5, 53.2, 51.3, 50.4};
@@ -48,14 +50,14 @@ public class StatisticsTests {
     }
 
     public static double pairedZTest(DescriptiveStatistics referenceSamples, DescriptiveStatistics improvedSample) {
-        double meanDifference = calculatePairedMeanDifference( referenceSamples.getValues(),improvedSample.getValues());
-        double standardDeviation = calculatePairedStandardDeviation(referenceSamples.getValues(),improvedSample.getValues(),  meanDifference);
+        double meanDifference = calculatePairedMeanDifference(referenceSamples.getValues(), improvedSample.getValues());
+        double standardDeviation = calculatePairedStandardDeviation(referenceSamples.getValues(), improvedSample.getValues(), meanDifference);
         double standardError = standardDeviation / Math.sqrt(improvedSample.getN());
         double zScore = meanDifference / standardError;
         return zScore;
     }
 
-    private static double calculatePairedMeanDifference(double[] refrenceSample,double[] improvedSample) {
+    private static double calculatePairedMeanDifference(double[] refrenceSample, double[] improvedSample) {
         double sum = 0;
         for (int i = 0; i < improvedSample.length; i++) {
             sum += improvedSample[i] - refrenceSample[i];
@@ -63,7 +65,7 @@ public class StatisticsTests {
         return sum / improvedSample.length;
     }
 
-    private static double calculatePairedStandardDeviation( double[] refrenceSample,double[] improvedSample, double meanDifference) {
+    private static double calculatePairedStandardDeviation(double[] refrenceSample, double[] improvedSample, double meanDifference) {
         double sum = 0;
         for (int i = 0; i < improvedSample.length; i++) {
             sum += Math.pow((improvedSample[i] - refrenceSample[i]) - meanDifference, 2);
@@ -211,6 +213,85 @@ public class StatisticsTests {
         System.out.println("correlation is " + correlation);
         return correlation;
 
+    }
+
+    public static void modeMedian() {
+        // Sample data
+        double[] sample1 = {1.83, 0.50, 1.62, 2.48, 2.01, 1.32};
+        double[] sample2 = {0.88, 0.65, 0.80, 1.15, 1.01, 0.75};
+
+        // Combine samples to find the overall median
+        double[] combined = new double[sample1.length + sample2.length];
+        System.arraycopy(sample1, 0, combined, 0, sample1.length);
+        System.arraycopy(sample2, 0, combined, sample1.length, sample2.length);
+        double median = findMedian(combined);
+
+        // Create contingency table
+        long[][] contingencyTable = new long[2][2];
+        for (double v : sample1) {
+            if (v > median) {
+                contingencyTable[0][0]++;
+            } else {
+                contingencyTable[1][0]++;
+            }
+        }
+        for (double v : sample2) {
+            if (v > median) {
+                contingencyTable[0][1]++;
+            } else {
+                contingencyTable[1][1]++;
+            }
+        }
+
+        // Perform chi-square test
+        ChiSquareTest chiSquareTest = new ChiSquareTest();
+        double pValue = chiSquareTest.chiSquareTest(contingencyTable);
+
+        // Output the result
+        System.out.println("P-value: " + pValue + "  value " + chiSquareTest.chiSquare(contingencyTable));
+    }
+
+    private static double findMedian(double[] data) {
+        java.util.Arrays.sort(data);
+        int middle = data.length / 2;
+        if (data.length % 2 == 0) {
+            return (data[middle - 1] + data[middle]) / 2.0;
+        } else {
+            return data[middle];
+        }
+    }
+
+    public static double WilcoxonSignedRankTest(double[] before, double[] after) {
+
+        double[] differences = new double[before.length];
+        for (int i = 0; i < before.length; i++) {
+            differences[i] = after[i] - before[i];
+        }
+        double[] absDifferences = Arrays.stream(differences).map(Math::abs).toArray();
+        int[] ranks = rank(absDifferences);
+        double positiveRankSum = 0;
+        double negativeRankSum = 0;
+        for (int i = 0; i < differences.length; i++) {
+            if (differences[i] > 0) {
+                positiveRankSum += ranks[i];
+            } else if (differences[i] < 0) {
+                negativeRankSum += ranks[i];
+            }
+        }
+        double W = Math.min(positiveRankSum, negativeRankSum);
+        return W;
+    }
+
+    private static int[] rank(double[] values) {
+        int n = values.length;
+        int[] ranks = new int[n];
+        Double[] sortedValues = Arrays.stream(values).boxed().toArray(Double[]::new);
+        Arrays.sort(sortedValues);
+
+        for (int i = 0; i < n; i++) {
+            ranks[i] = Arrays.asList(sortedValues).indexOf(values[i]) + 1;
+        }
+        return ranks;
     }
 
 }

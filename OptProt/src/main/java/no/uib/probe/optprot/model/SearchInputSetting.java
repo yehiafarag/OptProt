@@ -8,9 +8,9 @@ import com.compomics.util.experiment.identification.Advocate;
 import java.io.File;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.search.myrimatch.MyriMatchEnabledParameters;
-import no.uib.probe.optprot.search.sage.OptProtSageParameterSettings;
+import no.uib.probe.optprot.search.sage.SageParameterOrderSettings;
 import no.uib.probe.optprot.search.sage.SageEnabledParameters;
-import no.uib.probe.optprot.search.xtandam.OptProtXtandemParameterSettings;
+import no.uib.probe.optprot.search.xtandam.XtandemParameterOrderSettings;
 import no.uib.probe.optprot.search.xtandam.XTandemEnabledParameters;
 
 /**
@@ -18,9 +18,16 @@ import no.uib.probe.optprot.search.xtandam.XTandemEnabledParameters;
  * @author yfa041
  */
 public class SearchInputSetting {
+private  String datasetId ;
 
-    public SearchInputSetting() {
+    public void setDatasetId(String datasetId) {
+        this.datasetId = datasetId;
     }
+
+    public String getDatasetId() {
+        return datasetId;
+    }
+  
 String digestionParameterOpt;
 
     public String getDigestionParameterOpt() {
@@ -92,7 +99,7 @@ String digestionParameterOpt;
         return optimizeSageAdvancedParameter|| optimizeAllParameters;
     }
 
-    public OptProtSageParameterSettings getSageOptProtAdvancedSearchParameters() {
+    public SageParameterOrderSettings getSageOptProtAdvancedSearchParameters() {
         return sageOptProtAdvancedSearchParameters;
     }
 
@@ -126,8 +133,8 @@ String digestionParameterOpt;
             this.setRunSage(true);
         }
     }
- private final OptProtSageParameterSettings sageOptProtAdvancedSearchParameters = new OptProtSageParameterSettings();
-    private final OptProtXtandemParameterSettings xtandemOptProtAdvancedSearchParameters = new OptProtXtandemParameterSettings();
+ private final SageParameterOrderSettings sageOptProtAdvancedSearchParameters = new SageParameterOrderSettings();
+    private final XtandemParameterOrderSettings xtandemOptProtAdvancedSearchParameters = new XtandemParameterOrderSettings();
 
     public boolean isOptimizeXtandemAdvancedParameter() {
         return optimizeXtandemAdvancedParameter || optimizeAllParameters;
@@ -453,7 +460,7 @@ String digestionParameterOpt;
         this.optimizeIsotopsParameter = optimizeIsotopsParameter;
     }
 
-    public OptProtXtandemParameterSettings getXtandemOptProtAdvancedSearchParameters() {
+    public XtandemParameterOrderSettings getXtandemOptProtAdvancedSearchParameters() {
         return xtandemOptProtAdvancedSearchParameters;
     }
 

@@ -65,7 +65,7 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
         this.optimisedSearchResults = new OptimisedSearchResults();
         this.parameterScoreMap = new LinkedHashMap<>();
         optProtDataset.setParameterScoreMap(parameterScoreMap);
-        MainUtilities.cleanOutputFolder();
+        MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
         parameterScoreMap.put("DigestionParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("EnzymeParameter", new TreeSet<>(Collections.reverseOrder()));
         parameterScoreMap.put("SpecificityParameter", new TreeSet<>(Collections.reverseOrder()));
@@ -457,7 +457,7 @@ public class MyrimatchOptProtSearchOptimizer extends DefaultOptProtSearchOptimiz
     }
 
     @Override
-    public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile, boolean pairData) {
+    public synchronized RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addSpectraList, SearchInputSetting optProtSearchSettings, File identificationParametersFile) {
 
         if (!optProtSearchSettings.getMyriMatchEnabledParameters().getParamsToOptimize().isEnabledParam(paramOption.split("_")[0])) {
             System.out.println("param " + paramOption + " is not supported " + paramOption);

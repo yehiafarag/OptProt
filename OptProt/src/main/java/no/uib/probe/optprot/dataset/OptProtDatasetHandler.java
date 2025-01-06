@@ -54,7 +54,7 @@ import org.xmlpull.v1.XmlPullParserException;
  */
 public class OptProtDatasetHandler {
 
-    private final SearchInputSetting searchInputSetting = new SearchInputSetting();
+    private final SearchInputSetting searchInputSetting;
     private int startIndex = 0;
     private File subFastaFile = null;
 
@@ -63,8 +63,17 @@ public class OptProtDatasetHandler {
     private double acceptedTagEvalue;
 //    private boolean smallDataset;
 
-    public SearchingSubDataset generateOptProtDataset(File msFile, File fastaFile, Advocate searchEngineToOptimise, File subDataFolder, File identificationParametersFile, boolean wholeDataTest, boolean fullFasta, boolean useOreginalInputs) {
+    public OptProtDatasetHandler(SearchInputSetting searchInputSetting) {
+        this.searchInputSetting = searchInputSetting;
+    }
+
+    public SearchInputSetting getSearchInputSetting() {
+        return searchInputSetting;
+    }
+
+    public SearchingSubDataset generateOptProtDataset(String datasetId,File msFile, File fastaFile, Advocate searchEngineToOptimise, File subDataFolder, File identificationParametersFile, boolean wholeDataTest, boolean fullFasta, boolean useOreginalInputs) {
         acceptedTagEvalue = Configurations.ACCEPTED_TAG_EVALUE;
+      
         long start1 = System.currentTimeMillis();
         Advocate standeredReferenceSearchEngine = searchEngineToOptimise;
         SearchingSubDataset optProtDataset = new SearchingSubDataset();
@@ -151,9 +160,9 @@ public class OptProtDatasetHandler {
                         System.out.println("final subset size " + subSize);
 
 //                    spectraMap = generatFinalSubset(spectraMap, subSize);
-                        spectraMap = generateSubset(fileNameWithoutExtension, spectraMap, subSize, fastaFile, identificationParameters);
+                        spectraMap = generateSubset(datasetId,fileNameWithoutExtension, spectraMap, subSize, fastaFile, identificationParameters);
                     }
-                    MainUtilities.cleanOutputFolder();
+                    MainUtilities.cleanOutputFolder(datasetId);
 
                     //create stabkle subMs file
                     subMsFile = generateMsSubFile(spectraMap, subMsFile);
@@ -251,7 +260,7 @@ public class OptProtDatasetHandler {
 
             int total = subMsFileHandler.getSpectrumTitles(subfileNameWithoutExtension).length;
             optProtDataset.setSubsetSize(total);
-            MainUtilities.cleanOutputFolder();
+            MainUtilities.cleanOutputFolder(datasetId);
 
             //one more search for threshold?
 //            identificationParameters.getSearchParameters().setFragmentIonAccuracy(0.01);
@@ -387,11 +396,11 @@ public class OptProtDatasetHandler {
         return spectraMap;
     }
 
-    private Map<String, Spectrum> generateSubset(String fileNameWithoutExtension, Map<String, Spectrum> spectraMap, int subsetSize, File fastaFile, IdentificationParameters identificationParameters) {
+    private Map<String, Spectrum> generateSubset(String datasetId,String fileNameWithoutExtension, Map<String, Spectrum> spectraMap, int subsetSize, File fastaFile, IdentificationParameters identificationParameters) {
 
         try {
             //generate submsFile
-            File destinationFile = new File(Configurations.GET_OUTPUT_FOLDER_PATH(), Configurations.DEFAULT_RESULT_NAME + "_temp_full_" + spectraMap.size() + "_-_" + fileNameWithoutExtension + ".mgf");
+            File destinationFile = new File(MainUtilities.GET_WORKING_FOLDER_PATH(datasetId), Configurations.DEFAULT_RESULT_NAME + "_temp_full_" + spectraMap.size() + "_-_" + fileNameWithoutExtension + ".mgf");
             if (destinationFile.exists()) {
                 destinationFile.delete();
             }

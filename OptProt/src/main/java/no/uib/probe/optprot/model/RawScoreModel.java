@@ -61,6 +61,11 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     private List<SpectrumMatch> spectrumMatchResult = new ArrayList<>();
     private double improvmentScore;
     private double finalScore;
+    private double rawFinalScore;
+
+    public double getRawFinalScore() {
+        return rawFinalScore;
+    }
     private double sizeEffect;
     private double dataLengthFactor;
 
@@ -77,7 +82,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     }
 
     public void setFinalScore(double finalScore) {
-        
+        this.rawFinalScore=finalScore;
         this.finalScore = Math.round(finalScore * 1000.0) / 1000.0;
 //        MainUtilities.fullScoreSet.add( this.finalScore);
     }

@@ -65,9 +65,9 @@ public class SearchExecuter {
             }
         }
 
-        File resultOutput = new File(Configurations.GET_OUTPUT_FOLDER_PATH(), processId);
+        File resultOutput = new File(MainUtilities.GET_WORKING_FOLDER_PATH(searchInputSetting.getDatasetId()), processId);
         resultOutput.mkdir();
-        File tempSearchEngineFolder = new File(Configurations.GET_OUTPUT_FOLDER_PATH(), processId + "_temp");
+        File tempSearchEngineFolder = new File(MainUtilities.GET_WORKING_FOLDER_PATH(searchInputSetting.getDatasetId()), processId + "_temp");
         tempSearchEngineFolder.mkdir();
 
         ArrayList<File> msFileInList = new ArrayList<>();

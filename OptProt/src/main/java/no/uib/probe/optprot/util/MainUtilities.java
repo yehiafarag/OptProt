@@ -11,6 +11,7 @@ import com.compomics.util.parameters.tools.ProcessingParameters;
 import eu.isas.searchgui.SearchHandler;
 import java.io.File;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -29,13 +30,12 @@ public class MainUtilities {
     private static ExecutorService executor2;// = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors() / 2;
     private static ExecutorService executor;// = new ThreadPoolExecutor(AVAILABLE_PROCESSORS, AVAILABLE_PROCESSORS, 5, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10));
-    public static TreeSet<Double> zScoreSet = new TreeSet<>();
-    public static TreeSet<Double> improvmentScoreSet = new TreeSet<>();
+    public static TreeSet<Double> finalScoreSet = new TreeSet<>();
+    public static TreeSet<Double> totalFinalScore = new TreeSet<>();
 
-     public static TreeSet<Double> zScoreSet2 = new TreeSet<>();
-    public static TreeSet<Double> improvmentScoreSet2 = new TreeSet<>();
-    
-    
+    public static TreeSet<Double> zScoreSet2 = new TreeSet<>();
+    public static TreeMap<String, TreeSet<Double>> finalScoreSEMap = new TreeMap<>();
+
     static {
         System.out.println(" " + AVAILABLE_PROCESSORS + "  ");
         UtilitiesUserParameters userParameters = UtilitiesUserParameters.loadUserParameters();
@@ -44,7 +44,7 @@ public class MainUtilities {
         userParameters.setRenameXTandemFile(true);
         UtilitiesUserParameters.saveUserParameters(userParameters);
         SearchHandler.setCloseProcessWhenDone(false);
-        File resultsOutput = new File(Configurations.GET_OUTPUT_FOLDER_PATH());
+        File resultsOutput = new File(MainUtilities.GET_WORKING_FOLDER_PATH(""));
 //        if (resultsOutput.exists()) {
 ////            cleanFolder(resultsOutput);
 //        }
@@ -101,11 +101,24 @@ public class MainUtilities {
         return executor2;
     }
 
-    public static void cleanOutputFolder() {
+    public static void cleanOutputFolder(String datasetId) {
 
-        File outputFolder = new File(Configurations.GET_OUTPUT_FOLDER_PATH());
+        File outputFolder = new File(GET_WORKING_FOLDER_PATH(datasetId));
         deleteFolder(outputFolder);
         outputFolder.mkdir();
+        System.gc();
+    }
+
+    public static String GET_WORKING_FOLDER_PATH(String datasetId) {
+        if (datasetId.equalsIgnoreCase("")) {
+            return Configurations.GET_OUTPUT_FOLDER_PATH();
+        } else {
+            File f = new File(Configurations.GET_OUTPUT_FOLDER_PATH(), datasetId);
+            if (!f.exists()) {
+                f.mkdir();
+            }
+            return f.getAbsolutePath();
+        }
 
     }
 

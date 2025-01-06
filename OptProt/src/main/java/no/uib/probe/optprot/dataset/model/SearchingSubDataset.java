@@ -6,6 +6,7 @@ package no.uib.probe.optprot.dataset.model;
 
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,12 +32,12 @@ public class SearchingSubDataset {
         this.parameterScoreMap = parameterScoreMap;
     }
 
-    public int getCurrentIdentifiedSpectra() {
-        return currentIdentifiedSpectra;
+    public int getIdentifiedPSMsNumber() {
+        return identifiedPSMsNumber;
     }
 
-    public void setCurrentIdentifiedSpectra(int currentIdentifiedSpectra) {
-        this.currentIdentifiedSpectra = currentIdentifiedSpectra;
+    public void setIdentifiedPSMsNumber(int identifiedPSMsNumber) {
+        this.identifiedPSMsNumber = identifiedPSMsNumber;
     }
 
     public File getSubDataFolder() {
@@ -100,7 +101,7 @@ public class SearchingSubDataset {
 
     public void updateValidatedIdRefrenceData(List<SpectrumMatch> validatedIdRefrenceData) {
         this.resetSpectraScoreMap();
-        this.currentIdentifiedSpectra = validatedIdRefrenceData.size();
+        this.identifiedPSMsNumber = validatedIdRefrenceData.size();
         for (SpectrumMatch sm : validatedIdRefrenceData) {
             fullSpectraScore.replace(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
         }
@@ -126,12 +127,17 @@ public class SearchingSubDataset {
     }
 
     private int oreginalDatasetSpectraSize;
-    private int currentIdentifiedSpectra;
+    private int identifiedPSMsNumber;
 
-    private double comparisonsThreshold = 0.0;
+    private final List<Double> comparisonsThresholdList = new ArrayList<>();
+    private double basicComparisonThreshold=0.0;
 
     public int getOreginalDatasetSpectraSize() {
         return oreginalDatasetSpectraSize;
+    }
+
+    public double getBasicComparisonThreshold() {
+        return basicComparisonThreshold;
     }
 
     public void setOreginalDatasetSpectraSize(int oreginalDatasetSpectraSize) {
@@ -147,7 +153,7 @@ public class SearchingSubDataset {
     }
 
     public synchronized double getIdentificationRate() {
-        return currentIdentifiedSpectra * 100.0 / subsetSize;
+        return identifiedPSMsNumber * 100.0 / subsetSize;
     }
 
     public int getDefaultSettingIdentificationNum() {
@@ -155,7 +161,7 @@ public class SearchingSubDataset {
     }
 
     public synchronized int getActiveIdentificationNum() {
-        return currentIdentifiedSpectra;
+        return identifiedPSMsNumber;
     }
 
     public void setDefaultSettingIdentificationNum(int defaultSettingIdentificationNum) {
@@ -196,7 +202,7 @@ public class SearchingSubDataset {
 
     public double getpValueThresholds() {
         if (pValueThresholds == -1) {
-            double res = this.currentIdentifiedSpectra * 100 / getSubsetSize();
+            double res = this.identifiedPSMsNumber * 100 / getSubsetSize();
             if (res <= 5) {
                 pValueThresholds = 0.1;
             } else {
@@ -215,13 +221,26 @@ public class SearchingSubDataset {
         this.potintialVariableMod = potintialVariableMod;
     }
 
-    public double getComparisonsThreshold() {
-        return comparisonsThreshold;
+    public double getComparisonsThreshold(int level) {
+        level = Math.min(level, 5);
+        return comparisonsThresholdList.get(level);
     }
 
-    public void setComparisonsThreshold(double comparisonsThreshold) {
+    public List<Double> getComparisonsThresholdList() {
+        return comparisonsThresholdList;
+    }
+
+    public void setComparisonsThreshold(double comparisonsThreshold0, double comparisonsThreshold1, double comparisonsThreshold2, double comparisonsThreshold3, double comparisonsThreshold4, double max) {
 //        if (comparisonsThreshold == 0.0) {
-        this.comparisonsThreshold = comparisonsThreshold;
+System.out.println("----------------------------------------updateComparisonsThreshold------------------------------------------");
+        comparisonsThresholdList.clear();
+        basicComparisonThreshold=  0.05*max;
+        this.comparisonsThresholdList.add(comparisonsThreshold0);
+        this.comparisonsThresholdList.add(comparisonsThreshold1);
+        this.comparisonsThresholdList.add(comparisonsThreshold2);
+        this.comparisonsThresholdList.add(comparisonsThreshold3);
+        this.comparisonsThresholdList.add(comparisonsThreshold4);
+        this.comparisonsThresholdList.add(max * 2.0);
 //        }
 //        System.out.println("comparison score " + comparisonsThreshold);
 

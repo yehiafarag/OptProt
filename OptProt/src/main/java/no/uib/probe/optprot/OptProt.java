@@ -9,11 +9,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import javax.swing.SwingUtilities;
 import no.uib.probe.optprot.configurations.Configurations;
 import no.uib.probe.optprot.model.SearchInputSetting;
-import no.uib.probe.optprot.search.sage.OptProtSageParameterSettings;
-import no.uib.probe.optprot.search.xtandam.OptProtXtandemParameterSettings;
+import no.uib.probe.optprot.search.sage.SageParameterOrderSettings;
+import no.uib.probe.optprot.search.xtandam.XtandemParameterOrderSettings;
 import no.uib.probe.optprot.util.MainUtilities;
 
 /**
@@ -32,11 +33,11 @@ public class OptProt {
 //                List<String> paramOrder = new ArrayList<>();
                 Set<Advocate> supportedSearchEngine = new LinkedHashSet<>();
 
-//                supportedSearchEngine.add(Advocate.sage);
-                paramOrderMap.put(Advocate.sage, OptProtSageParameterSettings.Get_Sage_Parameters_List());
+                supportedSearchEngine.add(Advocate.sage);
+                paramOrderMap.put(Advocate.sage, SageParameterOrderSettings.Get_Sage_Parameters_List());
 
                 supportedSearchEngine.add(Advocate.xtandem);
-                paramOrderMap.put(Advocate.xtandem, OptProtXtandemParameterSettings.Get_Xtandem_Parameters_List());
+                paramOrderMap.put(Advocate.xtandem, XtandemParameterOrderSettings.Get_Xtandem_Parameters_List());
 //                supportedSearchEngine.add(Advocate.myriMatch);
 
 //////   
@@ -46,13 +47,13 @@ public class OptProt {
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
                 if (args == null || args.length == 0) {
                     datasettoTestSet.add("PXD028427");    //1
-//                    datasettoTestSet.add("PXD000561");    //2
-//                    datasettoTestSet.add("PXD001468");          //3
-//                    datasettoTestSet.add("PXD047036");        //4
-//                    datasettoTestSet.add("PXD009340");        //5
-//                    datasettoTestSet.add("PXD001250");        //6
-//////            datasettoTestSet.add("PXD000815");        
-//////            datasettoTestSet.add("PXD054727");    
+                    datasettoTestSet.add("PXD000561");    //2
+                    datasettoTestSet.add("PXD001468");          //3
+                    datasettoTestSet.add("PXD047036");        //4
+                    datasettoTestSet.add("PXD009340");        //5
+                    datasettoTestSet.add("PXD001250");        //6
+////////////////////////////////////////////////////////////////////////////            datasettoTestSet.add("PXD000815");        
+//////////////////////////////////////////////////////////////////////////        datasettoTestSet.add("PXD054727");    
                 } else {
                     datasettoTestSet.addAll(Arrays.asList(args));
                     System.exit(0);
@@ -65,7 +66,7 @@ public class OptProt {
                 boolean useFullFasta = false;
                 boolean useOreginalInputs = true;
                 searchOpParameter.setOptimizeAllParameters(all);
-                searchOpParameter.setOptimizeDigestionParameter(true || all);
+                searchOpParameter.setOptimizeDigestionParameter(false || all);
                 searchOpParameter.setOptimizeCleavageParameter(false);
                 searchOpParameter.setOptimizeEnzymeParameter(true);
                 searchOpParameter.setOptimizeMaxMissCleavagesParameter(false || all);
@@ -81,52 +82,63 @@ public class OptProt {
 //            searchOpParameter.setRecalibrateSpectraParameter(false);
 
                 for (Advocate se : supportedSearchEngine) {
-//                    if (se.getIndex() == Advocate.xtandem.getIndex()) {
-//                        System.out.println("---------------------------------------------------------full-" + "PXD001250" + "----------------------------------------------");
-//                        System.gc();
-//                        MainUtilities.cleanOutputFolder();
-//                        runDataset("PXD001250", cleanAll, paramOrderMap.get(se), searchOpParameter, true);
-//                        continue;
-//                    }
 
                     searchOpParameter.setSelectedSearchEngine(se);
                     for (String datasetId : datasettoTestSet) {
-                        System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
+                        searchOpParameter.setDatasetId(datasetId);
+                        MainUtilities.finalScoreSEMap.put(se.getName() + "_" + datasetId, new TreeSet<>());
+//                        System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
 //                        cleanAll = true;
-                        MainUtilities.cleanOutputFolder();
-                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false, useFullFasta, false);
-//                        cleanAll = false;
-//                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
-//                        System.gc();
-//                        MainUtilities.cleanOutputFolder();
-//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true, useFullFasta, useOreginalInputs);
+//                        MainUtilities.cleanOutputFolder(datasetId);
+//                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false, useFullFasta, false);
+//                        MainUtilities.finalScoreSEMap.get(se.getName() + "_" + datasetId).addAll(MainUtilities.finalScoreSet);
+//                        MainUtilities.totalFinalScore.addAll(MainUtilities.finalScoreSet);
+                        MainUtilities.finalScoreSet.clear();
+////                        cleanAll = false;
+                        System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
+                  
+                        MainUtilities.cleanOutputFolder(datasetId);
+//                        if (se.getIndex() == Advocate.xtandem.getIndex() && useOreginalInputs) {
+//                            continue;
+//                        }
+                        runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true, useFullFasta, useOreginalInputs);
+                        MainUtilities.cleanOutputFolder(datasetId);
+//                        MainUtilities.finalScoreSEMap.get(se.getName() + "_" + datasetId).addAll(MainUtilities.finalScoreSet);
+//                        MainUtilities.totalFinalScore.addAll(MainUtilities.finalScoreSet);
+                        MainUtilities.finalScoreSet.clear();
                     }
-                }
-                MainUtilities.cleanOutputFolder();
-//                System.out.println("final score limits " + MainUtilities.zScoreSet.first() + "   " + MainUtilities.zScoreSet.last() + "    " + MainUtilities.zScoreSet.size());
-                System.out.println("final score limits " + MainUtilities.improvmentScoreSet2.first() + "   " + MainUtilities.improvmentScoreSet2.last() + "    " + MainUtilities.improvmentScoreSet2.size());
-                
-//                  System.out.println("final score limits " + MainUtilities.zScoreSet2.first() + "   " + MainUtilities.zScoreSet2.last() + "    " + MainUtilities.zScoreSet2.size());
-//                System.out.println("final score limits " + MainUtilities.improvmentScoreSet2.first() + "   " + MainUtilities.improvmentScoreSet2.last() + "    " + MainUtilities.improvmentScoreSet2.size());
-                System.out.println();
-                System.out.println();
-                System.out.println();
-                System.out.println();
-                System.out.println();
 
-                for (double zSc : MainUtilities.zScoreSet2) {
-                    System.out.println("z score: " + zSc);
                 }
-                System.out.println("---------------------------------");
-                for (double zSc : MainUtilities.improvmentScoreSet2) {
-                    System.out.println("imp score: " + zSc);
-                }
-                System.exit(0);
 
+//                for (String SEDS : MainUtilities.finalScoreSEMap.keySet()) {
+//                    System.out.println("------------SE-DS-------" + SEDS + "-----------------------");
+//                    DescriptiveStatistics ds = new DescriptiveStatistics();
+//                    for (double zSc : MainUtilities.finalScoreSEMap.get(SEDS)) {
+//                        if (zSc > 0) {
+//                            ds.addValue(zSc);
+//                        }
+//                        System.out.println("final score: " + zSc);
+//                    }
+//                    System.out.println(" quartiles ds 5% " + ds.getPercentile(5) + "    ds 25% " + ds.getPercentile(25) + "   median " + ds.getPercentile(50) + "  large change " + ds.getPercentile(75));
+//                    System.out.println("----------------------------------------------------------------------------------");
+//                }
+//                System.out.println("final score limits " + MainUtilities.totalFinalScore.first() + "   " + MainUtilities.totalFinalScore.last() + "    " + MainUtilities.totalFinalScore.size());
+//                DescriptiveStatistics ds = new DescriptiveStatistics();
+//                for (double zSc : MainUtilities.totalFinalScore) {
+//                    if (zSc > 0) {
+//                        ds.addValue(zSc);
+//                    }
+////                    System.out.println("final score: " + zSc);
+//                }
+//                System.out.println("---------------------------------total final score quartiles ds 5% " + ds.getPercentile(5) + "    ds 25% " + ds.getPercentile(25) + "   median " + ds.getPercentile(50) + "  large change " + ds.getPercentile(75));
+//                for (double zSc : MainUtilities.improvmentScoreSet2) {
+//                    System.out.println("imp score: " + zSc);
+//                }
+//                System.exit(0);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                MainUtilities.cleanOutputFolder();
+                MainUtilities.cleanOutputFolder("");
                 System.exit(0);
             }
         }
@@ -160,9 +172,10 @@ public class OptProt {
             }
         }
 
-        Controller controller = new Controller();
-        controller.processDataset(datasetId, msFiles.get(0), fastaFile, searchParamFile, searchOpParameter, wholeDataTest, fullFasta, paramOrder, useOreginalInputs);
-        MainUtilities.cleanOutputFolder();
+        Controller controller = new Controller(searchOpParameter);
+        controller.processDataset(msFiles.get(0), fastaFile, searchParamFile, wholeDataTest, fullFasta, paramOrder, useOreginalInputs);
+        MainUtilities.cleanOutputFolder(datasetId);
+        MainUtilities.finalScoreSet.clear();
 
     }
 }
