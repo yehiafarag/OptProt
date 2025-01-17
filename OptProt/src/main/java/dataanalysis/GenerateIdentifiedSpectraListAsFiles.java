@@ -19,7 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
-import no.uib.probe.optprot.util.MainUtilities;
+import no.uib.probe.quickprot.util.MainUtilities;
 import org.xmlpull.v1.XmlPullParserException;
 
 /**
