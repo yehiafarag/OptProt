@@ -46,74 +46,72 @@ public abstract class CommonSearchHandler {
      */
     private final ModificationFactory ptmFactory = ModificationFactory.getInstance();
 
-    /**
-     * Optimize digestion enzyme
-     *
-     * @param optProtDataset
-     * @param identificationParametersFile
-     * @param optimisedSearchParameter
-     * @param parameterScoreSet
-     * @return
-     * @throws IOException
-     */
-    public String CalculateEnzymeComparisonsBasedThreshold(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter) throws IOException {
-
-        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-        Map<RawScoreModel, String> resultsMapI = Collections.synchronizedMap(new TreeMap<>());
-        String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
-        String bestPerformanceEnzyme = "Trypsin";
-        //optimise enzyme  
-
-        //rerernce search with    Chymotrypsin (no P rule)   delete after get the data
-        boolean done = false;
-        ArrayList<Enzyme> enz = EnzymeFactory.getInstance().getEnzymes();
-        while (true) {
-            for (Enzyme enzyme : enz) {
-                if (enzyme.getName().replace(" ", "").equalsIgnoreCase("Trypsin(noPrule)")) {//|| enzyme.getName().replace(" ", "").contains("(noPrule)")
-                    continue;
-                }
-                oreginaltempIdParam.getSearchParameters().getDigestionParameters().clearEnzymes();
-                oreginaltempIdParam.getSearchParameters().getDigestionParameters().addEnzyme(enzyme);
-                oreginaltempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(enzyme.getName(), 2);
-                final String option = enzyme.getName();
-                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-                Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, identificationParametersFile);
-                    return scoreModel;
-                });
-                try {
-                    RawScoreModel scoreModel = f.get();
-                    MainUtilities.finalScoreThrSet.add(scoreModel.getRawFinalScore());
-
-                    System.out.println(done + " Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getIdPSMNumber() + "   " + "   ");
-
-                    resultsMapI.put(scoreModel, option);
-                } catch (InterruptedException | ExecutionException ex) {
-                    ex.printStackTrace();
-                }
-            }
-
-            if (done) {
-                SpectraUtilities.updateComparisonsThreshold(optProtDataset);
-                break;
-            }
-            TreeMap<RawScoreModel, String> sortMap = new TreeMap<>(resultsMapI);
-            optProtDataset.setActiveScoreModel(sortMap.firstKey());
-            bestPerformanceEnzyme = sortMap.lastEntry().getValue();
-            done = true;
-//            TreeMap<Integer, RawScoreModel> sortMap2 = new TreeMap<>();
-//            for (RawScoreModel key : resultsMapI.keySet()) {
-//                sortMap2.put(key.getIdPSMNumber(), key);
+//    /**
+//     * Optimize digestion enzyme
+//     *
+//     * @param optProtDataset
+//     * @param identificationParametersFile
+//     * @param optimisedSearchParameter
+//     * @param parameterScoreSet
+//     * @return
+//     * @throws IOException
+//     */
+//    public String CalculateEnzymeComparisonsBasedThreshold(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter) throws IOException {
+//
+//        IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
+//        Map<RawScoreModel, String> resultsMapI = Collections.synchronizedMap(new TreeMap<>());
+//        String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
+//        String bestPerformanceEnzyme = "Trypsin";
+//        //optimise enzyme  
+//
+//        //rerernce search with    Chymotrypsin (no P rule)   delete after get the data
+//        boolean done = false;
+//        ArrayList<Enzyme> enz = EnzymeFactory.getInstance().getEnzymes();
+//        while (true) {
+//            for (Enzyme enzyme : enz) {
+//                if (enzyme.getName().replace(" ", "").equalsIgnoreCase("Trypsin(noPrule)")) {//|| enzyme.getName().replace(" ", "").contains("(noPrule)")
+//                    continue;
+//                }
+//                oreginaltempIdParam.getSearchParameters().getDigestionParameters().clearEnzymes();
+//                oreginaltempIdParam.getSearchParameters().getDigestionParameters().addEnzyme(enzyme);
+//                oreginaltempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(enzyme.getName(), 2);
+//                final String option = enzyme.getName();
+//                final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
+//                Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
+//                    RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, identificationParametersFile);
+//                    return scoreModel;
+//                });
+//                try {
+//                    RawScoreModel scoreModel = f.get();
+//                    System.out.println(done + " Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getIdPSMNumber() + "   " + "   ");
+//
+//                    resultsMapI.put(scoreModel, option);
+//                } catch (InterruptedException | ExecutionException ex) {
+//                    ex.printStackTrace();
+//                }
 //            }
-//             optProtDataset.setActiveScoreModel(sortMap2.firstEntry().getValue());
+//
+//            if (done) {
+//                SpectraUtilities.updateComparisonsThreshold(optProtDataset);
+//                break;
+//            }
+//            TreeMap<RawScoreModel, String> sortMap = new TreeMap<>(resultsMapI);
+//            optProtDataset.setActiveScoreModel(sortMap.firstKey());
 //            bestPerformanceEnzyme = sortMap.lastEntry().getValue();
-            System.out.println("lowest enzyme score is " + sortMap.firstEntry().getValue() + "   bestEnzyme " + bestPerformanceEnzyme);
-
-            //optimize specifty 
-        }
-        return bestPerformanceEnzyme;
-
-    }
+//            done = true;
+////            TreeMap<Integer, RawScoreModel> sortMap2 = new TreeMap<>();
+////            for (RawScoreModel key : resultsMapI.keySet()) {
+////                sortMap2.put(key.getIdPSMNumber(), key);
+////            }
+////             optProtDataset.setActiveScoreModel(sortMap2.firstEntry().getValue());
+////            bestPerformanceEnzyme = sortMap.lastEntry().getValue();
+//            System.out.println("lowest enzyme score is " + sortMap.firstEntry().getValue() + "   bestEnzyme " + bestPerformanceEnzyme);
+//
+//            //optimize specifty 
+//        }
+//        return bestPerformanceEnzyme;
+//
+//    }
 
     public String optimizeDigestionCleavageParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
@@ -237,7 +235,7 @@ public abstract class CommonSearchHandler {
                 try {
                     RawScoreModel scoreModel = f.get();
                     System.out.println("Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getIdPSMNumber() + "   " + scoreModel + "   ");
-
+                   
                     if (scoreModel.isSensitiveChange()) {
                         resultsMapI.put(option, scoreModel);
                     }
@@ -981,7 +979,6 @@ public abstract class CommonSearchHandler {
                     filterVMMap.get(modPattern).put(resultsMap.get(modId).getFinalScore(), modId);
 
                 }
-//                System.out.println("filtered --------------->> " + counter + "  vm are " + filterVMMap);
                 Set<String> toRemove = new HashSet();
                 for (String patteren : filterVMMap.keySet()) {
                     if (patteren.contains("-")) {
@@ -1021,7 +1018,7 @@ public abstract class CommonSearchHandler {
                 TreeSet<SortedPTMs> sorePtms = new TreeSet<>(Collections.reverseOrder());
                 for (String mod : resultsMap.keySet()) {
                     if (resultsMap.get(mod).isSensitiveChange()) {
-                        sorePtms.add(new SortedPTMs(mod, resultsMap.get(mod).getFinalScore(), 0));
+                        sorePtms.add(new SortedPTMs(mod, resultsMap.get(mod).getRawFinalScore(), 0));
 
                     }
                 }
@@ -1057,8 +1054,8 @@ public abstract class CommonSearchHandler {
         counter = 0;
         thre = 0;
         filterVMMap.clear();
-        while (selectedVariableModificationOption.size() <= 4) {
-            resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialTerminalMods, false, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, counter + "" + prefix, false));
+        while (selectedVariableModificationOption.size() < 4 && counter<4) {
+            resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialTerminalMods, false, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, counter + "" + prefix, true));
             filterVMMap.clear();
             if (!resultsMap.isEmpty()) {
                 for (String modId : resultsMap.keySet()) {
@@ -1100,7 +1097,7 @@ public abstract class CommonSearchHandler {
                 }
                 String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
                 System.out.println("best left : " + toRemove);
-                if (resultsMap.get(bestMod).getFinalScore() > thre) {
+                if (resultsMap.get(bestMod).isSensitiveChange()) {
                     System.out.println("add new vm " + bestMod + " thr " + thre + " counter  " + counter + "  score: " + resultsMap.get(bestMod));
                     selectedVariableModificationOption.add(bestMod);
                     optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
@@ -1120,7 +1117,7 @@ public abstract class CommonSearchHandler {
                 TreeSet<SortedPTMs> sorePtms = new TreeSet<>(Collections.reverseOrder());
                 for (String mod : resultsMap.keySet()) {
                     if (resultsMap.get(mod).isSensitiveChange()) {
-                        sorePtms.add(new SortedPTMs(mod, resultsMap.get(mod).getFinalScore(), 0));
+                        sorePtms.add(new SortedPTMs(mod, resultsMap.get(mod).getRawFinalScore(), 0));
 
                     }
                 }
@@ -1128,7 +1125,7 @@ public abstract class CommonSearchHandler {
                 potintialTerminalMods.clear();
                 int subCounter = selectedVariableModificationOption.size();
                 for (SortedPTMs mod : sorePtms) {
-                    if (subCounter > 4) {
+                    if (subCounter >= 4) {
                         break;
                     }
                     potintialTerminalMods.add(mod.getName());

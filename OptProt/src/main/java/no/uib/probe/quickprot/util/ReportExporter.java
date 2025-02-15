@@ -147,7 +147,8 @@ public class ReportExporter {
             System.out.println("can not export un exist dataset " + datasetId);
             return;
         }
-        File reportFile = new File(dataset.getSubDataFolder(), dataset.getSubMsFile().getName() + ".txt");
+        String pathToRemoteResults ="C:\\Users\\yfa041\\OneDrive - University of Bergen\\quickprotResults";//dataset.getSubDataFolder()
+        File reportFile = new File(pathToRemoteResults, dataset.getSubMsFile().getName()+"_"+searchEngine.getName() + "_.txt");
         IdentificationParameters optimisedSearchParameter;
         try {
             optimisedSearchParameter = IdentificationParameters.getIdentificationParameters(optimisedSearchParameterFile);

@@ -28,11 +28,13 @@ public class QuickProt {
         SwingUtilities.invokeLater(() -> {
             try {
                 Map<Advocate, List<String>> paramOrderMap = new HashMap<>();
-                Set<Advocate> supportedSearchEngine = new LinkedHashSet<>();
-                supportedSearchEngine.add(Advocate.sage);
-                paramOrderMap.put(Advocate.sage, SageParameterOrderSettings.Get_Sage_Parameters_List());
+
+                Set<Advocate> supportedSearchEngine = new LinkedHashSet<>(); 
                 supportedSearchEngine.add(Advocate.xtandem);
                 paramOrderMap.put(Advocate.xtandem, XtandemParameterOrderSettings.Get_Xtandem_Parameters_List());
+                supportedSearchEngine.add(Advocate.sage);
+                paramOrderMap.put(Advocate.sage, SageParameterOrderSettings.Get_Sage_Parameters_List());
+               
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
                 if (args == null || args.length == 0) {
                     datasettoTestSet.add("PXD028427");    //1
@@ -47,7 +49,7 @@ public class QuickProt {
                     datasettoTestSet.addAll(Arrays.asList(args));
                     System.exit(0);
                 }
-                boolean cleanAll = false;
+                boolean cleanAll = true;
                 SearchInputSetting searchOpParameter = new SearchInputSetting();
                 boolean all = true;
                 boolean useFullFasta = false;
@@ -70,33 +72,26 @@ public class QuickProt {
                 boolean sub = true;
                 boolean full = false;
                 for (Advocate se : supportedSearchEngine) {
-
+                    MainUtilities.getParamScoreSet().clear();
                     searchOpParameter.setSelectedSearchEngine(se);
                     for (String datasetId : datasettoTestSet) {
                         searchOpParameter.setDatasetId(datasetId);
                         MainUtilities.cleanOutputFolder(datasetId);
                         if (sub) {
-////////                        cleanAll = true;
                             System.out.println("--------------------------------------------------------- ds " + datasetId + "----------------------------------------------");
                             runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, false, useFullFasta, false);
                             MainUtilities.cleanOutputFolder(datasetId);
                             MainUtilities.getParamScoreSet().clear();
                         }
                         if (full) {
-//                        cleanAll = false;
                             System.out.println("---------------------------------------------------------full-" + datasetId + "----------------------------------------------");
-                            runDataset(datasetId, cleanAll, paramOrderMap.get(se), searchOpParameter, true, useFullFasta, useOreginalInputs);
+                            runDataset(datasetId, false, paramOrderMap.get(se), searchOpParameter, true, useFullFasta, useOreginalInputs);
                             MainUtilities.cleanOutputFolder(datasetId);
                             MainUtilities.getParamScoreSet().clear();
                         }
-                        int x = 1;
-                        for (Double range : MainUtilities.paramScoreRange.keySet()) {
-                            System.out.println(x + " - " + MainUtilities.paramScoreRange.get(range) + "  " + range);
-                            x++;
-                        }
                         MainUtilities.getParamScoreSet().clear();
                     }
-
+//                    cleanAll = true;
                 }
             } catch (Exception e) {
                 e.printStackTrace();

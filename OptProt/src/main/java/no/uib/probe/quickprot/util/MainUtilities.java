@@ -30,14 +30,8 @@ public class MainUtilities {
     private static ExecutorService executor2;// = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors() / 2;
     private static ExecutorService executor;// = new ThreadPoolExecutor(AVAILABLE_PROCESSORS, AVAILABLE_PROCESSORS, 5, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10));
-    public static TreeSet<Double> finalScoreThrSet = new TreeSet<>();
-    private static TreeSet<Double> paramScoreSet = new TreeSet<>();
-    public static TreeSet<Double> totalFinalScore = new TreeSet<>();
+    private static final TreeSet<Double> paramScoreSet = new TreeSet<>();
 
-    public static TreeMap<Double, String> paramScoreRange = new TreeMap<>(Collections.reverseOrder());
-
-    public static TreeSet<Double> zScoreSet2 = new TreeSet<>();
-    public static TreeMap<String, TreeSet<Double>> finalScoreSEMap = new TreeMap<>();
 
     static {
         System.out.println(" " + AVAILABLE_PROCESSORS + "  ");

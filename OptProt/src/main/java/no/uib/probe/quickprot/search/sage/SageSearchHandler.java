@@ -413,6 +413,9 @@ public class SageSearchHandler extends CommonSearchHandler {
             potintialFP = true;
             System.out.println("at param name is " + paramOption + "  " + validatedMaches.size());
         }
+        if (paramOption.contains("charge-")) {
+           potintialFP=true;
+        }
 
         if (paramOption.contains("_")) {
             paramOption = paramOption.split("_")[1];

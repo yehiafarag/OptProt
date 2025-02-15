@@ -1,5 +1,5 @@
 
-package no.uib.probe.quickprot.util;
+package no.uib.probe.quickprot.arc;
 
 import java.util.ArrayList;
 import java.util.Arrays;

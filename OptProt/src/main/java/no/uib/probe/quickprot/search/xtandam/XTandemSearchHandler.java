@@ -69,6 +69,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
         potintialFalsePostiveParamSet.add("precursorAccuracy");
         potintialFalsePostiveParamSet.add("fragmentAccuracy");
         potintialFalsePostiveParamSet.add("usePotintialModification");
+        
 //        potintialFalsePostiveParamSet.addAll(ptmFactory.getModifications(ModificationCategory.Common));
         potintialFalsePostiveParamSet.addAll(ptmFactory.getModifications(ModificationCategory.Common_Biological));
         potintialFalsePostiveParamSet.addAll(ptmFactory.getModifications(ModificationCategory.Common_Artifact));
@@ -174,7 +175,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                SpectraUtilities.checkScoreForParam(param);
+           
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
 
                 continue;
@@ -184,7 +185,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
 
-                SpectraUtilities.checkScoreForParam(param);
+                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -210,7 +211,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                SpectraUtilities.checkScoreForParam(param);
+               
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
 
@@ -225,7 +226,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 }
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
 
-                SpectraUtilities.checkScoreForParam(param);
+                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -239,7 +240,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                SpectraUtilities.checkScoreForParam(param);
+                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -264,7 +265,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 System.out.println("is Quick pyro " + xtandemParameters.isQuickPyrolidone() + "   is quick acytil " + xtandemParameters.isProteinQuickAcetyl());
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                SpectraUtilities.checkScoreForParam(param);
+                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -304,7 +305,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                SpectraUtilities.checkScoreForParam(param);
+                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
 
                 continue;
@@ -322,7 +323,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
 
-                SpectraUtilities.checkScoreForParam(param);
+                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -357,7 +358,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 MainUtilities.resetExecutorService();
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                SpectraUtilities.checkScoreForParam(param);
+                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -386,7 +387,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 //              
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                SpectraUtilities.checkScoreForParam(param);
+                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -419,7 +420,6 @@ public class XTandemSearchHandler extends CommonSearchHandler {
 
         }
         if (!enzymeSpecificityOpt.equalsIgnoreCase("specific")) {
-
             identificationParameters.getSearchParameters().getDigestionParameters().setSpecificity(identificationParameters.getSearchParameters().getDigestionParameters().getEnzymes().get(0).getName(), DigestionParameters.Specificity.valueOf(enzymeSpecificityOpt));
             IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 
@@ -476,8 +476,11 @@ public class XTandemSearchHandler extends CommonSearchHandler {
             }
         }
         boolean potintialFP = false;
-        if (potintialFalsePostiveParamSet.contains(paramOption.split("_")[0]) && !defaultOutputFileName.contains("optsearch_results0v_") && !defaultOutputFileName.contains("optsearch_results1v_")) {
+        if ((potintialFalsePostiveParamSet.contains(paramOption.split("_")[0]) && !defaultOutputFileName.contains("optsearch_results0v_") && !defaultOutputFileName.contains("optsearch_results1v_"))) {
             potintialFP = true;
+        } 
+        if (paramOption.contains("charge-")) {
+           potintialFP=true;
         }
 
         if (paramOption.contains("_")) {

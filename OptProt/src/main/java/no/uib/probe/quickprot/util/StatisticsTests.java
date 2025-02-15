@@ -6,6 +6,7 @@ package no.uib.probe.quickprot.util;
 
 import java.util.Arrays;
 import org.apache.commons.math.stat.correlation.PearsonsCorrelation;
+import org.apache.commons.math3.distribution.TDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.inference.ChiSquareTest;
 import org.apache.commons.math3.stat.inference.TTest;
@@ -27,17 +28,6 @@ public class StatisticsTests {
     }
 
     public static double independentZTest(DescriptiveStatistics referenceSamples, DescriptiveStatistics improvedSample) {
-//        int n1 = sample1.length;
-//        int n2 = sample2.length;
-//
-//        double mean1 = mean(sample1);
-//        double mean2 = mean(sample2);
-//
-//        double std1 = stdDev(sample1);
-//        double std2 = stdDev(sample2);
-//
-//        double z = (mean1 - mean2) / Math.sqrt((std1 * std1 / n1) + (std2 * std2 / n2));
-//        return z;
         double mean1 = referenceSamples.getMean();
         double mean2 = improvedSample.getMean();
         double variance1 = referenceSamples.getVariance();
@@ -47,6 +37,17 @@ public class StatisticsTests {
         double zScore = (mean2 - mean1) / standardError;
         return zScore;
 
+    }
+    public static int calculateDegreesOfFreedom(int n1, int n2) {
+        return n1 + n2 - 2;
+    }
+
+    public static double getCriticalValue(double alpha, int df) {
+        // Create a T-distribution object with the given degrees of freedom
+        TDistribution tDist = new TDistribution(df);
+        // Calculate the critical value for a two-tailed test
+        double criticalValue = tDist.inverseCumulativeProbability(1 - alpha / 2);
+        return criticalValue;
     }
 
     public static double pairedZTest(DescriptiveStatistics referenceSamples, DescriptiveStatistics improvedSample) {

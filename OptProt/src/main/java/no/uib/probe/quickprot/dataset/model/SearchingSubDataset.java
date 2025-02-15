@@ -231,6 +231,7 @@ public class SearchingSubDataset {
 //    }
     public void updateMaxScore(double max){
     basicComparisonThreshold=0.05*max;
+        System.out.println("basic comparison "+basicComparisonThreshold);
 //     this.comparisonsThresholdList.set(5,Math.max(max*2.0,comparisonsThresholdList.get(5)));
     }
 

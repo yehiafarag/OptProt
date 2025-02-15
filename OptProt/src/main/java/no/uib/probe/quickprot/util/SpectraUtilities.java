@@ -880,21 +880,21 @@ public class SpectraUtilities {
 //        double ratio2 = (1.0 - ratio1);// (double) Math.max(onlyToData.size(), uniqueReferenceData.size()) / totalSampleSize;   //Math.max(onlyToData.size(), onlyFromData.size()) / (double) optProtDataset.getSubsetSize();//Math.max(onlyToData.size(), onlyFromData.size()) / totalSampleSize;   //
 
             double uniqueSize = (testUniqueData.length + referenceUniqueData.length);
-            if (testUniqueData.length <= 4 && referenceUniqueData.length > 4) {
-                uniqueSize = (2.0 * referenceUniqueData.length);
-            } else if (referenceUniqueData.length <= 4 && testUniqueData.length > 4) {
-                uniqueSize = (2.0 * testUniqueData.length);
-            }
+//            if (testUniqueData.length <= 4 && referenceUniqueData.length > 4) {
+//                uniqueSize = (2.0 * referenceUniqueData.length);
+//            } else if (referenceUniqueData.length <= 4 && testUniqueData.length > 4) {
+//                uniqueSize = (2.0 * testUniqueData.length);
+//            }
 
             double ratio2 = uniqueSize / totalSampleSize;// (double) Math.max(onlyToData.size(), uniqueReferenceData.size()) / totalSampleSize;   //Math.max(onlyToData.size(), onlyFromData.size()) / (double) optProtDataset.getSubsetSize();//Math.max(onlyToData.size(), onlyFromData.size()) / totalSampleSize;   //
 
             double score2 = SpectraUtilities.compareData(referenceUniqueData, testUniqueData, false);
             double adjustedScore1 = score1 * ratio1;
             double adjustedScore2 = score2 * ratio2;
-            if (referenceUniqueData.length <= 4 && testUniqueData.length <= 4) {
-                System.out.println("------------------------------ignor S2 ");
-                adjustedScore2 = adjustedScore1;
-            }
+//            if (referenceUniqueData.length <= 4 && testUniqueData.length <= 4) {
+//                System.out.println("------------------------------ignor S2 ");
+//                adjustedScore2 = adjustedScore1;
+//            }
 
             double finalScore = adjustedScore1 + adjustedScore2;
             System.out.println("at uniqueTestData.size() " + uniqueTestData.size() + "   uniqueReferenceData.size() " + uniqueReferenceData.size() + "  sharedReferenceData " + sharedReferenceData.size());
@@ -914,7 +914,7 @@ public class SpectraUtilities {
             boolean accepted = rawScore.getFinalScore() >= optProtDataset.getBasicComparisonThreshold();
             rawScore.setAcceptedChange(accepted);
             boolean senstive = false;
-            if (rawScore.getFinalScore() > optProtDataset.getBasicComparisonThreshold()) {
+            if (rawScore.getFinalScore() > 0) {
                 senstive = true;
             } else if (optProtDataset.getCurrentScoreModel() != null && (rawScore.getFinalScore() >= (-1.0 * optProtDataset.getBasicComparisonThreshold()) && matches.size() > (double) optProtDataset.getIdentifiedPSMsNumber())) {
                 senstive = true;
@@ -1390,17 +1390,7 @@ public class SpectraUtilities {
 
     public static void updateComparisonsThreshold(SearchingSubDataset searchDataset) {
         //estimate scores now to compare 
-        DescriptiveStatistics ds = new DescriptiveStatistics();
-        for (double zSc : MainUtilities.finalScoreThrSet) {
-            if (zSc > 0) {
-                ds.addValue(zSc);
-                System.out.println("ZSC " + zSc);
-            }
-
-        }
-        System.out.println("----------------------------------------initial ------------------------------------------");
-        System.out.println(" quartiles ds 5% " + ds.getPercentile(5) + "    ds 25% " + ds.getPercentile(25) + "   median " + ds.getPercentile(50) + "  large change " + ds.getPercentile(75) + "  max " + ds.getMax());
-        MainUtilities.finalScoreThrSet.clear();
+        DescriptiveStatistics ds = new DescriptiveStatistics();       
         if (Double.isInfinite(ds.getPercentile(5)) || Double.isNaN(ds.getPercentile(5))) {
 //            return;
             System.out.println("NaN or infint thr " + ds.getPercentile(5));
@@ -1410,20 +1400,7 @@ public class SpectraUtilities {
 
     }
 
-    public static void checkScoreForParam(String paramName) {
-        System.out.println("Param is " + paramName);
-        //estimate scores now to compare 
-        DescriptiveStatistics ds = new DescriptiveStatistics();
-        for (double zSc : MainUtilities.getParamScoreSet()) {
-            ds.addValue(zSc);
-
-        }
-        MainUtilities.getParamScoreSet().clear();
-        System.out.println("----------------------------------------Scores ------------------------------------------");
-        System.out.println(" quartiles ds 5% " + ds.getPercentile(5) + "    ds 25% " + ds.getPercentile(25) + "   median " + ds.getPercentile(50) + "  large change " + ds.getPercentile(75) + "  max " + ds.getMax() + "   Range " + (ds.getMax() - ds.getMin()));
-        MainUtilities.paramScoreRange.put((ds.getMax() - ds.getMin()), paramName);
-
-    }
+   
 
     public static double isBetterScore(List<SpectrumMatch> referenceData, List<SpectrumMatch> toData, double totalSize) {
         List<Double> sharedTestData = new ArrayList<>();
@@ -1495,21 +1472,21 @@ public class SpectraUtilities {
         double totalSampleSize = 2.0 * totalSize;// uniqueReferenceData.size() + uniqueTestData.size() + sharedTestData.size() + sharedReferenceData.size();// toSharedData.length + uniqueReferenceData.size();
         double ratio1 = (double) (2.0 * sharedReferenceData.size()) / totalSampleSize; //1;//
         double uniqueSize = (toOnlyData.length + referenceUniqueData.length);
-        if (toOnlyData.length <= 4 && referenceUniqueData.length > 4) {
-            uniqueSize = (2.0 * referenceUniqueData.length);
-        } else if (referenceUniqueData.length <= 4 && toOnlyData.length > 4) {
-            uniqueSize = (2.0 * toOnlyData.length);
-        }
+//        if (toOnlyData.length <= 4 && referenceUniqueData.length > 4) {
+//            uniqueSize = (2.0 * referenceUniqueData.length);
+//        } else if (referenceUniqueData.length <= 4 && toOnlyData.length > 4) {
+//            uniqueSize = (2.0 * toOnlyData.length);
+//        }
         double ratio2 = uniqueSize / totalSampleSize;
 
         double adjustedScore1 = score1 * ratio1;//* (1.0 - ratio);
         double adjustedScore2 = score2 * ratio2;//ratio;
 
-        if (referenceUniqueData.length <= 4 && toOnlyData.length <= 4) {
-            adjustedScore2 = adjustedScore1;
-        } else if (sharedTestData.size() <= 4) {
-            adjustedScore1 = adjustedScore2;
-        }
+//        if (referenceUniqueData.length <= 4 && toOnlyData.length <= 4) {
+//            adjustedScore2 = adjustedScore1;
+//        } else if (sharedTestData.size() <= 4) {
+//            adjustedScore1 = adjustedScore2;
+//        }
 
         double finalScore = adjustedScore1 + adjustedScore2;
         if (Double.isNaN(finalScore)) {
