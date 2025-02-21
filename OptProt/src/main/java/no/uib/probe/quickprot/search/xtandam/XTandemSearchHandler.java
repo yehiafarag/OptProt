@@ -582,7 +582,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
 //                sortedResultsMap.put(resultsMap.get(option), option);
 //            }
 //            selectedOption = sortedResultsMap.firstEntry().getValue();
-            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize()));
+            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
@@ -640,7 +640,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
         }
         xtandemParameters.setnPeaks(selectedOption);
         if (!resultsMap.isEmpty()) {
-            selectedOption = Integer.valueOf(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize()));
+            selectedOption = Integer.valueOf(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
@@ -691,7 +691,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize()));
+            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
@@ -849,7 +849,9 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 return scoreModel;
             });
             try {
+               
                 RawScoreModel scoreModel = f.get();
+                System.out.println("parent istop "+scoreModel);
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }

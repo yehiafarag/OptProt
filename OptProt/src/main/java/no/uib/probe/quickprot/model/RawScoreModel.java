@@ -9,9 +9,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import no.uib.probe.quickprot.util.MainUtilities;
-import no.uib.probe.quickprot.util.ScoreComparison;
-import no.uib.probe.quickprot.util.SpectraUtilities;
 
 /**
  *

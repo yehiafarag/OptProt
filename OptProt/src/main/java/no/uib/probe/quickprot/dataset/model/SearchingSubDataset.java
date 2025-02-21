@@ -6,6 +6,7 @@ package no.uib.probe.quickprot.dataset.model;
 
 import com.compomics.util.experiment.identification.matches.SpectrumMatch;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,14 @@ public class SearchingSubDataset {
     private boolean fullDataSpectaInput;
     private Set<String> potintialVariableMod;
     private final Map<String, Double> fullSpectraScore = new LinkedHashMap<>();
+    private List<SpectrumMatch> vaildatedPsmMaches = new ArrayList<>();
+
+    public List<SpectrumMatch> getVaildatedPsmMaches() {
+        return vaildatedPsmMaches;
+    }
+
+   
+    
 
     public void setSpectraTitiles(String[] titiles) {
         for (String titile : titiles) {
@@ -99,8 +108,10 @@ public class SearchingSubDataset {
     public void updateValidatedIdRefrenceData(List<SpectrumMatch> validatedIdRefrenceData) {
         this.resetSpectraScoreMap();
         this.identifiedPSMsNumber = validatedIdRefrenceData.size();
+        this.vaildatedPsmMaches=validatedIdRefrenceData;
         for (SpectrumMatch sm : validatedIdRefrenceData) {
             fullSpectraScore.replace(sm.getSpectrumTitle(), sm.getBestPeptideAssumption().getRawScore());
+            
         }
 
     }
@@ -230,9 +241,8 @@ public class SearchingSubDataset {
 //
 //    }
     public void updateMaxScore(double max){
-    basicComparisonThreshold=0.05*max;
-        System.out.println("basic comparison "+basicComparisonThreshold);
-//     this.comparisonsThresholdList.set(5,Math.max(max*2.0,comparisonsThresholdList.get(5)));
+        System.out.println("max score "+max+"  "+basicComparisonThreshold);
+    basicComparisonThreshold=Math.max(0.05*max,basicComparisonThreshold);
     }
 
     public RawScoreModel getCurrentScoreModel() {

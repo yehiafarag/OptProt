@@ -21,21 +21,6 @@ public class XtandemParameterOrderSettings {
         paramOrder.add("ModificationParameter");//
         paramOrder.add("XtandemAdvancedParameter_B");
 
-//// xtandem stage 2
-//
-//        // xtandem stage 1
-//        paramOrder.add("DigestionParameter");
-//        paramOrder.add("FragmentIonTypesParameter");
-//        paramOrder.add("PrecursorChargeParameter");
-////        paramOrder.add("IsotopParameter");
-//        paramOrder.add("XtandemAdvancedParameter");
-////// xtandem stage 2
-//        paramOrder.add("XtandemAdvancedParameter_A");//                
-//        paramOrder.add("ModificationParameter");
-//        paramOrder.add("XtandemAdvancedParameter_B");
-////
-//        paramOrder.add("PrecursorToleranceParameter");
-//        paramOrder.add("FragmentToleranceParameter");
         return paramOrder;
     }
 

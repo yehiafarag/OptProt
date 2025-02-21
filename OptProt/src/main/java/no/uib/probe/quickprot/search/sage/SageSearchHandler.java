@@ -501,7 +501,7 @@ public class SageSearchHandler extends CommonSearchHandler {
             }
         }
         if (!resultsMap.isEmpty()) {
-            selectedMaxPeptideLengthOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize()));
+            selectedMaxPeptideLengthOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeptideLengthOption + ""));
         }
         sageParameter.setMaxPeptideLength(selectedMaxPeptideLengthOption);
@@ -552,7 +552,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedMinPeptideMassOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -583,7 +583,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedMaxPeptideMassOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -627,7 +627,7 @@ public class SageSearchHandler extends CommonSearchHandler {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -677,7 +677,7 @@ public class SageSearchHandler extends CommonSearchHandler {
 
         if (!resultsMap.isEmpty()) {
 
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedMinFragmentMzOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -712,7 +712,7 @@ public class SageSearchHandler extends CommonSearchHandler {
             i += 250;
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedMaxFragmentMzOption = Double.parseDouble(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -763,7 +763,7 @@ public class SageSearchHandler extends CommonSearchHandler {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -807,7 +807,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            int bestOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize()));
+            int bestOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
             selectedOption = bestOption == 1;
             double impact = Math.round((double) (resultsMap.get(bestOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
@@ -853,7 +853,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -893,7 +893,7 @@ public class SageSearchHandler extends CommonSearchHandler {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -938,7 +938,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedOption = Integer.parseInt(bestOption) == 1;
 //            optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
             paramScore.setComments("Slow processing");
@@ -983,7 +983,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
         sageParameters.setPredictRt(selectedOption);
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedOption = Integer.parseInt(bestOption) == 1;
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
             sageParameters.setPredictRt(selectedOption);
@@ -1039,7 +1039,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//            
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//            
             selectedMinPeaksNumberOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
 
@@ -1061,7 +1061,7 @@ public class SageSearchHandler extends CommonSearchHandler {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                if ((scoreModel.getFinalScore() > 0)) {
+                if ((scoreModel.getRawFinalScore()> 0)) {
                     resultsMap.put(j + "", scoreModel);
                 } else if (j > selectedMaxPeaksNumberOption && !scoreModel.isSensitiveChange()) {
                     break;
@@ -1073,8 +1073,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-
-            selectedMaxPeaksNumberOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize()));
+            selectedMaxPeaksNumberOption = Integer.parseInt(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeaksNumberOption + ""));
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedMaxPeaksNumberOption + ""));
         }
@@ -1116,7 +1115,7 @@ public class SageSearchHandler extends CommonSearchHandler {
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -1161,7 +1160,7 @@ public class SageSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());//  
+            String bestOption = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);//  
             selectedOption = Integer.parseInt(bestOption);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestOption));
         }
@@ -1177,14 +1176,12 @@ public class SageSearchHandler extends CommonSearchHandler {
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         final String option = "reference_run_default_";
         final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
         Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
             RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, generatedIdentificationParametersFile);
             return scoreModel;
         });
         try {
             RawScoreModel scoreModel = f.get();
-            System.out.println("reference run " + scoreModel);
             optProtDataset.setActiveScoreModel(scoreModel);
         } catch (ExecutionException | InterruptedException ex) {
             ex.printStackTrace();

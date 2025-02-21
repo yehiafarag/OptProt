@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.inference.MannWhitneyUTest;
 import org.apache.commons.math3.stat.inference.TTest;
+import org.apache.commons.math3.stat.inference.TestUtils;
 import org.apache.commons.math3.stat.inference.WilcoxonSignedRankTest;
 
 public class ScoreComparison {
@@ -39,6 +40,7 @@ public class ScoreComparison {
         if (ds.getPercentile(50.0) == 0.0) {//|| 
             return ds.getMean();
         }
+
         return ds.getPercentile(50.0);
     }
 //rank-based Cohen's d
@@ -168,23 +170,87 @@ public class ScoreComparison {
         return normalizedScore;
     }
 
-    public double calculateScore(double[] referenceInputData, double[] improvedInputData, boolean paired) {
+    public double calculateScore(double[] referenceInputData, double[] testInputData, boolean paired) {
 
         double[] referenceScores = referenceInputData;
-        double[] improvedScores = improvedInputData;
-        if (referenceScores.length < 2 && improvedScores.length < 2) {
+        double[] testScores = testInputData;
+        if (referenceScores.length < 2 && testScores.length < 2) {
+            return 0;//new double[]{0, 0, 0, 0, 0, 0};
+        }
+        DescriptiveStatistics referenceData = new DescriptiveStatistics(referenceScores);
+        DescriptiveStatistics improvedData = new DescriptiveStatistics(testScores);
+        if (Double.isNaN(referenceData.getPercentile(50)) && Double.isNaN(improvedData.getPercentile(50))) {
+            System.out.println("both nan " + referenceData.getGeometricMean() + "   " + referenceData.getN() + "  " + improvedData.getN());
+            return 0;
+        }
+        double improvmentScorePersentage;
+        if (paired) {
+            improvmentScorePersentage = percentageImprovementPaired(referenceScores, testScores);
+
+            return improvmentScorePersentage;
+        } else {
+            if (Double.isNaN(improvedData.getGeometricMean()) || Double.isNaN(referenceData.getGeometricMean())) {//|| (improvedData.getN() <= 4 && referenceData.getN() > 20)) {
+                if (referenceData.getN() > improvedData.getN()) {
+                    return -100;
+                } else if (referenceData.getN() < improvedData.getN()) {
+                    return 100;
+                } else {
+                    return 0;
+                }
+
+            }
+
+            int df = StatisticsTests.calculateDegreesOfFreedom((int) referenceData.getN(), (int) improvedData.getN());
+            if (df == 0) {
+                return 0;
+            }
+            double zRefTest = StatisticsTests.independentZTest(referenceData, improvedData);
+            // Significance level (alpha)
+            double alpha = 0.05;
+            // Degrees of freedom
+            // Calculate the critical value for a two-tailed test
+            double criticalValue = StatisticsTests.getCriticalValue(alpha, df);
+
+            if (!(Math.abs(zRefTest) > Math.abs(criticalValue)) || Double.isNaN(zRefTest)) {//|| (improvedData.getN() <= 4 && referenceData.getN() > 20)) {
+                System.out.println("unpatired data un balancd is here we need a way to compare or ignor ------improvedData.getGeometricMean() " + improvedData.getGeometricMean() + " referenceData.getGeometricMean() " + referenceData.getGeometricMean());
+
+//                double prec = ((double) Math.abs(referenceData.getN() - improvedData.getN())) / (double) Math.max(referenceData.getN(), improvedData.getN());
+//                prec *= 100.0;
+                double referenceMedian = referenceData.getGeometricMean();// referenceData.getPercentile(50);
+                double improvedMedian = improvedData.getGeometricMean();//improvedData.getPercentile(50);
+                improvmentScorePersentage = percentageImprovementIndependenet(referenceMedian, improvedMedian);
+//                if (referenceData.getN() > improvedData.getN()) {
+//                    System.out.println("improvment pers " + improvmentScorePersentage + "  " + (-1.0 * prec));
+//                    return -1.0 * prec;
+//                } else {
+//                    System.out.println("improvment pers " + improvmentScorePersentage + "  " + (prec));
+//                    return prec;
+//                }
+                return improvmentScorePersentage;
+            } else {
+                double referenceMedian = referenceData.getGeometricMean();// referenceData.getPercentile(50);
+                double improvedMedian = improvedData.getGeometricMean();//improvedData.getPercentile(50);
+                improvmentScorePersentage = percentageImprovementIndependenet(referenceMedian, improvedMedian);
+                return improvmentScorePersentage;
+
+            }
+
+        }
+
+    }
+
+    public double calculateScore1(double[] referenceInputData, double[] testInputData, boolean paired) {
+
+        double[] referenceScores = referenceInputData;
+        double[] testScores = testInputData;
+        if (referenceScores.length < 2 && testScores.length < 2) {
             return 0;//new double[]{0, 0, 0, 0, 0, 0};
         }
 
-//        if (referenceScores.length > improvedScores.length) {
-//            flip = true;
-//            referenceScores = improvedInputData;
-//            improvedScores = referenceInputData;
-//        }
         List<Double> valuesToScore = new ArrayList<>();
         DescriptiveStatistics referenceData = new DescriptiveStatistics(referenceScores);
-        DescriptiveStatistics improvedData = new DescriptiveStatistics(improvedScores);
-        if (Double.isNaN(referenceData.getGeometricMean()) && Double.isNaN(improvedData.getGeometricMean())) {
+        DescriptiveStatistics improvedData = new DescriptiveStatistics(testScores);
+        if (Double.isNaN(referenceData.getPercentile(50)) && Double.isNaN(improvedData.getPercentile(50))) {
             System.out.println("both nan " + referenceData.getGeometricMean() + "   " + referenceData.getN() + "  " + improvedData.getN());
             return 0;//new double[]{0, 0, 0, 0, 0, 0};
         }
@@ -194,8 +260,7 @@ public class ScoreComparison {
 //        double sizeEffect;
 //        double cohensD = 0;
         if (paired) {
-            improvmentScorePersentage = percentageImprovementPaired(referenceScores, improvedScores);
-            System.out.println("improved precentage score is "+improvmentScorePersentage);
+            improvmentScorePersentage = percentageImprovementPaired(referenceScores, testScores);
             return improvmentScorePersentage;
 //            if (improvmentScorePersentage == 0) {
 //                return 0;
@@ -220,13 +285,12 @@ public class ScoreComparison {
             double criticalValue = StatisticsTests.getCriticalValue(alpha, df);
 
 //            if ((Math.abs(zRefTest) > Math.abs(criticalValue)) != (Math.abs(mwTest) > Math.abs(criticalValue))) {
-            System.out.println("------------->>>  Critical value: " + criticalValue + "  diffrent is sig  " + (Math.abs(zRefTest) > Math.abs(criticalValue)) + "   vs   " + referenceData.getN() + "   " + improvedData.getN());
 //            }
             // Calculate the critical value for a two-tailed test
-            if (!(Math.abs(zRefTest) > Math.abs(criticalValue))) {
-                double criticalValue2 = StatisticsTests.getCriticalValue(0.5, df);
-                System.out.println("update Critical value: " + criticalValue + "  diffrent is sig  " + (Math.abs(zRefTest) > Math.abs(criticalValue2)) + "  " + Math.abs(zRefTest) + " > " + Math.abs(criticalValue2));
-            }
+//            if (!(Math.abs(zRefTest) > Math.abs(criticalValue))) {
+//                double criticalValue2 = StatisticsTests.getCriticalValue(0.5, df);
+//                System.out.println("update Critical value: " + criticalValue + "  diffrent is sig  " + (Math.abs(zRefTest) > Math.abs(criticalValue2)) + "  " + Math.abs(zRefTest) + " > " + Math.abs(criticalValue2));
+//            }
 //            if (!(Math.abs(zRefTest) > Math.abs(criticalValue)) || Double.isNaN(zRefTest)) {
 //                System.out.println("not sig diffrenet " + referenceData.getN() + "  " + improvedData.getN() + "   ");
 //                double prec = (Math.abs(referenceData.getN() - improvedData.getN())) / Math.max(referenceData.getN(), improvedData.getN());
@@ -242,26 +306,18 @@ public class ScoreComparison {
 //                return improvmentScorePersentage;//logScaleNormalize(improvmentScorePersentage, 10);
 //            } else
             if (!(Math.abs(zRefTest) > Math.abs(criticalValue)) || Double.isNaN(zRefTest) || Double.isNaN(improvedData.getGeometricMean()) || Double.isNaN(referenceData.getGeometricMean())) {//|| (improvedData.getN() <= 4 && referenceData.getN() > 20)) {
-////                System.out.println("impr data was nan " + referenceData.getGeometricMean());
-//                System.out.println("mpr data was nan " + improvedData.getGeometricMean() + "   " + referenceData.getN() + "  " + improvedData.getN());
-//                improvmentScorePersentage = -100.0;
-//                return improvmentScorePersentage;//logScaleNormalize(improvmentScorePersentage, 10);
 
-//            } //            else if (referenceData.getN() < (improvedData.getN() * 0.1) || improvedData.getN() < (referenceData.getN() * 0.1)) {
-                //                double referenceMedian = referenceData.getPercentile(50);
-                //                double improvedMedian = improvedData.getPercentile(50);
-                //                cohensD = calculateCohensD(referenceData, improvedData);
-                ////                comparisonScore = mannWhitneyTestIndependent(referenceData.getValues(), improvedData.getValues());
-                //                improvmentScorePersentage = percentageImprovementIndependenet(referenceMedian, improvedMedian);
-                ////                sizeEffect = medianBasedEffectSize(referenceData, improvedData);
-                //                if (improvmentScorePersentage < 0) {
-                ////                    comparisonScore *= -1.0;
-                //                }
-                //            } 
-                double prec = (Math.abs(referenceData.getN() - improvedData.getN())) / Math.max(referenceData.getN(), improvedData.getN());
+                System.out.println("unpatired data un balancd is here ------");
+                double prec = ((double) Math.abs(referenceData.getN() - improvedData.getN())) / (double) Math.max(referenceData.getN(), improvedData.getN());
+                prec *= 100.0;
+                double referenceMedian = referenceData.getGeometricMean();// referenceData.getPercentile(50);
+                double improvedMedian = improvedData.getGeometricMean();//improvedData.getPercentile(50);
+                improvmentScorePersentage = percentageImprovementIndependenet(referenceMedian, improvedMedian);
                 if (referenceData.getN() > improvedData.getN()) {
+                    System.out.println("improvment pers " + improvmentScorePersentage + "  " + (-1.0 * prec));
                     return -1.0 * prec;
                 } else {
+                    System.out.println("improvment pers " + improvmentScorePersentage + "  " + (prec));
                     return prec;
                 }
             } else {
@@ -275,12 +331,6 @@ public class ScoreComparison {
 //                }
 //                comparisonScore = mannWhitneyTestIndependent(referenceData.getValues(), improvedData.getValues());
                 improvmentScorePersentage = percentageImprovementIndependenet(referenceMedian, improvedMedian);
-                double referenceMedian2 = referenceData.getPercentile(50);
-                double improvedMedian2 = improvedData.getPercentile(50);
-                double referenceMedian3 = referenceData.getMean();
-                double improvedMedian3 = improvedData.getMean();
-
-                System.out.println("test others gMEan " + improvmentScorePersentage + "   median " + percentageImprovementIndependenet(referenceMedian2, improvedMedian2) + "   mean  " + percentageImprovementIndependenet(referenceMedian3, improvedMedian3));
                 return improvmentScorePersentage;
 //                if (improvmentScorePersentage < 0) {
 //                    comparisonScore *= -1.0;
@@ -418,10 +468,7 @@ public class ScoreComparison {
 
         WilcoxonSignedRankTest wilcoxonSignedRankTest = new WilcoxonSignedRankTest();
         double pValue = wilcoxonSignedRankTest.wilcoxonSignedRankTest(referenceData, improvedData, false);
-//        if (pValue <= 0.05) {
-//            return StatisticsTests.WilcoxonSignedRankTest(referenceData, improvedData);
-//
-//        }
+
         return pValue;
     }
 

@@ -5,7 +5,11 @@
 package no.uib.probe.quickprot.util;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.apache.commons.math.stat.correlation.PearsonsCorrelation;
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.distribution.TDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.inference.ChiSquareTest;
@@ -13,11 +17,46 @@ import org.apache.commons.math3.stat.inference.TTest;
 
 public class StatisticsTests {
 
-    public static void main(String[] args) {
-        modeMedian();
+    public static double[] benjaminiHochberg(double[] pValues, double alpha) {
+        int n = pValues.length;
+        double[] adjustedPValues = new double[n];
+        Integer[] indices = new Integer[n];
+
+        for (int i = 0; i < n; i++) {
+            indices[i] = i;
+        }
+
+        Arrays.sort(indices, Comparator.comparingDouble(i -> pValues[i]));
+
+        for (int i = 0; i < n; i++) {
+            int index = indices[i];
+            adjustedPValues[index] = pValues[index] * n / (i + 1);
+        }
+
+        for (int i = n - 2; i >= 0; i--) {
+            adjustedPValues[indices[i]] = Math.min(adjustedPValues[indices[i]], adjustedPValues[indices[i + 1]]);
+        }
+
+        return adjustedPValues;
+    }
+
+public static void main(String[] args) {
+//        modeMedian();
 //        // Example data
-//        double[] sample1 = {45.2, 46.1, 47.3, 50.0, 48.5};
-//        double[] sample2 = {52.0, 49.5, 53.2, 51.3, 50.4};
+        int[] sample1 = {1, 2, 5, 9, 12,20};
+        int[] sample2 = {5, 9, 14, 17, 19,20};
+        Set<Integer> mergeSet = new LinkedHashSet<>();
+        for (int i = 0; i < 6; i++) {
+            mergeSet.add(sample1[i]);
+            mergeSet.add(sample2[i]);
+        }
+//         mergeSet.add(sample2[5]);
+        
+         int shared = mergeSet.size()-sample1.length;
+         shared=sample2.length- shared;
+         System.out.println("S1 size "+sample1.length+"  s2 "+sample2.length+"   MS "+ mergeSet.size()+" share size "+shared);
+        
+        
 //
 //        double z = zTest(sample1, sample2);
 //        double pValue = pValueForZTest(z);
@@ -38,6 +77,7 @@ public class StatisticsTests {
         return zScore;
 
     }
+
     public static int calculateDegreesOfFreedom(int n1, int n2) {
         return n1 + n2 - 2;
     }
@@ -55,7 +95,11 @@ public class StatisticsTests {
         double standardDeviation = calculatePairedStandardDeviation(referenceSamples.getValues(), improvedSample.getValues(), meanDifference);
         double standardError = standardDeviation / Math.sqrt(improvedSample.getN());
         double zScore = meanDifference / standardError;
-        return zScore;
+        System.out.println("Z score "+zScore);
+        return calculatePValue(zScore);
+    }
+     public static double pairedZTest(double[] referenceSamples, double[] improvedSample) {
+        return pairedZTest(new DescriptiveStatistics(referenceSamples), new DescriptiveStatistics(improvedSample));
     }
 
     private static double calculatePairedMeanDifference(double[] refrenceSample, double[] improvedSample) {
@@ -93,6 +137,10 @@ public class StatisticsTests {
 
     public static double cumulativeProbability(double z) {
         return 0.5 * (1 + erf(z / Math.sqrt(2)));
+    }
+     public static double calculatePValue(double zScore) {
+        NormalDistribution normalDist = new NormalDistribution();
+        return 2 * (1 - normalDist.cumulativeProbability(Math.abs(zScore)));
     }
 
     // Approximation of the error function

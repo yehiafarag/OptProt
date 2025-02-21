@@ -112,7 +112,6 @@ public abstract class CommonSearchHandler {
 //        return bestPerformanceEnzyme;
 //
 //    }
-
     public String optimizeDigestionCleavageParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("CleavageParameter");
@@ -124,7 +123,7 @@ public abstract class CommonSearchHandler {
         RawScoreModel oreginalScore = new RawScoreModel("CleavageParameter");
         oreginalScore.setIdPSMNumber(idRate);
         String[] cleavageParameters = new String[]{"wholeProtein", "unSpecific"};
-
+        
         resultsMap.put(selectedOption, oreginalScore);
         int spectraCounter = optProtDataset.getActiveIdentificationNum();
         for (String cleavageParameter : cleavageParameters) {
@@ -137,7 +136,7 @@ public abstract class CommonSearchHandler {
             }
             final String option = cleavageParameter;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
+            
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
                 RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, optimisedSearchParameter, identificationParametersFile);
                 return scoreModel;
@@ -147,16 +146,16 @@ public abstract class CommonSearchHandler {
                 if (scoreModel.getFinalScore() > 1) {
                     spectraCounter = Math.max(spectraCounter, scoreModel.getSpectrumMatchResult().size());
                     resultsMap.put(option, f.get());
-
+                    
                 }
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
             }
         }
-
+        
         int total = optProtDataset.getActiveIdentificationNum();
         if (!resultsMap.isEmpty()) {
-            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
             selectedOption = bestScore;
             if (selectedOption.equalsIgnoreCase("unSpecific")) {
                 double impact = Math.round((double) (resultsMap.get(selectedOption).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
@@ -169,7 +168,7 @@ public abstract class CommonSearchHandler {
         paramScore.setParamValue(selectedOption);
         parameterScoreSet.add(paramScore);
         return selectedOption;
-
+        
     }
 
     /**
@@ -192,7 +191,6 @@ public abstract class CommonSearchHandler {
         int missedClavageNumb = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getnMissedCleavages(values[0]);
         values[2] = "" + missedClavageNumb;
         System.out.println("Enzyme is " + values[0]);
-
         Map<String, RawScoreModel> resultsMapI = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
 //        double speciftyThreshold = optProtDataset.getComparisonsThreshold(3);
@@ -234,8 +232,8 @@ public abstract class CommonSearchHandler {
                 });
                 try {
                     RawScoreModel scoreModel = f.get();
-                    System.out.println("Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getIdPSMNumber() + "   " + scoreModel + "   ");
-                   
+                    System.out.println("Enzyme: " + enzyme.getName() + "    Score: " + scoreModel.getFinalScore() + "    #PSMs: " + scoreModel.getIdPSMNumber() + " vs   " + optProtDataset.getCurrentScoreModel().getIdPSMNumber() + "   " + scoreModel + "   ");
+                    
                     if (scoreModel.isSensitiveChange()) {
                         resultsMapI.put(option, scoreModel);
                     }
@@ -244,15 +242,14 @@ public abstract class CommonSearchHandler {
                 }
             }
             if (!resultsMapI.isEmpty()) {
-
-                String enzymeName = SpectraUtilities.compareScoresSet(resultsMapI, optProtDataset.getSubsetSize());
+                
+                String enzymeName = SpectraUtilities.compareScoresSet(resultsMapI, optProtDataset.getSubsetSize(),false);
                 values[0] = enzymeName;
                 optProtDataset.setActiveScoreModel(resultsMapI.get(enzymeName));
             } else {
                 System.out.println("case 3");
 //                values[0] = "Trypsin";
             }
-
             //optimize specifty 
             oreginaltempIdParam.getSearchParameters().getDigestionParameters().clearEnzymes();
             oreginaltempIdParam.getSearchParameters().getDigestionParameters().addEnzyme(EnzymeFactory.getInstance().getEnzyme(values[0]));
@@ -274,18 +271,18 @@ public abstract class CommonSearchHandler {
                     if (scoreModel.getFinalScore() > 0) {
                         resultsMapI.put(option, scoreModel);
                     }
-
+                    
                 } catch (ExecutionException | InterruptedException ex) {
                     ex.printStackTrace();
                 }
             }
             if (!resultsMapI.isEmpty()) {
-                String specifty = SpectraUtilities.compareScoresSet(resultsMapI, optProtDataset.getSubsetSize());
+                String specifty = SpectraUtilities.compareScoresSet(resultsMapI, optProtDataset.getSubsetSize(),false);
                 values[1] = specifty;
                 double impact = Math.round((double) (resultsMapI.get(specifty).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
                 paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMapI.get(specifty));
-
+                
             }
             oreginaltempIdParam.getSearchParameters().getDigestionParameters().setSpecificity(values[0], DigestionParameters.Specificity.valueOf("specific"));
         }
@@ -297,7 +294,7 @@ public abstract class CommonSearchHandler {
                 oreginaltempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(values[0], i);
                 final String option = "missedCleavages_" + i;
                 final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
+                
                 Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
                     RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, oreginaltempIdParam, true, optimisedSearchParameter, identificationParametersFile);
                     return scoreModel;
@@ -321,10 +318,10 @@ public abstract class CommonSearchHandler {
                     ex.printStackTrace();
                 }
             }
-
+            
             String numbOfMissedCleavage = missedClavageNumb + "";
             if (!resultsMapI.isEmpty()) {
-                numbOfMissedCleavage = (SpectraUtilities.compareScoresSet(resultsMapI, optProtDataset.getSubsetSize()));
+                numbOfMissedCleavage = (SpectraUtilities.compareScoresSet(resultsMapI, optProtDataset.getSubsetSize(),false));
                 double impact = Math.round((double) (resultsMapI.get(numbOfMissedCleavage).getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
                 paramScore.setImpact(impact);
                 optProtDataset.setActiveScoreModel(resultsMapI.get(numbOfMissedCleavage));
@@ -335,7 +332,7 @@ public abstract class CommonSearchHandler {
         paramScore.setParamValue(Arrays.asList(values).toString());
         parameterScoreSet.add(paramScore);
         return values;
-
+        
     }
 
     /**
@@ -359,7 +356,7 @@ public abstract class CommonSearchHandler {
         ArrayList<Integer> selectedForwardIons = tempSearchParameters.getForwardIons();
         String[] forwardIons = new String[]{"b", "a", "c"};
         String[] rewindIons = new String[]{"y", "x", "z"};
-
+        
         for (String forwardIon : forwardIons) {
             selectedForwardIons.clear();
             Integer forwardIonType = PeptideFragmentIon.getIonType(forwardIon);
@@ -373,16 +370,16 @@ public abstract class CommonSearchHandler {
                 if (option.equalsIgnoreCase(selectedOption)) {
                     continue;
                 }
-
+                
                 final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
+                
                 Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
                     RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile);
                     return scoreModel;
                 });
                 try {
                     RawScoreModel scoreModel = f.get();
-
+                    
                     if (scoreModel.isAcceptedChange()) {
                         resultsMap.put(option, scoreModel);
                     }
@@ -391,22 +388,22 @@ public abstract class CommonSearchHandler {
                 }
             }
         }
-
+        
         if (!resultsMap.isEmpty()) {
-            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
             selectedOption = bestScore;
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestScore));
         }
-
+        
         selectedOption = selectedOption.replace("[", "").replace("]", "");
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption);
         parameterScoreSet.add(paramScore);
         return selectedOption;
     }
-
+    
     public Integer optimizeMaxMissCleavagesParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("missedCleavages");
@@ -418,7 +415,7 @@ public abstract class CommonSearchHandler {
         Integer selectedOption = oreginaltempIdParam.getSearchParameters().getDigestionParameters().getnMissedCleavages(enzymeName);
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
-
+        
         for (int i = 0; i < 5; i++) {
             if (i == selectedOption) {
                 continue;
@@ -427,7 +424,7 @@ public abstract class CommonSearchHandler {
             tempIdParam.getSearchParameters().getDigestionParameters().setnMissedCleavages(enzymeName, i);
             final String option = "missedCleavages_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
+            
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
                 RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile);
                 return scoreModel;
@@ -443,9 +440,9 @@ public abstract class CommonSearchHandler {
                 ex.printStackTrace();
             }
         }
-
+        
         if (!resultsMap.isEmpty()) {
-            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
             selectedOption = Integer.valueOf(bestScore);
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
@@ -454,11 +451,11 @@ public abstract class CommonSearchHandler {
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
         parameterScoreSet.add(paramScore);
-
+        
         return selectedOption;
-
+        
     }
-
+    
     public double optimizeFragmentToleranceParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("fragmentAccuracy");
@@ -467,7 +464,7 @@ public abstract class CommonSearchHandler {
         double selectedOption = oreginaltempIdParam.getSearchParameters().getFragmentIonAccuracy();
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         double[] values = new double[]{0.01, 0.02, 0.05, 0.1, 0.2, 0.5};
-
+        
         int counter = 4;
 //        double threshold = optProtDataset.getComparisonsThreshold(counter);
         for (double i : values) {
@@ -479,47 +476,40 @@ public abstract class CommonSearchHandler {
             tempIdParam.getSearchParameters().setFragmentAccuracyType(SearchParameters.MassAccuracyType.DA);
             final String option = "fragmentAccuracy_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
+            
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
                 RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, true, optimisedSearchParameter, identificationParametersFile);
                 return scoreModel;
             });
             try {
                 RawScoreModel scoreModel = f.get();
-//                System.out.println("reference total " + optProtDataset.getCurrentScoreModel().getIdPSMNumber() + "   " + threshold);
-//                System.out.println("Fragment accurcy " + i + "  " + scoreModel + "   first " + (i < selectedOption && scoreModel.isSensitiveChange()) + "   second " + (scoreModel.getFinalScore() > threshold && scoreModel.getIdPSMNumber() >= optProtDataset.getCurrentScoreModel().getIdPSMNumber()) + "   " + threshold);
+                System.out.println("Fragment  " + i + "   " + scoreModel + "    " + optProtDataset.getBasicComparisonThreshold());
 //                if ((i < selectedOption && scoreModel.isSensitiveChange()) || (scoreModel.getFinalScore() > threshold && scoreModel.getIdPSMNumber() >= optProtDataset.getCurrentScoreModel().getIdPSMNumber())) {
-                if (scoreModel.isSensitiveChange()) {
-                    resultsMap.put(i + "", scoreModel);
-                    if (i < selectedOption) {
-//                        threshold = optProtDataset.getComparisonsThreshold(2);
-                    } else {
-//                        threshold = optProtDataset.getComparisonsThreshold(counter++);
-
-                    }
+                if (scoreModel.isSensitiveChange() && scoreModel.getFinalScore() > optProtDataset.getBasicComparisonThreshold()) {
+                    resultsMap.put(i + "", scoreModel);                    
                 } else if (i > selectedOption) {
                     break;
                 }
-
+                
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
             }
-
+            
         }
         if (!resultsMap.isEmpty()) {
-            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize()));
+            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
-
+            
         }
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedOption + "");
         parameterScoreSet.add(paramScore);
         return selectedOption;
-
+        
     }
-
+    
     public int[] optimizePrecursorChargeParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("charge");
@@ -531,46 +521,45 @@ public abstract class CommonSearchHandler {
         IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
         int spectraCounter = optProtDataset.getActiveIdentificationNum();
         for (int i = 1; i < 5; i++) {
-
+            
             for (int j = 2; j <= 5; j++) {
                 if (j <= i) {
                     continue;
                 }
                 tempIdParam.getSearchParameters().setMinChargeSearched(i);
                 tempIdParam.getSearchParameters().setMaxChargeSearched(j);
-
+                
                 final String option = "charge-" + i + "," + j;
                 final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
+                
                 Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
-
+                    
                     RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile);
                     return scoreModel;
                 });
                 try {
-
+                    
                     RawScoreModel scoreModel = f.get();
-                    System.out.println("charge is "+j+"  "+scoreModel);
-                    if (scoreModel.getFinalScore()>optProtDataset.getBasicComparisonThreshold()) {
+                    System.out.println("charge is " + j + "  " + scoreModel);
+                    if (scoreModel.getFinalScore() > optProtDataset.getBasicComparisonThreshold()) {
                         if (scoreModel.getSpectrumMatchResult().size() < spectraCounter) {
                             continue;
                         }
                         spectraCounter = Math.max(spectraCounter, scoreModel.getSpectrumMatchResult().size());
                         resultsMap.put(option, scoreModel);
-
-                    }
-                    else if (i > selectedMinChargeOption) {
+                        
+                    } else if (i > selectedMinChargeOption) {
                         break;
                     }
                 } catch (ExecutionException | InterruptedException ex) {
                     ex.printStackTrace();
                 }
             }
-
+            
         }
-
+        
         if (!resultsMap.isEmpty()) {
-            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
             double impact = Math.round((double) (resultsMap.get(bestScore + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestScore));
@@ -582,11 +571,11 @@ public abstract class CommonSearchHandler {
         paramScore.setParamValue(selectedMinChargeOption + "," + selectedMaxChargeOption);
         parameterScoreSet.add(paramScore);
         return new int[]{selectedMinChargeOption, selectedMaxChargeOption};
-
+        
     }
-
+    
     public int[] optimizeIsotopParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
-
+        
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("isotop_");
         IdentificationParameters oreginaltempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
@@ -595,7 +584,7 @@ public abstract class CommonSearchHandler {
         int selectedMinIsotopicCorrectioneOption = oreginaltempIdParam.getSearchParameters().getMinIsotopicCorrection();
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-
+        
         for (int i = -2; i < 2; i++) {
             for (int j = -1; j <= 2; j++) {
                 if (j <= i) {
@@ -605,7 +594,7 @@ public abstract class CommonSearchHandler {
                 tempIdParam.getSearchParameters().setMaxIsotopicCorrection(j);
                 final String option = "isotop_" + i + "," + j;
                 final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
+                
                 Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
                     RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile);
                     return scoreModel;
@@ -620,9 +609,9 @@ public abstract class CommonSearchHandler {
                 }
             }
         }
-
+        
         if (!resultsMap.isEmpty()) {
-            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
             double impact = Math.round((double) (resultsMap.get(bestScore + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestScore));
@@ -633,10 +622,10 @@ public abstract class CommonSearchHandler {
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
         paramScore.setParamValue(selectedMinIsotopicCorrectioneOption + "," + selectedMaxIsotopicCorrectionOption);
         parameterScoreSet.add(paramScore);
-
+        
         return new int[]{selectedMinIsotopicCorrectioneOption, selectedMaxIsotopicCorrectionOption};
     }
-
+    
     public double optimizePrecursorToleranceParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting optimisedSearchParameter, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
         final ParameterScoreModel paramScore = new ParameterScoreModel();
         paramScore.setParamId("PrecursorAccuracy");
@@ -657,30 +646,29 @@ public abstract class CommonSearchHandler {
             tempIdParam.getSearchParameters().setPrecursorAccuracyType(SearchParameters.MassAccuracyType.PPM);
             final String option = "precursorAccuracy_" + i;
             final String updatedName = Configurations.DEFAULT_RESULT_NAME + "_" + option + "_" + msFileName;
-
+            
             Future<RawScoreModel> f = MainUtilities.getExecutorService().submit(() -> {
                 RawScoreModel scoreModel = excuteSearch(optProtDataset, updatedName, option, tempIdParam, false, optimisedSearchParameter, identificationParametersFile);
                 return scoreModel;
             });
             try {
-
+                
                 RawScoreModel scoreModel = f.get();
 //                if (scoreModel.isAcceptedChange() && scoreModel.getFinalScore() > threshold) {
-                if (scoreModel.isSensitiveChange()) {
+                if (scoreModel.isSensitiveChange() && scoreModel.getFinalScore() > 0) {
                     counter++;
-//                    threshold = optProtDataset.getComparisonsThreshold(counter);
                     resultsMap.put(i + "", scoreModel);
                 } else if (i > selectedOption) {
                     toEnd = true;
                     break;
-
+                    
                 }
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
             }
-
+            
         }
-
+        
         if (!toEnd) {
             iValues = new double[]{0.1, 0.3, 0.5, 0.7, 0.9};
             if (!optProtDataset.isHighResolutionMassSpectrometers()) {
@@ -704,20 +692,20 @@ public abstract class CommonSearchHandler {
                     } catch (ExecutionException | InterruptedException ex) {
                         ex.printStackTrace();
                     }
-
+                    
                 }
             }
         }
         if (!resultsMap.isEmpty()) {
-            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+            String bestScore = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
             double impact = Math.round((double) (resultsMap.get(bestScore + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestScore));
             selectedOption = Double.parseDouble(bestScore);
         }
-
+        
         paramScore.setScore(optProtDataset.getActiveIdentificationNum());
-
+        
         parameterScoreSet.add(paramScore);
         if (selectedOption >= 5) {
             paramScore.setParamValue(selectedOption + "PPM");
@@ -741,18 +729,18 @@ public abstract class CommonSearchHandler {
      * @throws IOException
      */
     public Map<String, Set<String>> optimizeModificationsParameter(SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting searchInputSetting, TreeSet<ParameterScoreModel> parameterScoreSet) throws IOException {
-
+        
         Set<String> preservedMods = new HashSet<>();
         preservedMods.add("Deamidation of N");
         preservedMods.add("Dimethylation of K");
         preservedMods.add("Methylation of K");
         preservedMods.add("Formylation of K");
-
+        
         Set<String> terminalMods = new HashSet<>();
-
+        
         final ParameterScoreModel fixedModParamScore = new ParameterScoreModel();
         fixedModParamScore.setParamId("FixedModifications");
-
+        
         String msFileName = IoUtil.removeExtension(optProtDataset.getSubMsFile().getName());
         ArrayList<String> selectedFixedModificationOption = new ArrayList<>();
         ArrayList<String> selectedVariableModificationOption = new ArrayList<>();
@@ -762,7 +750,7 @@ public abstract class CommonSearchHandler {
         mods.addAll(ptmFactory.getModifications(ModificationCategory.Common_Biological));
         mods.addAll(ptmFactory.getModifications(ModificationCategory.Common_Artifact));
         IdentificationParameters tempIdParam = IdentificationParameters.getIdentificationParameters(identificationParametersFile);
-
+        
         tempIdParam.getSearchParameters().getModificationParameters().clearFixedModifications();
         tempIdParam.getSearchParameters().getModificationParameters().clearVariableModifications();
         tempIdParam.getSearchParameters().getModificationParameters().clearRefinementModifications();
@@ -778,8 +766,8 @@ public abstract class CommonSearchHandler {
         String prefix = "f_";
         resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, true, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, true));
         if (!resultsMap.isEmpty()) {
-            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
-            if (resultsMap.get(bestMod).getFinalScore() > 0 || (resultsMap.get(bestMod).getFinalScore() < 0.0 && (resultsMap.get(bestMod).getFinalScore() * -1.0) < 0.1)) {
+            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
+            if (resultsMap.get(bestMod).isSensitiveChange() || resultsMap.get(bestMod).getRawFinalScore() > 0 || (resultsMap.get(bestMod).getFinalScore() < 0.0 && (resultsMap.get(bestMod).getFinalScore() * -1.0) < 0.1)) {
                 selectedFixedModificationOption.add(bestMod);
                 optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
                 potintialMods.clear();
@@ -787,7 +775,7 @@ public abstract class CommonSearchHandler {
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
                 resultsMap.clear();
             }
-
+            
         }
         //try variable coomon mod first
         // stage 2 test for common variable modification   
@@ -796,9 +784,9 @@ public abstract class CommonSearchHandler {
         potintialMods.add(commonVariableMod);
         prefix = "v_";
         resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, false, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, true));
-
+        
         if (!resultsMap.isEmpty()) {
-            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
             selectedVariableModificationOption.add(bestMod);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
             potintialMods.clear();
@@ -819,7 +807,7 @@ public abstract class CommonSearchHandler {
             if (targtedFixedModificationScore.containsKey(modPattern)) {
                 continue;
             }
-
+            
             if (!selectedVariableModificationOption.isEmpty() && modPattern.equalsIgnoreCase("M")) {
                 continue;
             }
@@ -827,13 +815,14 @@ public abstract class CommonSearchHandler {
         }
         prefix = "f_";
         Map<String, Map<String, RawScoreModel>> filterPotintialPtmMap = new LinkedHashMap<>();
-        fullFixedModificationScore.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, true, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, true));
-
+        fullFixedModificationScore.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, true, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, false));
+        
         for (String modId : fullFixedModificationScore.keySet()) {
             RawScoreModel scoreModel = fullFixedModificationScore.get(modId);
+            
             if (scoreModel.isSensitiveChange()) {
                 resultsMap.put(modId, scoreModel);
-
+                
             }
             Modification mod = ptmFactory.getModification(modId);
             //get modified intersection with avctive spectra 
@@ -860,7 +849,7 @@ public abstract class CommonSearchHandler {
         }
         //2nd fixed modifications
         if (!resultsMap.isEmpty()) {
-            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+            String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
             String modPattern = ptmFactory.getModification(bestMod).getPattern().toString();
             selectedFixedModificationOption.add(bestMod);
             optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
@@ -886,7 +875,7 @@ public abstract class CommonSearchHandler {
                 prefix = "f_";
                 resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialMods, true, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, prefix, false));
                 if (!resultsMap.isEmpty()) {
-                    String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+                    String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
                     selectedFixedModificationOption.add(bestMod);
                     optProtDataset.setActiveScoreModel(resultsMap.get(bestMod));
                     potintialMods.clear();
@@ -902,26 +891,26 @@ public abstract class CommonSearchHandler {
             } else {
                 break;
             }
-
+            
         }
         modificationsResults.put("fixedModifications", new HashSet<>(selectedFixedModificationOption));
         modificationsResults.put("refinmentFixedModifications", new HashSet<>(selectedFixedModificationOption));
         preservedMods.removeAll(selectedFixedModificationOption);
-
+        
         fixedModParamScore.setScore(optProtDataset.getActiveIdentificationNum());
         fixedModParamScore.setParamValue(selectedFixedModificationOption.toString());
         parameterScoreSet.add(fixedModParamScore);
         resultsMap.clear();
         potintialMods.clear();
-
+        
         for (String fixedMod : selectedFixedModificationOption) {
             String modPattern = ptmFactory.getModification(fixedMod).getPattern().toString();
             if (filterPotintialPtmMap.containsKey(modPattern)) {
                 filterPotintialPtmMap.remove(modPattern);
             }
-
+            
         }
-
+        
         for (String modPatternKey : filterPotintialPtmMap.keySet()) {
             if (modPatternKey.contains("-")) {
                 for (String ptm : filterPotintialPtmMap.get(modPatternKey).keySet()) {
@@ -934,12 +923,12 @@ public abstract class CommonSearchHandler {
                     potintialMods.add(bestTargeted.split("_-_")[1]);
                 }
             }
-
+            
         }
-
+        
         double thre = 0;
         Map<String, TreeMap<Double, String>> filterVMMap = new LinkedHashMap<>();
-
+        
         for (String modId : preservedMods) {
             Modification mod = ptmFactory.getModification(modId);
 //                    get modified intersection with avctive spectra 
@@ -948,7 +937,7 @@ public abstract class CommonSearchHandler {
                 continue;
             }
             potintialMods.add(modId);
-
+            
         }
         resultsMap.clear();
         prefix = "v_";
@@ -972,12 +961,12 @@ public abstract class CommonSearchHandler {
                             modId = "Acetylation of protein N-term";
                         }
                     }
-
+                    
                     if (!filterVMMap.containsKey(modPattern)) {
                         filterVMMap.put(modPattern, new TreeMap<>(Collections.reverseOrder()));
                     }
                     filterVMMap.get(modPattern).put(resultsMap.get(modId).getFinalScore(), modId);
-
+                    
                 }
                 Set<String> toRemove = new HashSet();
                 for (String patteren : filterVMMap.keySet()) {
@@ -990,15 +979,15 @@ public abstract class CommonSearchHandler {
                         subresultsMap.put(mod, resultsMap.get(mod));
                         toRemove.add(mod);
                     }
-                    String tokeepMod = SpectraUtilities.compareScoresSet(subresultsMap, optProtDataset.getSubsetSize());
+                    String tokeepMod = SpectraUtilities.compareScoresSet(subresultsMap, optProtDataset.getSubsetSize(),false);
                     toRemove.remove(tokeepMod);
                 }
-
+                
                 for (String remove : toRemove) {
                     resultsMap.remove(remove);
                 }
-                String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
-
+                String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),true);
+                
                 if (resultsMap.get(bestMod).getFinalScore() >= thre) {
                     System.out.println("add new vm " + bestMod + "  " + thre + "  " + counter + "   " + resultsMap.get(bestMod).getFinalScore() + "   " + optProtDataset.getBasicComparisonThreshold());
                     selectedVariableModificationOption.add(bestMod);
@@ -1014,12 +1003,12 @@ public abstract class CommonSearchHandler {
                 if (resultsMap.isEmpty()) {
                     break;
                 }
-
+                
                 TreeSet<SortedPTMs> sorePtms = new TreeSet<>(Collections.reverseOrder());
                 for (String mod : resultsMap.keySet()) {
                     if (resultsMap.get(mod).isSensitiveChange()) {
                         sorePtms.add(new SortedPTMs(mod, resultsMap.get(mod).getRawFinalScore(), 0));
-
+                        
                     }
                 }
                 resultsMap.clear();
@@ -1032,10 +1021,10 @@ public abstract class CommonSearchHandler {
                     potintialMods.add(mod.getName());
                     subCounter++;
                     System.out.println(counter + "-->> mod " + mod.getName() + "  " + mod.getScore());
-
+                    
                 }
                 counter++;
-
+                
             } else {
                 break;
             }
@@ -1047,14 +1036,14 @@ public abstract class CommonSearchHandler {
         Set<String> potintialTerminalMods = new LinkedHashSet<>();
         for (String str : terminalMods) {
             potintialTerminalMods.add(str);
-
+            
         }
         resultsMap.clear();
         prefix = "v_";
         counter = 0;
         thre = 0;
         filterVMMap.clear();
-        while (selectedVariableModificationOption.size() < 4 && counter<4) {
+        while (selectedVariableModificationOption.size() < 4 && counter < 4) {
             resultsMap.putAll(this.checkModificationsScores(selectedFixedModificationOption, selectedVariableModificationOption, potintialTerminalMods, false, msFileName, tempIdParam, optProtDataset, identificationParametersFile, searchInputSetting, counter + "" + prefix, true));
             filterVMMap.clear();
             if (!resultsMap.isEmpty()) {
@@ -1063,18 +1052,18 @@ public abstract class CommonSearchHandler {
 //                    get modified intersection with avctive spectra 
                     String modPattern = mod.getPattern().toString();
                     modPattern = modPattern + "-" + mod.getModificationType().isNTerm() + "-" + mod.getModificationType().isCTerm();
-
+                    
                     if (modPattern.equalsIgnoreCase("true-false") && resultsMap.containsKey("Acetylation of protein N-term") && resultsMap.containsKey("Carbamilation of protein N-term")) {
                         if (resultsMap.get(modId).getFinalScore() <= resultsMap.get("Acetylation of protein N-term").getFinalScore() * 1.05 || resultsMap.get(modId).getIdPSMNumber() <= resultsMap.get("Acetylation of protein N-term").getIdPSMNumber()) {
                             modId = "Acetylation of protein N-term";
                         }
                     }
-
+                    
                     if (!filterVMMap.containsKey(modPattern)) {
                         filterVMMap.put(modPattern, new TreeMap<>(Collections.reverseOrder()));
                     }
                     filterVMMap.get(modPattern).put(resultsMap.get(modId).getFinalScore(), modId);
-
+                    
                 }
                 System.out.println("filtered --------------->> " + counter + "  vm are " + filterVMMap);
                 Set<String> toRemove = new HashSet();
@@ -1085,17 +1074,17 @@ public abstract class CommonSearchHandler {
                         subresultsMap.put(mod, resultsMap.get(mod));
                         toRemove.add(mod);
                     }
-
-                    String tokeepMod = SpectraUtilities.compareScoresSet(subresultsMap, optProtDataset.getSubsetSize());
+                    
+                    String tokeepMod = SpectraUtilities.compareScoresSet(subresultsMap, optProtDataset.getSubsetSize(),false);
                     System.out.println("pattern " + patteren + "  " + subresultsMap.keySet() + "  --->>bets " + tokeepMod);
                     toRemove.remove(tokeepMod);
                 }
-
+                
                 System.out.println("to remove: " + toRemove);
                 for (String remove : toRemove) {
                     resultsMap.remove(remove);
                 }
-                String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize());
+                String bestMod = SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false);
                 System.out.println("best left : " + toRemove);
                 if (resultsMap.get(bestMod).isSensitiveChange()) {
                     System.out.println("add new vm " + bestMod + " thr " + thre + " counter  " + counter + "  score: " + resultsMap.get(bestMod));
@@ -1113,12 +1102,12 @@ public abstract class CommonSearchHandler {
                 if (resultsMap.isEmpty()) {
                     break;
                 }
-
+                
                 TreeSet<SortedPTMs> sorePtms = new TreeSet<>(Collections.reverseOrder());
                 for (String mod : resultsMap.keySet()) {
                     if (resultsMap.get(mod).isSensitiveChange()) {
                         sorePtms.add(new SortedPTMs(mod, resultsMap.get(mod).getRawFinalScore(), 0));
-
+                        
                     }
                 }
                 resultsMap.clear();
@@ -1131,10 +1120,10 @@ public abstract class CommonSearchHandler {
                     potintialTerminalMods.add(mod.getName());
                     subCounter++;
                     System.out.println(counter + "-->> mod " + mod.getName() + "  " + mod.getScore());
-
+                    
                 }
                 counter++;
-
+                
             } else {
                 break;
             }
@@ -1148,9 +1137,9 @@ public abstract class CommonSearchHandler {
         modificationsResults.put("variableModifications", new HashSet<>(selectedVariableModificationOption));
         MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
         return modificationsResults;
-
+        
     }
-
+    
     private Map<String, RawScoreModel> checkModificationsScores(ArrayList<String> selectedFixedModificationOption, ArrayList<String> selectedVariableModificationOption, Set<String> modifications, boolean fixed, String msFileName, IdentificationParameters tempIdParam, SearchingSubDataset optProtDataset, File identificationParametersFile, SearchInputSetting searchInputSetting, String prefix, boolean addAll) {
         Map<String, RawScoreModel> resultsMap = Collections.synchronizedMap(new LinkedHashMap<>());
         for (String modId : modifications) {
@@ -1180,25 +1169,23 @@ public abstract class CommonSearchHandler {
             });
             try {
                 RawScoreModel scoreModel = f.get();
-                System.out.println("Mod test " + modId + "  " + (scoreModel.getFinalScore() > 0 && scoreModel.getIdPSMNumber() >= optProtDataset.getIdentifiedPSMsNumber()) + "   test 2: " + addAll + "  -- " + scoreModel);
                 if ((scoreModel.getFinalScore() > 0 && scoreModel.getIdPSMNumber() >= optProtDataset.getIdentifiedPSMsNumber()) || addAll) {
-                    resultsMap.put(modId, scoreModel);//                 
-                    System.out.println("aaddd test " + modId + "  ");
+                    resultsMap.put(modId, scoreModel);//              
                 }
-
+                
             } catch (ExecutionException | InterruptedException ex) {
                 ex.printStackTrace();
             }
-
+            
         }
         tempIdParam.getSearchParameters().getModificationParameters().clearFixedModifications();
         tempIdParam.getSearchParameters().getModificationParameters().getRefinementFixedModifications().clear();
         tempIdParam.getSearchParameters().getModificationParameters().clearVariableModifications();
-
+        
         return resultsMap;
-
+        
     }
-
+    
     public abstract RawScoreModel excuteSearch(SearchingSubDataset optProtDataset, String defaultOutputFileName, String paramOption, IdentificationParameters tempIdParam, boolean addPeptideMasses, SearchInputSetting optProtSearchSettings, File identificationParametersFile);
-
+    
 }
