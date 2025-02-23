@@ -177,6 +177,7 @@ public class ScoreComparison {
         if (referenceScores.length < 2 && testScores.length < 2) {
             return 0;//new double[]{0, 0, 0, 0, 0, 0};
         }
+        System.out.println("start comparison "+paired);
         DescriptiveStatistics referenceData = new DescriptiveStatistics(referenceScores);
         DescriptiveStatistics improvedData = new DescriptiveStatistics(testScores);
         if (Double.isNaN(referenceData.getPercentile(50)) && Double.isNaN(improvedData.getPercentile(50))) {
@@ -191,6 +192,7 @@ public class ScoreComparison {
         } else {
             if (Double.isNaN(improvedData.getGeometricMean()) || Double.isNaN(referenceData.getGeometricMean())) {//|| (improvedData.getN() <= 4 && referenceData.getN() > 20)) {
                 if (referenceData.getN() > improvedData.getN()) {
+                     System.out.println("return -100 ------------2");
                     return -100;
                 } else if (referenceData.getN() < improvedData.getN()) {
                     return 100;

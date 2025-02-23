@@ -30,9 +30,9 @@ public class QuickProt {
                 Map<Advocate, List<String>> paramOrderMap = new HashMap<>();
 
                 Set<Advocate> supportedSearchEngine = new LinkedHashSet<>(); 
-                supportedSearchEngine.add(Advocate.xtandem);
+//                supportedSearchEngine.add(Advocate.xtandem);
                 paramOrderMap.put(Advocate.xtandem, XtandemParameterOrderSettings.Get_Xtandem_Parameters_List());
-//                supportedSearchEngine.add(Advocate.sage);
+                supportedSearchEngine.add(Advocate.sage);
                 paramOrderMap.put(Advocate.sage, SageParameterOrderSettings.Get_Sage_Parameters_List());
                
                 Set<String> datasettoTestSet = new LinkedHashSet<>();
@@ -41,8 +41,8 @@ public class QuickProt {
                     datasettoTestSet.add("PXD000561");    //2
                     datasettoTestSet.add("PXD001468");        //3
                     datasettoTestSet.add("PXD047036");        //4
-//                    datasettoTestSet.add("PXD009340");        //5
-//                    datasettoTestSet.add("PXD001250");        //6
+                    datasettoTestSet.add("PXD009340");        //5
+                    datasettoTestSet.add("PXD001250");        //6
 ////////////////////////////////////////////////////////////////////////////            datasettoTestSet.add("PXD000815");        
 ////////////////////////////////////////////////////////////////////////////            datasettoTestSet.add("PXD054727");    
                 } else {
@@ -69,8 +69,8 @@ public class QuickProt {
                 searchOpParameter.setOptimizeSageAdvancedParameter(false || all);
                 searchOpParameter.setOptimizeXtandemAdvancedParameter(false || all);
 //            searchOpParameter.setRecalibrateSpectraParameter(false);
-                boolean sub = true;
-                boolean full = false;
+                boolean sub = false;
+                boolean full = true;
                 for (Advocate se : supportedSearchEngine) {
                     MainUtilities.getParamScoreSet().clear();
                     searchOpParameter.setSelectedSearchEngine(se);

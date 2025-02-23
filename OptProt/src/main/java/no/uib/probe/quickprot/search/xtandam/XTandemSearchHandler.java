@@ -69,7 +69,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
         potintialFalsePostiveParamSet.add("precursorAccuracy");
         potintialFalsePostiveParamSet.add("fragmentAccuracy");
         potintialFalsePostiveParamSet.add("usePotintialModification");
-        
+        potintialFalsePostiveParamSet.add("spectrumDR");
 //        potintialFalsePostiveParamSet.addAll(ptmFactory.getModifications(ModificationCategory.Common));
         potintialFalsePostiveParamSet.addAll(ptmFactory.getModifications(ModificationCategory.Common_Biological));
         potintialFalsePostiveParamSet.addAll(ptmFactory.getModifications(ModificationCategory.Common_Artifact));
@@ -158,8 +158,9 @@ public class XTandemSearchHandler extends CommonSearchHandler {
 
 //        System.out.println("at refrence run " + bestEnzyme + "  " + optProtDataset.getCurrentScoreModel());
         for (String param : paramOrder) {
-           if(!MainUtilities.getParamScoreSet().isEmpty())
-            optProtDataset.updateMaxScore(MainUtilities.getParamScoreSet().last());
+            if (!MainUtilities.getParamScoreSet().isEmpty()) {
+                optProtDataset.updateMaxScore(MainUtilities.getParamScoreSet().last());
+            }
             //empty param score list
             System.out.println("-------------------------------------------param " + param + "-------------------------------------------");
             if (param.equalsIgnoreCase("DigestionParameter") && searchInputSetting.isOptimizeDigestionParameter()) {
@@ -175,7 +176,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-           
+
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
 
                 continue;
@@ -185,7 +186,6 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 searchInputSetting.setDigestionParameterOpt(digestionParameterOpt);
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
 
-                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -211,7 +211,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-               
+
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
 
@@ -226,7 +226,6 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 }
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
 
-                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -240,7 +239,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                
+
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -265,7 +264,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 System.out.println("is Quick pyro " + xtandemParameters.isQuickPyrolidone() + "   is quick acytil " + xtandemParameters.isProteinQuickAcetyl());
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                
+
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -305,7 +304,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                
+
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
 
                 continue;
@@ -323,7 +322,6 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                     IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 }
 
-                
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -358,7 +356,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
                 MainUtilities.resetExecutorService();
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                
+
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -387,7 +385,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 IdentificationParameters.saveIdentificationParameters(identificationParameters, generatedIdentificationParametersFile);
 //              
                 MainUtilities.cleanOutputFolder(searchInputSetting.getDatasetId());
-                
+
                 System.out.println("Current #PSM " + optProtDataset.getIdentifiedPSMsNumber());
                 continue;
             }
@@ -478,9 +476,9 @@ public class XTandemSearchHandler extends CommonSearchHandler {
         boolean potintialFP = false;
         if ((potintialFalsePostiveParamSet.contains(paramOption.split("_")[0]) && !defaultOutputFileName.contains("optsearch_results0v_") && !defaultOutputFileName.contains("optsearch_results1v_"))) {
             potintialFP = true;
-        } 
+        }
         if (paramOption.contains("charge-")) {
-           potintialFP=true;
+            potintialFP = true;
         }
 
         if (paramOption.contains("_")) {
@@ -582,7 +580,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
 //                sortedResultsMap.put(resultsMap.get(option), option);
 //            }
 //            selectedOption = sortedResultsMap.firstEntry().getValue();
-            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
+            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(), false));
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
@@ -640,7 +638,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
         }
         xtandemParameters.setnPeaks(selectedOption);
         if (!resultsMap.isEmpty()) {
-            selectedOption = Integer.valueOf(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
+            selectedOption = Integer.valueOf(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(), false));
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
@@ -691,7 +689,7 @@ public class XTandemSearchHandler extends CommonSearchHandler {
         }
 
         if (!resultsMap.isEmpty()) {
-            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(),false));
+            selectedOption = Double.parseDouble(SpectraUtilities.compareScoresSet(resultsMap, optProtDataset.getSubsetSize(), false));
             double impact = Math.round((double) (resultsMap.get(selectedOption + "").getSpectrumMatchResult().size() - optProtDataset.getActiveIdentificationNum()) * 100.0 / (double) optProtDataset.getActiveIdentificationNum()) / 100.0;
             paramScore.setImpact(impact);
             optProtDataset.setActiveScoreModel(resultsMap.get(selectedOption + ""));
@@ -849,9 +847,9 @@ public class XTandemSearchHandler extends CommonSearchHandler {
                 return scoreModel;
             });
             try {
-               
+
                 RawScoreModel scoreModel = f.get();
-                System.out.println("parent istop "+scoreModel);
+                System.out.println("parent istop " + scoreModel);
                 if (scoreModel.isSensitiveChange()) {
                     resultsMap.put(j, scoreModel);
                 }

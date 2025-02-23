@@ -732,6 +732,7 @@ public abstract class CommonSearchHandler {
         
         Set<String> preservedMods = new HashSet<>();
         preservedMods.add("Deamidation of N");
+        preservedMods.add("Deamidation of Q");
         preservedMods.add("Dimethylation of K");
         preservedMods.add("Methylation of K");
         preservedMods.add("Formylation of K");

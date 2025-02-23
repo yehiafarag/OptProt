@@ -874,15 +874,22 @@ public class SpectraUtilities {
 //        rawScore.setSharedDataSize(referenceSharedData.length);
         rawScore.setSameData(rawScore.getFinalScore() == 0.0 && matches.size() == (optProtDataset.getVaildatedPsmMaches().size()));
         if (!rawScore.isSameData()) {
-            boolean senstive = rawScore.getFinalScore() >= optProtDataset.getBasicComparisonThreshold();
+            boolean senstive = rawScore.getRawFinalScore() >= optProtDataset.getBasicComparisonThreshold();
             rawScore.setAcceptedChange(senstive);
             if (rawScore.getRawFinalScore() > 0) {
                 senstive = true;
-            } else if (optProtDataset.getCurrentScoreModel() != null && (rawScore.getFinalScore() >= (-1.0 * optProtDataset.getBasicComparisonThreshold()) && matches.size() > (double) optProtDataset.getIdentifiedPSMsNumber())) {
+                System.out.println("senstive 1");
+            } else if (optProtDataset.getCurrentScoreModel() != null && (rawScore.getRawFinalScore() == 0 && matches.size() > optProtDataset.getIdentifiedPSMsNumber())) {
                 senstive = true;
-            } else if ((rawScore.getFinalScore() >= (-1.0 * optProtDataset.getBasicComparisonThreshold()) && matches.size() > (double) optProtDataset.getIdentifiedPSMsNumber())) {
+                System.out.println("senstive 2 " + rawScore.getRawFinalScore() + "  " + optProtDataset.getBasicComparisonThreshold() + "  " + matches.size() + "  " + optProtDataset.getIdentifiedPSMsNumber());
+            } else if (optProtDataset.getCurrentScoreModel() != null && (rawScore.getRawFinalScore() >= (-1.0 * optProtDataset.getBasicComparisonThreshold()) && matches.size() > (double) optProtDataset.getIdentifiedPSMsNumber())) {
                 senstive = true;
+                System.out.println("senstive 3 were to apply " + rawScore.getRawFinalScore() + "  " + optProtDataset.getBasicComparisonThreshold());
             }
+//            else if ((rawScore.getFinalScore() >= (-1.0 * optProtDataset.getBasicComparisonThreshold()) && matches.size() > (double) optProtDataset.getIdentifiedPSMsNumber())) {
+//                System.out.println("senstive 3");
+//                senstive = true;
+//            }
 //            else if ((fs1 > 0 && matches.size() > optProtDataset.getActiveIdentificationNum())) {
 //                senstive = true;
 //            }
@@ -940,6 +947,7 @@ public class SpectraUtilities {
 
         }
         double uniqueDataSize = uniqueReferenceData.size() + uniqueTestData.size();
+        double uniqeToTotal = ((double) uniqueTestData.size() + (double) uniqueReferenceData.size()) / ((double) referencePsmList.size() + (double) testPsmList.size());
         double[] referenceSharedData = sharedReferenceData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] testSharedData = sharedTestData.stream().mapToDouble(Double::doubleValue).toArray();
         double[] referenceUniqueData = uniqueReferenceData.stream().mapToDouble(Double::doubleValue).toArray();
@@ -948,39 +956,71 @@ public class SpectraUtilities {
         double score1;
         double score2 = 0;
         if (potintialFP) {
+            System.out.println("improvment percintage " + "  pv " + "  ztestPvalue " + referenceSharedData.length + "   " + testSharedData.length);
             double pValueZtest = StatisticsTests.pairedZTest(referenceSharedData, testSharedData);
-            System.out.println("improvment percintage " + "  pv " + "  ztestPvalue " + pValueZtest + "  tpvalue " + TestUtils.tTest(referenceSharedData, testSharedData, 0.05) + "   ");
+            if ((pValueZtest < 0.05) != TestUtils.tTest(referenceSharedData, testSharedData, 0.05)) {
+                System.out.println("improvment percintage " + "  pv " + "  ztestPvalue " + pValueZtest + "  tpvalue " + TestUtils.tTest(referenceSharedData, testSharedData, 0.05) + "   ");
+            }
             if (!TestUtils.tTest(referenceSharedData, testSharedData, 0.05)) {
                 score1 = 0;
             } else {
                 score1 = SpectraUtilities.performcomparison(referenceSharedData, testSharedData, true);
             }
-            TreeSet<Double> mergeRefScore = new TreeSet<>(uniqueReferenceData);
-            mergeRefScore.addAll(sharedReferenceData);
-            double lowerbond = mergeRefScore.first();
-            List<Double> filteredUniqueTestData = new ArrayList<>();
+            DescriptiveStatistics refDescStat = new DescriptiveStatistics(referenceSharedData);
+            for (double d : uniqueReferenceData) {
+                refDescStat.addValue(d);
+            }
+            double quart1 = refDescStat.getPercentile(25);
+            List<Double> goodSampleUniqueTestDataList = new ArrayList<>();
             for (double d : uniqueTestData) {
-                if (d > lowerbond) {
-                    filteredUniqueTestData.add(d);
+                if (d > quart1) {
+                    goodSampleUniqueTestDataList.add(d);
                 }
             }
-            if (filteredUniqueTestData.size() > (uniqueTestData.size() - filteredUniqueTestData.size() + uniqueReferenceData.size())) {
-                score2 = -100.0;
+            double[] goodSampleUniqueTestData = goodSampleUniqueTestDataList.stream().mapToDouble(Double::doubleValue).toArray();
+            //ttest
+
+            if (uniqueTestData.size() < 30 && goodSampleUniqueTestData.length > 2) {
+//           measure the low quaity effect on data 
+                if (TestUtils.tTest(testUniqueData, goodSampleUniqueTestData, 0.05)) {
+                    score2 = -100;
+                }
+            } else if (goodSampleUniqueTestData.length > 2) {
+                //ztest
+                double p = StatisticsTests.unpairedZTest(testUniqueData, goodSampleUniqueTestData);
+                if ((p < 0.05)) {
+                    score2 = -100;
+                }
+            } else if (uniqueTestData.size() > 2 && goodSampleUniqueTestData.length <= 2) {
+                score2 = -100;
             }
-            if (referenceUniqueData.length == 0) {
-                uniqueReferenceData.addAll(sharedReferenceData);
-                referenceUniqueData = uniqueReferenceData.stream().mapToDouble(Double::doubleValue).toArray();
+            if (score2 != -100.0) {
+                testUniqueData = goodSampleUniqueTestData;
+                if (StatisticsTests.comparableIndependentSamples(new DescriptiveStatistics(referenceUniqueData), new DescriptiveStatistics(testUniqueData))) {
+                    System.out.println("uniqueq data is comparable " + referenceUniqueData.length + " -- " + testUniqueData.length);
+
+                } else if (goodSampleUniqueTestData.length < (uniqueTestData.size() - goodSampleUniqueTestData.length + uniqueReferenceData.size())) {
+                    System.out.println("return -100 ------------1----filterd test " + goodSampleUniqueTestData.length + "  ---full test  " + uniqueTestData.size() + "    uni ref " + uniqueReferenceData.size());
+                    score2 = -100.0;
+                } else {
+                    System.out.println("normal calculation for score 2");
+                }
+
+                if (referenceUniqueData.length == 0) {
+//                    System.out.println("shoud never be applied ------------------------>>>>>>>>>>>>>>>>>>>>>");
+//                    uniqueReferenceData.addAll(sharedReferenceData);
+//                    referenceUniqueData = uniqueReferenceData.stream().mapToDouble(Double::doubleValue).toArray();
+                }
+
             }
-            uniqueTestData.clear();
-            uniqueTestData.addAll(filteredUniqueTestData);
-            testUniqueData = uniqueTestData.stream().mapToDouble(Double::doubleValue).toArray();
 
         } else {
             score1 = SpectraUtilities.performcomparison(referenceSharedData, testSharedData, true);
         }
 
         if (potintialFP && score2 == -100.0) {
-        } else if (uniqeToTotal < 0.05) {
+        } else if (uniqeToTotal < 0.05 && !StatisticsTests.comparableIndependentSamples(new DescriptiveStatistics(referenceUniqueData), new DescriptiveStatistics(testUniqueData))) {
+            System.out.println("---->> new test used ");
             score2 = 0;
         } else {
             score2 = SpectraUtilities.performcomparison(referenceUniqueData, testUniqueData, false);
@@ -995,12 +1035,9 @@ public class SpectraUtilities {
         double finalScore = adjustedScore1 + adjustedScore2;
         if (Double.isNaN(finalScore)) {
             System.out.println(" is there Nan? " + finalScore + " = " + adjustedScore1 + " + " + adjustedScore2 + "  " + uniqueTestData.size() + "  " + uniqueReferenceData.size() + "   " + ratio1 + "   " + ratio2 + "  " + referencePsmList.size() + "  " + testPsmList.size());
-//             System.exit(0);
-        }
 
-//        if (potintialFP) {
-//            System.out.println("at uniqueTestData.size() " + uniqueTestData.size() + "   uniqueReferenceData.size() " + uniqueReferenceData.size() + "  sharedReferenceData " + sharedReferenceData.size() + "  thr ");
-        System.out.println("Ptintial FP param --->>>  " + finalScore + " = " + score1 + " + " + score2 + "  " + uniqueTestData.size() + "  " + uniqueReferenceData.size() + "   " + ratio1 + "   " + ratio2 + "  ");
+        }
+        System.out.println("Ptintial FP param --->>>  " + potintialFP + "  final score " + finalScore + " = " + score1 + " + " + score2 + "  ( test uniq size: " + uniqueTestData.size() + " ) ( reference uniq size: " + uniqueReferenceData.size() + " ) ratio 1: " + ratio1 + "  ratio 2:  " + ratio2 + "  ");
 ////         
 //        }
 //        finalScore = logScaleNormalize(finalScore, 2);
@@ -1281,10 +1318,14 @@ public class SpectraUtilities {
         List<RawScoreModel> scoreModelSorter = new ArrayList<>();
 
         for (String rs1Key : resultsMap.keySet()) {
-            scoreModelSorter.add(resultsMap.get(rs1Key));
+            RawScoreModel rscoreModel = resultsMap.get(rs1Key);
+            rscoreModel.setPotintialFalsePostive(PFP);
+            scoreModelSorter.add(rscoreModel);
         }
         Collections.sort(scoreModelSorter);
-        Collections.reverse(scoreModelSorter);
+        if (!PFP) {
+            Collections.reverse(scoreModelSorter);
+        }
         int index1 = -1;
         List<String> topScoreSet = new ArrayList<>(resultsMap.keySet());
         for (RawScoreModel score1 : scoreModelSorter) {

@@ -17,7 +17,7 @@ public class SageParameterOrderSettings {
         List<String> paramOrder = new ArrayList<>();
 ////       
 ////      
-        paramOrder.add("DigestionParameter_1");
+        paramOrder.add("DigestionParameter");
         paramOrder.add("FragmentIonTypesParameter");
         paramOrder.add("PrecursorChargeParameter");
         paramOrder.add("IsotopParameter");     

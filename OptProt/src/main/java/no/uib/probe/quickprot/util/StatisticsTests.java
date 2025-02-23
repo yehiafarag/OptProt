@@ -12,10 +12,31 @@ import org.apache.commons.math.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.distribution.TDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.inference.AlternativeHypothesis;
+import org.apache.commons.math3.stat.inference.BinomialTest;
 import org.apache.commons.math3.stat.inference.ChiSquareTest;
 import org.apache.commons.math3.stat.inference.TTest;
+import org.apache.commons.math3.stat.inference.TestUtils;
 
 public class StatisticsTests {
+
+    public static boolean comparableIndependentSamples(DescriptiveStatistics referenceData, DescriptiveStatistics improvedData) {
+
+        int df = StatisticsTests.calculateDegreesOfFreedom((int) referenceData.getN(), (int) improvedData.getN());  
+      
+        if (df <= 0) {
+            return false;
+        }
+       
+        double zRefTest = StatisticsTests.independentZTest(referenceData, improvedData);
+        // Significance level (alpha)
+        double alpha = 0.05;
+        // Degrees of freedom
+        // Calculate the critical value for a two-tailed test
+        double criticalValue = StatisticsTests.getCriticalValue(alpha, df);
+        return ((Math.abs(zRefTest) > Math.abs(criticalValue)) || !Double.isNaN(zRefTest));
+
+    }
 
     public static double[] benjaminiHochberg(double[] pValues, double alpha) {
         int n = pValues.length;
@@ -40,23 +61,22 @@ public class StatisticsTests {
         return adjustedPValues;
     }
 
-public static void main(String[] args) {
+    public static void main(String[] args) {
 //        modeMedian();
 //        // Example data
-        int[] sample1 = {1, 2, 5, 9, 12,20};
-        int[] sample2 = {5, 9, 14, 17, 19,20};
+        int[] sample1 = {1, 2, 5, 9, 12, 20};
+        int[] sample2 = {5, 9, 14, 17, 19, 20};
         Set<Integer> mergeSet = new LinkedHashSet<>();
         for (int i = 0; i < 6; i++) {
             mergeSet.add(sample1[i]);
             mergeSet.add(sample2[i]);
         }
 //         mergeSet.add(sample2[5]);
-        
-         int shared = mergeSet.size()-sample1.length;
-         shared=sample2.length- shared;
-         System.out.println("S1 size "+sample1.length+"  s2 "+sample2.length+"   MS "+ mergeSet.size()+" share size "+shared);
-        
-        
+
+        int shared = mergeSet.size() - sample1.length;
+        shared = sample2.length - shared;
+        System.out.println("S1 size " + sample1.length + "  s2 " + sample2.length + "   MS " + mergeSet.size() + " share size " + shared);
+
 //
 //        double z = zTest(sample1, sample2);
 //        double pValue = pValueForZTest(z);
@@ -78,6 +98,15 @@ public static void main(String[] args) {
 
     }
 
+    public static double unpairedZTest(double[] referenceSamples, double[] improvedSample) {
+
+        DescriptiveStatistics referenceSamplesstat = new DescriptiveStatistics(referenceSamples);
+        DescriptiveStatistics improvedSamplestat = new DescriptiveStatistics(improvedSample);
+        double z = independentZTest(referenceSamplesstat, improvedSamplestat);
+        return calculatePValue(z);
+
+    }
+
     public static int calculateDegreesOfFreedom(int n1, int n2) {
         return n1 + n2 - 2;
     }
@@ -95,10 +124,14 @@ public static void main(String[] args) {
         double standardDeviation = calculatePairedStandardDeviation(referenceSamples.getValues(), improvedSample.getValues(), meanDifference);
         double standardError = standardDeviation / Math.sqrt(improvedSample.getN());
         double zScore = meanDifference / standardError;
-        System.out.println("Z score "+zScore);
+        System.out.println("Z score " + zScore);
+        if (Double.isNaN(zScore)) {
+            return 100;
+        }
         return calculatePValue(zScore);
     }
-     public static double pairedZTest(double[] referenceSamples, double[] improvedSample) {
+
+    public static double pairedZTest(double[] referenceSamples, double[] improvedSample) {
         return pairedZTest(new DescriptiveStatistics(referenceSamples), new DescriptiveStatistics(improvedSample));
     }
 
@@ -138,7 +171,8 @@ public static void main(String[] args) {
     public static double cumulativeProbability(double z) {
         return 0.5 * (1 + erf(z / Math.sqrt(2)));
     }
-     public static double calculatePValue(double zScore) {
+
+    public static double calculatePValue(double zScore) {
         NormalDistribution normalDist = new NormalDistribution();
         return 2 * (1 - normalDist.cumulativeProbability(Math.abs(zScore)));
     }

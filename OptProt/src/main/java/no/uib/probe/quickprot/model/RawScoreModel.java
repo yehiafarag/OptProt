@@ -16,7 +16,6 @@ import java.util.Set;
  */
 public class RawScoreModel implements Comparable<RawScoreModel> {
 
-   
     private int idPSMNumber = 0;
     private double tTestStat;
     private double pValue;
@@ -24,8 +23,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     private double s1;
     private double s2;
     private final String parameterId;
-    private int sharedDataSize=0;
-
+    private int sharedDataSize = 0;
 
     public RawScoreModel(String comparisonId) {
         this.parameterId = comparisonId;
@@ -39,11 +37,10 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         this.sameData = sameData;
         if (sameData) {
             s1 = 0;
-            s2=0;
-            finalScore=0;  
+            s2 = 0;
+            finalScore = 0;
             this.setSensitiveChange(false);
         }
-      
 
     }
 
@@ -80,7 +77,7 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     }
 
     public void setFinalScore(double finalScore) {
-        this.rawFinalScore=finalScore;
+        this.rawFinalScore = finalScore;
         this.finalScore = Math.round(finalScore * 1000.0) / 1000.0;
 //        MainUtilities.fullScoreSet.add( this.finalScore);
     }
@@ -149,9 +146,21 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         }
 
     }
+    private boolean potintialFalsePostive;
+
+    public boolean isPotintialFalsePostive() {
+        return potintialFalsePostive;
+    }
+
+    public void setPotintialFalsePostive(boolean potintialFalsePostive) {
+        this.potintialFalsePostive = potintialFalsePostive;
+    }
 
     @Override
     public int compareTo(RawScoreModel rs) {
+        if (potintialFalsePostive) {
+            return Double.compare(idPSMNumber, rs.idPSMNumber);
+        }
         if (finalScore == rs.finalScore) {
             return Double.compare(idPSMNumber, rs.idPSMNumber);
         }
@@ -163,13 +172,13 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
 //        } else {
 //            return -1;
 //        }
-        return Double.compare(finalScore, rs.getFinalScore());
+        return Double.compare(rawFinalScore, rs.getRawFinalScore());
 
     }
 
     @Override
     public String toString() {
-        return "Param accepted: " + acceptedChange + "  final score: " + finalScore + " shared data size: " + sharedDataSize+ "  #Spectra: " + idPSMNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "   S1: " + s1 + "   S2:" + s2;
+        return "Param accepted: " + acceptedChange + "  final score: " + finalScore + " shared data size: " + sharedDataSize + "  #Spectra: " + idPSMNumber + "  senstive improvment " + sensitiveChange + "  same data " + sameData + "   S1: " + s1 + "   S2:" + s2;
     }
 
     public double getDataLengthFactor() {
@@ -184,8 +193,6 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
         this.dataLengthFactor = dataLengthFactor;
     }
 
-   
-
     public double getS1() {
         return s1;
     }
@@ -195,13 +202,14 @@ public class RawScoreModel implements Comparable<RawScoreModel> {
     }
 
     public double getS2() {
-      
+
         return s2;
     }
 
-    public void setS2(double s2) {  
-        if(s1==0 && s2 !=0)
-            System.out.println("------------------------------------------------------>>>>> filtering parameter applied here "+parameterId+"  "+s2);
+    public void setS2(double s2) {
+        if (s1 == 0 && s2 != 0) {
+            System.out.println("------------------------------------------------------>>>>> filtering parameter applied here " + parameterId + "  " + s2);
+        }
         this.s2 = s2;
     }
 
